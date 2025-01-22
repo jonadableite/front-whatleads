@@ -1,0 +1,29 @@
+// public/manifest.json
+{
+  "short_name": "WhatLead",
+  "name": "WhatLead - Disparos em Massa",
+  "icons": [
+    {
+      "src": "/Logo.png",
+      "sizes": "64x64 32x32 24x24 16x16",
+      "type": "image/png"
+    },
+    {
+      "src": "/Logo.png",
+      "type": "image/png",
+      "sizes": "192x192"
+    },
+    {
+      "src": "/Logo.png",
+      "type": "image/png",
+      "sizes": "512x512"
+    }
+  ],
+  "start_url": ".",
+  "display": "standalone",
+  "theme_color": "#7D00FF",
+  "background_color": "#1B1B1F",
+  "orientation": "portrait",
+  "scope": "/",
+  "description": "Plataforma de automação para disparos em massa no WhatsApp"
+}

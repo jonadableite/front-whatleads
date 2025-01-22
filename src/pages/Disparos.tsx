@@ -1,0 +1,1076 @@
+// src/pages/Disparos.tsx
+import { GetInstancesAction } from "@/actions";
+import { ProgressModal } from "@/components/ProgressModal";
+import { api } from "@/lib/api";
+import { cn } from "@/lib/utils";
+import { authService } from "@/services/auth.service";
+import type { Empresa, Instancia } from "@/types";
+import Compressor from "compressorjs";
+import { AnimatePresence, motion } from "framer-motion";
+import { useCallback, useEffect, useState } from "react";
+import { FaClock, FaRocket, FaWhatsapp } from "react-icons/fa";
+import { FiDatabase, FiUpload } from "react-icons/fi";
+import { IoMdImage, IoMdMusicalNote, IoMdVideocam } from "react-icons/io";
+import { useNavigate } from "react-router-dom";
+import { toast } from "react-toastify";
+
+interface Campaign {
+	id: string;
+	name: string;
+	description?: string;
+	status: string;
+	type: string;
+	instance: string;
+	connectionStatus: string;
+	progress: number;
+	statistics: {
+		totalLeads: number;
+		sentCount: number;
+		deliveredCount: number;
+		readCount: number;
+		failedCount: number;
+	} | null;
+}
+
+export default function Disparos() {
+	const navigate = useNavigate();
+	const [companies, setCompanies] = useState<Empresa[]>([]);
+	const [instances, setInstances] = useState<Instancia[]>([]);
+	const [selectedInstance, setSelectedInstance] = useState("");
+	const [selectedConfigId, setSelectedConfigId] = useState("");
+	const [message, setMessage] = useState("");
+	const [file, setFile] = useState<File | null>(null);
+	const [mediaType, setMediaType] = useState("image");
+	const [delay, setDelay] = useState(1);
+	const [totalNumbers, setTotalNumbers] = useState(0);
+	const [numbersProcessed, setNumbersProcessed] = useState(0);
+	const [isModalOpen, setIsModalOpen] = useState(false);
+	const [base64Image, setBase64Image] = useState("");
+	const [base64Audio, setBase64Audio] = useState<string | null>(null);
+	const [campaigns, setCampaigns] = useState<Campaign[]>([]);
+	const [selectedCampaign, setSelectedCampaign] = useState("");
+	const [sendType, setSendType] = useState<"now" | "scheduled">("now");
+	const [scheduledDate, setScheduledDate] = useState<string>("");
+	const [scheduledTime, setScheduledTime] = useState<string>("");
+	const [minDelay, setMinDelay] = useState(5);
+	const [maxDelay, setMaxDelay] = useState(30);
+	const [previewUrl, setPreviewUrl] = useState<string | null>(null);
+	const [progress, setProgress] = useState(0);
+	const [campaignStatus, setCampaignStatus] = useState<string | null>(null);
+	const [isStarting, setIsStarting] = useState(false);
+	const [toastId, setToastId] = useState<Id | null>(null);
+	const [isLoadingInstances, setIsLoadingInstances] = useState(false);
+	const [isLoadingCampaigns, setIsLoadingCampaigns] = useState(false);
+	const [isInitialLoading, setIsInitialLoading] = useState(true);
+	const [dispatchMode, setDispatchMode] = useState<"new" | "existing">("new");
+
+	// Função para pausar a campanha
+	const handlePauseCampaign = async () => {
+		try {
+			await api.main.post(`/campaigns/${selectedCampaign}/pause`);
+			toast.success("Campanha pausada com sucesso!");
+		} catch (error) {
+			console.error("Erro ao pausar campanha:", error);
+			toast.error("Erro ao pausar campanha.");
+		}
+	};
+
+	// Função para retomar a campanha
+	const handleResumeCampaign = async () => {
+		try {
+			const selectedInstanceData = instances.find(
+				(instance) => instance.id === selectedInstance,
+			);
+
+			if (!selectedInstanceData) {
+				throw new Error("Instância não encontrada.");
+			}
+
+			await api.main.post(`/campaigns/${selectedCampaign}/resume`, {
+				instanceName: selectedInstanceData.instanceName,
+			});
+			toast.success("Campanha retomada com sucesso!");
+		} catch (error) {
+			console.error("Erro ao retomar campanha:", error);
+			toast.error("Erro ao retomar campanha.");
+		}
+	};
+
+	// Função para cancelar a campanha
+	const handleCancelCampaign = async () => {
+		try {
+			await api.main.post(`/campaigns/${selectedCampaign}/stop`);
+			toast.success("Campanha cancelada com sucesso!");
+			setIsModalOpen(false); // Fecha o modal caso a campanha seja cancelada
+		} catch (error) {
+			console.error("Erro ao cancelar campanha:", error);
+			toast.error("Erro ao cancelar campanha.");
+		}
+	};
+
+	useEffect(() => {
+		if (!authService.isAuthenticated()) {
+			navigate("/login");
+			return;
+		}
+
+		const initializeData = async () => {
+			setIsInitialLoading(true);
+			try {
+				await fetchData();
+			} finally {
+				setTimeout(() => {
+					setIsInitialLoading(false);
+				}, 2000);
+			}
+		};
+
+		initializeData();
+	}, [navigate]);
+
+	const fetchData = async () => {
+		try {
+			setIsLoadingInstances(true);
+			setIsLoadingCampaigns(true);
+
+			const [instancesResponse, campaignsResponse] = await Promise.all([
+				GetInstancesAction(),
+				api.main.get<Campaign[]>("/campaigns"),
+			]);
+
+			if (instancesResponse?.instances) {
+				setInstances(instancesResponse.instances);
+			}
+
+			if (campaignsResponse.data) {
+				setCampaigns(campaignsResponse.data);
+			}
+		} catch (error) {
+			console.error("Erro ao buscar dados:", error);
+			toast.error("Erro ao carregar dados. Por favor, tente novamente.");
+		} finally {
+			setIsLoadingInstances(false);
+			setIsLoadingCampaigns(false);
+		}
+	};
+
+	const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+		const file = event.target.files?.[0];
+		if (file) {
+			setFile(file);
+			const reader = new FileReader();
+			reader.onload = (e) => {
+				const content = e.target?.result as string;
+				const lines = content.split("\n").filter((line) => line.trim() !== "");
+				setTotalNumbers(lines.length);
+			};
+			reader.readAsText(file);
+		}
+	};
+
+	const handleMediaChange = async (
+		event: React.ChangeEvent<HTMLInputElement>,
+	) => {
+		const file = event.target.files?.[0];
+		if (!file) return;
+
+		try {
+			const reader = new FileReader();
+			reader.onloadend = () => {
+				const base64String = reader.result as string;
+				const base64Content = base64String.split(",")[1];
+
+				// Criar preview URL para visualização
+				const previewUrl = URL.createObjectURL(file);
+				setPreviewUrl(previewUrl);
+
+				// Armazenar o conteúdo base64 apropriado
+				switch (mediaType) {
+					case "image":
+						setBase64Image(base64Content);
+						break;
+					case "audio":
+						setBase64Audio(base64Content);
+						break;
+					case "video":
+						setBase64Image(base64Content);
+						break;
+				}
+			};
+
+			// Se for imagem, comprimir antes
+			if (mediaType === "image") {
+				const compressedFile = await compressImage(file);
+				reader.readAsDataURL(compressedFile);
+			} else {
+				reader.readAsDataURL(file);
+			}
+		} catch (error) {
+			console.error("Erro ao processar mídia:", error);
+			toast.error("Erro ao processar mídia");
+		}
+	};
+
+	// Função para comprimir imagens
+	const compressImage = (file: File, maxSizeMB = 2): Promise<Blob> => {
+		return new Promise((resolve, reject) => {
+			new Compressor(file, {
+				quality: 0.8,
+				maxWidth: 1920,
+				maxHeight: 1080,
+				success(result) {
+					if (result.size > maxSizeMB * 1024 * 1024) {
+						new Compressor(file, {
+							quality: 0.6,
+							maxWidth: 1280,
+							maxHeight: 720,
+							success: resolve,
+							error: reject,
+						});
+					} else {
+						resolve(result);
+					}
+				},
+				error: reject,
+			});
+		});
+	};
+
+	useEffect(() => {
+		return () => {
+			if (previewUrl) {
+				URL.revokeObjectURL(previewUrl);
+			}
+		};
+	}, [previewUrl]);
+
+	const validateForm = () => {
+		if (!selectedInstance) {
+			toast.error("Selecione uma instância");
+			return false;
+		}
+
+		if (!selectedCampaign) {
+			toast.error("Selecione uma campanha");
+			return false;
+		}
+
+		if (!message) {
+			toast.error("Digite uma mensagem");
+			return false;
+		}
+
+		// Validar arquivo apenas no modo "new"
+		if (dispatchMode === "new" && !file) {
+			toast.error("Selecione um arquivo de contatos");
+			return false;
+		}
+
+		if (sendType === "scheduled") {
+			if (!scheduledDate || !scheduledTime) {
+				toast.error("Defina a data e hora do agendamento");
+				return false;
+			}
+
+			const scheduledDateTime = new Date(`${scheduledDate}T${scheduledTime}`);
+			if (scheduledDateTime <= new Date()) {
+				toast.error("A data de agendamento deve ser futura");
+				return false;
+			}
+		}
+
+		if (minDelay >= maxDelay) {
+			toast.error("O delay máximo deve ser maior que o delay mínimo");
+			return false;
+		}
+
+		return true;
+	};
+
+	const refetchCampaign = async () => {
+		try {
+			const response = await api.main.get<Campaign>(
+				`/campaigns/${selectedCampaign}`,
+			);
+			const updatedCampaign = response.data;
+
+			setCampaigns((prev) =>
+				prev.map((camp) =>
+					camp.id === selectedCampaign ? updatedCampaign : camp,
+				),
+			);
+
+			return updatedCampaign;
+		} catch (error) {
+			console.error("Erro ao atualizar dados da campanha:", error);
+			throw error;
+		}
+	};
+
+	const startCampaign = async (campaignId: string) => {
+		try {
+			setIsStarting(true);
+			setIsModalOpen(true);
+			setCampaignStatus("running");
+			setToastId(toast.info("Iniciando campanha...", { autoClose: false }));
+
+			const selectedInstanceData = instances.find(
+				(i) => i.id === selectedInstance,
+			);
+
+			if (!selectedInstanceData) {
+				throw new Error("Instância não encontrada");
+			}
+
+			// Preparar payload da mídia
+			let mediaPayload = null;
+			if (mediaType === "image" && base64Image) {
+				mediaPayload = {
+					type: "image",
+					base64: base64Image,
+					fileName: "image.jpg",
+					mimetype: "image/jpeg",
+				};
+			} else if (mediaType === "video" && base64Image) {
+				mediaPayload = {
+					type: "video",
+					base64: base64Image,
+					fileName: "video.mp4",
+					mimetype: "video/mp4",
+				};
+			} else if (mediaType === "audio" && base64Audio) {
+				mediaPayload = {
+					type: "audio",
+					base64: base64Audio,
+					fileName: "audio.mp3",
+					mimetype: "audio/mpeg",
+				};
+			}
+
+			// Importar leads apenas se estiver no modo "new" e houver arquivo
+			if (dispatchMode === "new" && file) {
+				console.log("Importando novos leads...");
+				const formData = new FormData();
+				formData.append("file", file);
+
+				const importResponse = await api.main.post(
+					`/campaigns/${campaignId}/leads/import`,
+					formData,
+					{
+						headers: {
+							"Content-Type": "multipart/form-data",
+						},
+					},
+				);
+
+				if (!importResponse.data.success) {
+					throw new Error(
+						importResponse.data.message || "Falha ao importar leads",
+					);
+				}
+				console.log("Leads importados com sucesso:", importResponse.data);
+			}
+
+			// Verificar se existem leads na campanha
+			console.log("Verificando leads existentes...");
+			const campaignStats = await api.main.get(
+				`/campaigns/${campaignId}/stats`,
+			);
+			if (!campaignStats.data.totalLeads) {
+				throw new Error("Não há leads disponíveis para disparo nesta campanha");
+			}
+			console.log("Total de leads na campanha:", campaignStats.data.totalLeads);
+
+			// Iniciar a campanha
+			console.log("Iniciando campanha com:", {
+				campaignId,
+				instanceName: selectedInstanceData.instanceName,
+				message,
+				mediaPayload,
+				minDelay,
+				maxDelay,
+			});
+
+			const response = await api.main.post(`/campaigns/${campaignId}/start`, {
+				instanceName: selectedInstanceData.instanceName,
+				message: message,
+				media: mediaPayload,
+				minDelay,
+				maxDelay,
+			});
+
+			console.log("Resposta do início da campanha:", response.data);
+
+			if (response.data.success) {
+				startProgressMonitoring(campaignId);
+				if (toastId) {
+					toast.update(toastId, {
+						render: "Campanha iniciada com sucesso!",
+						type: "success",
+						autoClose: 5000,
+					});
+				}
+			} else {
+				throw new Error(response.data.message || "Erro ao iniciar campanha");
+			}
+		} catch (error) {
+			console.error("Erro ao iniciar campanha:", error);
+			if (toastId) {
+				toast.update(toastId, {
+					render:
+						error instanceof Error ? error.message : "Erro ao iniciar campanha",
+					type: "error",
+					autoClose: 5000,
+				});
+			}
+			setIsModalOpen(false);
+			setCampaignStatus(null);
+		} finally {
+			setIsStarting(false);
+		}
+	};
+
+	const startProgressMonitoring = useCallback((campaignId: string) => {
+		const interval = setInterval(async () => {
+			try {
+				const response = await api.main.get(
+					`/campaigns/${campaignId}/progress`,
+				);
+				const { status, progress, statistics } = response.data.data;
+
+				if (status === "preparing") {
+					setProgress(0);
+					setNumbersProcessed(0);
+				} else {
+					setProgress(progress);
+					setNumbersProcessed(statistics.sentCount);
+				}
+
+				setCampaignStatus(status);
+				setTotalNumbers(statistics.totalLeads);
+
+				if (status !== "preparing" && status !== "running") {
+					clearInterval(interval);
+					await refetchCampaign();
+				}
+			} catch (error) {
+				console.error("Erro ao monitorar progresso:", error);
+				clearInterval(interval);
+			}
+		}, 1000);
+
+		return () => clearInterval(interval);
+	}, []);
+
+	useEffect(() => {
+		let cleanup: (() => void) | undefined;
+
+		if (campaignStatus === "running") {
+			cleanup = startProgressMonitoring(selectedCampaign);
+		}
+
+		return () => {
+			if (cleanup) {
+				cleanup();
+			}
+		};
+	}, [campaignStatus, selectedCampaign, startProgressMonitoring]);
+
+	const handleSubmit = async (event: React.FormEvent) => {
+		event.preventDefault();
+		if (!validateForm()) return;
+
+		try {
+			setIsStarting(true);
+
+			if (sendType === "scheduled") {
+				const scheduledDateTime = new Date(`${scheduledDate}T${scheduledTime}`);
+				const selectedInstanceData = instances.find(
+					(i) => i.id === selectedInstance,
+				);
+
+				if (!selectedInstanceData) {
+					toast.error("Instância não encontrada");
+					return;
+				}
+
+				// Preparar payload da mídia
+				let mediaPayload = null;
+				if (mediaType === "image" && base64Image) {
+					mediaPayload = {
+						type: "image",
+						base64: base64Image,
+						fileName: "image.jpg",
+						mimetype: "image/jpeg",
+					};
+				} else if (mediaType === "video" && base64Image) {
+					mediaPayload = {
+						type: "video",
+						base64: base64Image,
+						fileName: "video.mp4",
+						mimetype: "video/mp4",
+					};
+				} else if (mediaType === "audio" && base64Audio) {
+					mediaPayload = {
+						type: "audio",
+						base64: base64Audio,
+						fileName: "audio.mp3",
+						mimetype: "audio/mpeg",
+					};
+				}
+
+				console.log("Enviando requisição de agendamento:", {
+					campaignId: selectedCampaign,
+					scheduledDate: scheduledDateTime,
+					instanceName: selectedInstanceData.instanceName,
+					mediaPayload, // Incluindo mídia no payload
+				});
+
+				const response = await api.main.post(
+					`/scheduler/${selectedCampaign}/schedule`,
+					{
+						scheduledDate: scheduledDateTime.toISOString(),
+						instanceName: selectedInstanceData.instanceName,
+						message,
+						mediaPayload, // Incluindo mídia no payload
+						minDelay,
+						maxDelay,
+					},
+				);
+
+				console.log("Resposta do agendamento:", response.data);
+
+				if (response.data.success) {
+					toast.success("Campanha agendada com sucesso!");
+					navigate("/disparos/agendados");
+				} else {
+					throw new Error(response.data.message || "Erro ao agendar campanha");
+				}
+			} else {
+				await startCampaign(selectedCampaign);
+			}
+		} catch (error: any) {
+			console.error("Erro detalhado:", error);
+
+			const errorMessage =
+				error.response?.data?.message ||
+				error.response?.data?.error ||
+				error.message ||
+				"Erro ao processar a solicitação";
+
+			toast.error(errorMessage);
+		} finally {
+			setIsStarting(false);
+		}
+	};
+
+	return (
+		<AnimatePresence mode="wait">
+			{isInitialLoading ? (
+				<motion.div
+					initial={{ opacity: 0 }}
+					animate={{ opacity: 1 }}
+					exit={{ opacity: 0 }}
+					className="fixed inset-0 bg-deep/95 backdrop-blur-xl flex items-center justify-center z-50"
+				>
+					<motion.div
+						initial={{ scale: 0.5, opacity: 0 }}
+						animate={{ scale: 1, opacity: 1 }}
+						className="text-center"
+					>
+						<motion.div
+							animate={{
+								scale: [1, 1.2, 1],
+								rotate: [0, 360],
+							}}
+							transition={{
+								duration: 2,
+								repeat: Number.POSITIVE_INFINITY,
+								ease: "linear",
+							}}
+							className="w-16 h-16 border-4 border-electric border-t-transparent rounded-full mx-auto mb-4"
+						/>
+						<h2 className="text-2xl font-bold text-white mb-2">Carregando</h2>
+						<p className="text-white/60">Preparando o ambiente...</p>
+					</motion.div>
+				</motion.div>
+			) : (
+				<motion.div
+					initial={{ opacity: 0 }}
+					animate={{ opacity: 1 }}
+					exit={{ opacity: 0 }}
+					transition={{ duration: 0.5 }}
+					className="w-full min-h-screen bg-gradient-to-br from-deep to-electric-dark p-4 md:p-8"
+				>
+					<div className="max-w-7xl mx-auto bg-deep/30 backdrop-blur-xl rounded-3xl border border-electric/30 overflow-hidden">
+						<div className="p-6 lg:p-10">
+							<h1 className="text-4xl lg:text-5xl font-bold mb-8 text-white text-center">
+								Lançamento de Campanha
+							</h1>
+
+							<form onSubmit={handleSubmit} className="space-y-8">
+								<div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+									<div className="space-y-6">
+										<div>
+											<label className="block text-lg font-medium text-white mb-2">
+												Instância WhatsApp
+											</label>
+											<select
+												disabled={isLoadingInstances}
+												value={selectedInstance}
+												onChange={(e) => setSelectedInstance(e.target.value)}
+												className={cn(
+													"w-full p-4 bg-electric/10 border border-electric rounded-xl text-white focus:ring-2 focus:ring-neon-green transition-all",
+													isLoadingInstances && "animate-pulse",
+												)}
+											>
+												<option value="">
+													{isLoadingInstances
+														? "Carregando instâncias..."
+														: "Selecione a Instância"}
+												</option>
+												{instances.map((instance) => (
+													<option
+														key={instance.id}
+														value={instance.id}
+														className={cn(
+															"flex items-center gap-2 p-2",
+															instance.warmupStatus?.isRecommended &&
+																"text-green-400",
+															instance.connectionStatus === "open" &&
+																"font-medium",
+														)}
+													>
+														{instance.instanceName}
+														{instance.warmupStatus?.isRecommended && " ⭐"}
+														{instance.warmupStatus?.progress > 0 &&
+															` (${instance.warmupStatus.progress.toFixed(1)}%)`}
+													</option>
+												))}
+											</select>
+											{selectedInstance && (
+												<div className="mt-2 space-y-2">
+													{/* Informações do Perfil */}
+													{instances.find((i) => i.id === selectedInstance)
+														?.profileName && (
+														<div className="text-sm text-white/80 flex items-center gap-2">
+															<div className="w-2 h-2 bg-white/50 rounded-full" />
+															<span>
+																Nome do Perfil:{" "}
+																{
+																	instances.find(
+																		(i) => i.id === selectedInstance,
+																	)?.profileName
+																}
+															</span>
+														</div>
+													)}
+
+													{/* Status de Aquecimento */}
+													{instances.find((i) => i.id === selectedInstance)
+														?.warmupStatus?.isRecommended && (
+														<div className="text-sm text-green-400 flex items-center gap-2">
+															<div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
+															<span>
+																Esta instância já possui mais de 300 horas de
+																aquecimento
+															</span>
+														</div>
+													)}
+
+													{/* Status de Conexão */}
+													<div
+														className={cn(
+															"text-sm flex items-center gap-2",
+															instances.find((i) => i.id === selectedInstance)
+																?.connectionStatus === "open"
+																? "text-green-400"
+																: "text-yellow-400",
+														)}
+													>
+														<div
+															className={cn(
+																"w-2 h-2 rounded-full",
+																instances.find((i) => i.id === selectedInstance)
+																	?.connectionStatus === "open"
+																	? "bg-green-400"
+																	: "bg-yellow-400",
+															)}
+														/>
+														<span>
+															Status:{" "}
+															{instances.find((i) => i.id === selectedInstance)
+																?.connectionStatus === "open"
+																? "Conectado"
+																: "Desconectado"}
+														</span>
+													</div>
+												</div>
+											)}
+										</div>
+
+										<div>
+											<label className="block text-lg font-medium text-white mb-2">
+												Campanha
+											</label>
+											<select
+												disabled={isLoadingCampaigns}
+												value={selectedCampaign}
+												onChange={(e) => setSelectedCampaign(e.target.value)}
+												className={cn(
+													"w-full p-4 bg-electric/10 border border-electric rounded-xl text-white focus:ring-2 focus:ring-neon-green transition-all",
+													isLoadingCampaigns && "animate-pulse",
+												)}
+											>
+												<option value="">
+													{isLoadingCampaigns
+														? "Carregando campanhas..."
+														: "Selecione a Campanha"}
+												</option>
+												{campaigns.map((campaign) => (
+													<option
+														key={campaign.id}
+														value={campaign.id}
+														className={cn(
+															"flex items-center gap-2 p-2",
+															campaign.status === "running" && "text-green-400",
+														)}
+													>
+														{campaign.name}
+														{campaign.status === "running" && " (Em execução)"}
+													</option>
+												))}
+											</select>
+											{selectedCampaign && (
+												<div className="mt-2 space-y-2">
+													<div className="text-sm text-white/80">
+														<span>
+															Status:{" "}
+															{
+																campaigns.find((c) => c.id === selectedCampaign)
+																	?.status
+															}
+														</span>
+													</div>
+													{campaigns.find((c) => c.id === selectedCampaign)
+														?.statistics && (
+														<div className="text-sm text-white/80">
+															<span>
+																Envios:{" "}
+																{campaigns.find(
+																	(c) => c.id === selectedCampaign,
+																)?.statistics?.totalLeads || 0}
+															</span>
+														</div>
+													)}
+												</div>
+											)}
+										</div>
+									</div>
+
+									<div>
+										<label className="block text-lg font-medium text-white mb-2">
+											Mensagem
+										</label>
+										<textarea
+											value={message}
+											onChange={(e) => setMessage(e.target.value)}
+											rows={6}
+											className="w-full p-4 bg-electric/10 border border-electric rounded-xl text-white focus:ring-2 focus:ring-neon-green resize-none transition-all"
+											placeholder="Digite sua mensagem aqui..."
+										/>
+									</div>
+								</div>
+
+								<div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+									<div>
+										<label className="block text-lg font-medium text-white mb-2">
+											Tipo de Mídia
+										</label>
+										<select
+											value={mediaType}
+											onChange={(e) => setMediaType(e.target.value)}
+											className="w-full p-4 bg-electric/10 border border-electric rounded-xl text-white focus:ring-2 focus:ring-neon-green transition-all"
+										>
+											<option value="image">Imagem</option>
+											<option value="audio">Áudio</option>
+											<option value="video">Vídeo</option>
+										</select>
+									</div>
+
+									<div>
+										<label className="block text-lg font-medium text-white mb-2">
+											Upload de Mídia
+										</label>
+										<label className="flex items-center justify-center w-full h-[58px] bg-electric/10 border border-electric rounded-xl cursor-pointer hover:bg-electric/20 transition-all duration-300">
+											<input
+												type="file"
+												onChange={handleMediaChange}
+												accept={
+													mediaType === "image"
+														? "image/*"
+														: mediaType === "audio"
+															? "audio/*"
+															: "video/*"
+												}
+												className="hidden"
+											/>
+											<div className="flex items-center gap-2 text-white">
+												{mediaType === "image" ? (
+													<IoMdImage size={24} />
+												) : mediaType === "audio" ? (
+													<IoMdMusicalNote size={24} />
+												) : (
+													<IoMdVideocam size={24} />
+												)}
+												<span>
+													Upload{" "}
+													{mediaType === "image"
+														? "Imagem"
+														: mediaType === "audio"
+															? "Áudio"
+															: "Vídeo"}
+												</span>
+											</div>
+										</label>
+
+										{previewUrl && (
+											<div className="mt-4 rounded-xl overflow-hidden bg-electric/10 border border-electric">
+												{mediaType === "image" && (
+													<img
+														src={previewUrl}
+														alt="Preview"
+														className="w-full h-auto object-cover"
+													/>
+												)}
+												{mediaType === "audio" && (
+													<audio controls className="w-full">
+														<source src={previewUrl} type="audio/mpeg" />
+														Seu navegador não suporta o elemento de áudio.
+													</audio>
+												)}
+												{mediaType === "video" && (
+													<video controls className="w-full">
+														<source src={previewUrl} type="video/mp4" />
+														Seu navegador não suporta o elemento de vídeo.
+													</video>
+												)}
+											</div>
+										)}
+									</div>
+
+									<div>
+										<label className="block text-lg font-medium text-white mb-2">
+											Modo de Disparo
+										</label>
+										<div className="flex gap-4">
+											<button
+												type="button"
+												onClick={() => setDispatchMode("new")}
+												className={cn(
+													"flex-1 py-3 px-4 rounded-xl flex items-center justify-center gap-2 transition-all",
+													dispatchMode === "new"
+														? "bg-neon-green text-black font-bold"
+														: "bg-electric/10 text-white hover:bg-electric/20",
+												)}
+											>
+												<FiUpload className="mr-2" />
+												Importar Novos Leads
+											</button>
+											<button
+												type="button"
+												onClick={() => setDispatchMode("existing")}
+												className={cn(
+													"flex-1 py-3 px-4 rounded-xl flex items-center justify-center gap-2 transition-all",
+													dispatchMode === "existing"
+														? "bg-neon-green text-black font-bold"
+														: "bg-electric/10 text-white hover:bg-electric/20",
+												)}
+											>
+												<FiDatabase className="mr-2" />
+												Usar Base Existente
+											</button>
+										</div>
+									</div>
+								</div>
+
+								{dispatchMode === "new" && (
+									<div>
+										<label className="block text-lg font-medium text-white mb-2">
+											Lista de Contatos
+										</label>
+										<label className="flex items-center justify-center w-full h-[58px] bg-electric/10 border border-electric rounded-xl cursor-pointer hover:bg-electric/20 transition-all duration-300">
+											<input
+												type="file"
+												onChange={handleFileChange}
+												accept=".txt,.csv"
+												className="hidden"
+											/>
+											<div className="flex items-center gap-2 text-white">
+												<FaWhatsapp size={24} />
+												<span>Upload Lista de Contatos</span>
+											</div>
+										</label>
+										{totalNumbers > 0 && (
+											<p className="mt-2 text-white/80">
+												Total de contatos: {totalNumbers}
+											</p>
+										)}
+									</div>
+								)}
+
+								{/* Tipo de Envio */}
+								<div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+									<div>
+										<label className="block text-lg font-medium text-white mb-2">
+											Modo de Lançamento
+										</label>
+										<div className="flex gap-4">
+											<button
+												type="button"
+												onClick={() => setSendType("now")}
+												className={cn(
+													"flex-1 py-3 px-4 rounded-xl flex items-center justify-center gap-2 transition-all",
+													sendType === "now"
+														? "bg-neon-green text-black font-bold"
+														: "bg-electric/10 text-white hover:bg-electric/20",
+												)}
+											>
+												<FaRocket />
+												Imediato
+											</button>
+											<button
+												type="button"
+												onClick={() => setSendType("scheduled")}
+												className={cn(
+													"flex-1 py-3 px-4 rounded-xl flex items-center justify-center gap-2 transition-all",
+													sendType === "scheduled"
+														? "bg-neon-green text-black font-bold"
+														: "bg-electric/10 text-white hover:bg-electric/20",
+												)}
+											>
+												<FaClock />
+												Agendado
+											</button>
+										</div>
+									</div>
+
+									{sendType === "scheduled" && (
+										<div className="grid grid-cols-2 gap-4">
+											<div>
+												<label className="block text-lg font-medium text-white mb-2">
+													Data
+												</label>
+												<input
+													type="date"
+													value={scheduledDate}
+													onChange={(e) => setScheduledDate(e.target.value)}
+													min={new Date().toISOString().split("T")[0]}
+													className="w-full p-4 bg-electric/10 border border-electric rounded-xl text-white focus:ring-2 focus:ring-neon-green transition-all"
+												/>
+											</div>
+											<div>
+												<label className="block text-lg font-medium text-white mb-2">
+													Hora
+												</label>
+												<input
+													type="time"
+													value={scheduledTime}
+													onChange={(e) => setScheduledTime(e.target.value)}
+													className="w-full p-4 bg-electric/10 border border-electric rounded-xl text-white focus:ring-2 focus:ring-neon-green transition-all"
+												/>
+											</div>
+										</div>
+									)}
+								</div>
+
+								<div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+									<div>
+										<label className="block text-lg font-medium text-white mb-2">
+											Intervalo Mínimo (segundos)
+										</label>
+										<input
+											type="number"
+											value={minDelay}
+											onChange={(e) => setMinDelay(Number(e.target.value))}
+											min="5"
+											max="60"
+											className="w-full p-4 bg-electric/10 border border-electric rounded-xl text-white focus:ring-2 focus:ring-neon-green transition-all"
+										/>
+									</div>
+									<div>
+										<label className="block text-lg font-medium text-white mb-2">
+											Intervalo Máximo (segundos)
+										</label>
+										<input
+											type="number"
+											value={maxDelay}
+											onChange={(e) => setMaxDelay(Number(e.target.value))}
+											min={minDelay}
+											max="120"
+											className="w-full p-4 bg-electric/10 border border-electric rounded-xl text-white focus:ring-2 focus:ring-neon-green transition-all"
+										/>
+									</div>
+								</div>
+
+								<div className="flex justify-end">
+									<button
+										type="submit"
+										disabled={
+											isInitialLoading ||
+											isStarting ||
+											isLoadingInstances ||
+											isLoadingCampaigns
+										}
+										className="px-8 py-4 bg-neon-green text-black rounded-xl font-bold text-lg hover:bg-electric hover:text-white transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+									>
+										{isStarting ? (
+											<motion.div
+												initial={{ opacity: 0 }}
+												animate={{ opacity: 1 }}
+												exit={{ opacity: 0 }}
+												transition={{ duration: 0.5 }}
+												className="flex items-center gap-2"
+											>
+												<div className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin" />
+												Iniciando...
+											</motion.div>
+										) : isInitialLoading ||
+											isLoadingInstances ||
+											isLoadingCampaigns ? (
+											<motion.div
+												initial={{ opacity: 0 }}
+												animate={{ opacity: 1 }}
+												exit={{ opacity: 0 }}
+												transition={{ duration: 0.5 }}
+												className="flex items-center gap-2"
+											>
+												<div className="w-4 h-4 border-2 border-black border-t-transparent rounded-full animate-spin" />
+												Carregando...
+											</motion.div>
+										) : sendType === "scheduled" ? (
+											"Agendar Campanha"
+										) : (
+											"Lançar Campanha"
+										)}
+									</button>
+								</div>
+							</form>
+						</div>
+					</div>
+
+					{isModalOpen && (
+						<ProgressModal
+							isOpen={isModalOpen}
+							onClose={() => setIsModalOpen(false)}
+							campaignId={selectedCampaign}
+							onPause={handlePauseCampaign}
+							onResume={handleResumeCampaign}
+							onCancel={handleCancelCampaign}
+						/>
+					)}
+				</motion.div>
+			)}
+		</AnimatePresence>
+	);
+}
