@@ -93,8 +93,7 @@ const CheckoutPage: React.FC = () => {
 				}
 
 				const apiUrl =
-					import.meta.env.VITE_API_URL ||
-					"https://whatlead-api-saas.hlvhsf.easypanel.host";
+					import.meta.env.VITE_API_URL || "https://https://api.whatlead.com.br";
 				const response = await fetch(
 					`${apiUrl}/api/stripe/create-payment-intent`,
 					{
