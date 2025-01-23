@@ -1,8 +1,5 @@
 // src/actions/leads.actions.ts
-import axios from "axios";
-
-const API_BASE_URL =
-	import.meta.env.VITE_API_URL || "https://api.whatlead.com.br";
+import { api } from "@/lib/api";
 
 export async function saveCreateLead(
 	name: string,
@@ -12,27 +9,13 @@ export async function saveCreateLead(
 	dialog: any[],
 ) {
 	try {
-		const token = localStorage.getItem("token");
-		if (!token) {
-			throw new Error("Token não encontrado");
-		}
-
-		const response = await axios.post(
-			`${API_BASE_URL}/leads`,
-			{
-				name,
-				phone,
-				email,
-				config_id: configId,
-				dialog,
-			},
-			{
-				headers: {
-					Authorization: `Bearer ${token}`,
-					"Content-Type": "application/json",
-				},
-			},
-		);
+		const response = await api.main.post(`/leads`, {
+			name,
+			phone,
+			email,
+			config_id: configId,
+			dialog,
+		});
 		return response.data;
 	} catch (error) {
 		console.error("Error saving lead:", error);

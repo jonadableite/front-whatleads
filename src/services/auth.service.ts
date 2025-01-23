@@ -73,10 +73,13 @@ class AuthService {
 	// Gerenciamento de token
 	setToken(token: string): void {
 		localStorage.setItem(this.TOKEN_KEY, token);
+		console.log("Token armazenado:", token);
 	}
 
 	getToken(): string | null {
-		return localStorage.getItem(this.TOKEN_KEY);
+		const token = localStorage.getItem(this.TOKEN_KEY);
+		console.log("Token recuperado:", token);
+		return token;
 	}
 
 	// Gerenciamento de usuário

@@ -196,6 +196,10 @@ const Instances: React.FC = () => {
 	const [instanceLimit, setInstanceLimit] = useState<number>(0);
 	const [remainingSlots, setRemainingSlots] = useState<number>(0);
 	const [isCreatingInstance, setIsCreatingInstance] = useState(false);
+	const [pollingIntervals, setPollingIntervals] = useState<{
+		[key: string]: NodeJS.Timeout;
+	}>({});
+
 	const [qrCode, setQrCode] = useState<{
 		base64: string;
 		pairingCode?: string;
@@ -326,46 +330,49 @@ const Instances: React.FC = () => {
 
 			console.log("Dados recebidos do backend:", response.data);
 
-			// Verifica se a resposta contém os dados necessários
-			if (response.data && response.data.qrcode) {
-				const { qrcode } = response.data;
+			// Aqui é onde a nova parte se encaixa
+			if (response.data && response.data.instance) {
+				const newInstance = response.data.instance;
+				setInstances((prev) => [...prev, newInstance]);
+				startPolling(newInstance.id, newInstance.instanceName);
 
-				// Verifica se temos o código QR em base64 ou precisamos construí-lo
-				const qrBase64 =
-					qrcode.base64 ||
-					(qrcode.code ? `data:image/png;base64,${qrcode.code}` : null);
+				// Configura o QR Code com os dados recebidos
+				if (response.data.qrcode) {
+					const { qrcode } = response.data;
+					const qrBase64 =
+						qrcode.base64 ||
+						(qrcode.code ? `data:image/png;base64,${qrcode.code}` : null);
 
-				if (qrBase64) {
-					// Configura o QR Code com os dados recebidos
-					setQrCode({
-						base64: qrBase64,
-						pairingCode: qrcode.pairingCode || null,
-					});
+					if (qrBase64) {
+						setQrCode({
+							base64: qrBase64,
+							pairingCode: qrcode.pairingCode || null,
+						});
 
-					// Atualiza os estados
-					setShowQrCodeModal(true);
-					setIsModalOpen(false);
-					setNewInstanceName("");
+						setShowQrCodeModal(true);
+						setIsModalOpen(false);
+						setNewInstanceName("");
 
-					console.log("QR Code configurado:", {
-						base64: qrBase64.substring(0, 100) + "...",
-						pairingCode: qrcode.pairingCode,
-					});
+						console.log("QR Code configurado:", {
+							base64: qrBase64.substring(0, 100) + "...",
+							pairingCode: qrcode.pairingCode,
+						});
 
-					toast.success(
-						"Instância criada com sucesso! Escaneie o QR Code para conectar.",
-					);
-
-					// Atualiza a lista de instâncias
-					await fetchInstances();
-				} else {
-					console.error("QR Code não encontrado na resposta:", qrcode);
-					toast.error("Erro ao gerar QR Code");
+						toast.success(
+							"Instância criada com sucesso! Escaneie o QR Code para conectar.",
+						);
+					} else {
+						console.error("QR Code não encontrado na resposta:", qrcode);
+						toast.error("Erro ao gerar QR Code");
+					}
 				}
 			} else {
 				console.error("Resposta inválida do servidor:", response.data);
 				toast.error("Erro ao processar resposta do servidor");
 			}
+
+			// Atualiza a lista de instâncias
+			await fetchInstances();
 		} catch (error: any) {
 			console.error("Erro ao criar instância:", error);
 			toast.error(
@@ -395,6 +402,44 @@ const Instances: React.FC = () => {
 		});
 	}, [showQrCodeModal, qrCode]);
 
+	const startPolling = (instanceId: string, instanceName: string) => {
+		const pollInterval = setInterval(async () => {
+			try {
+				const response = await axios.get(
+					`${API_URL}/instance/connectionState/${instanceName}`,
+					{
+						headers: {
+							apikey: API_KEY,
+						},
+					},
+				);
+
+				const currentStatus =
+					response.data?.instance?.connectionStatus ||
+					response.data?.instance?.state;
+
+				if (currentStatus === "open") {
+					updateInstanceStatus(instanceId, "open");
+					clearInterval(pollInterval);
+				}
+			} catch (error) {
+				console.error("Erro ao verificar status da instância:", error);
+			}
+		}, 5000); // Verifica a cada 5 segundos
+
+		setPollingIntervals((prev) => ({ ...prev, [instanceId]: pollInterval }));
+	};
+
+	const updateInstanceStatus = (instanceId: string, status: string) => {
+		setInstances((prevInstances) =>
+			prevInstances.map((instance) =>
+				instance.id === instanceId
+					? { ...instance, connectionStatus: status }
+					: instance,
+			),
+		);
+	};
+
 	const handleReconnectInstance = async (instanceName) => {
 		try {
 			// Tenta conectar e obter o QR code
@@ -418,6 +463,7 @@ const Instances: React.FC = () => {
 					});
 					setShowQrCodeModal(true);
 					toast.success("Escaneie o QR Code para conectar");
+					startPolling(instanceName, instanceName);
 
 					let attempts = 0;
 					const maxAttempts = 60;
@@ -651,7 +697,7 @@ const Instances: React.FC = () => {
 						<InstanceCard
 							key={instance.id}
 							instance={instance}
-							onReconnect={() => {}}
+							onReconnect={handleReconnectInstance}
 							onLogout={() => {}}
 							onDelete={() => {}}
 						/>

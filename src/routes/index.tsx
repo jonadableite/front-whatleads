@@ -11,6 +11,7 @@ import Login from "@/pages/Login";
 import PaymentSuccess from "@/pages/PaymentSuccess";
 import PricingPage from "@/pages/Pricing";
 import Register from "@/pages/Register";
+import Return from "@/pages/Return";
 import { RouterProvider, createBrowserRouter } from "react-router-dom";
 import Agendados from "../pages/Agendados";
 import Contatos from "../pages/Contatos";
@@ -64,6 +65,10 @@ const router = createBrowserRouter([
 					{
 						path: "/payment-success",
 						element: <PaymentSuccess />,
+					},
+					{
+						path: "/return",
+						element: <Return />,
 					},
 					{
 						path: "/campanhas",

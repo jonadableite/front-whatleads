@@ -1,15 +1,14 @@
-import { authService } from "@/services/auth.service";
 // src/components/layout/ProtectedLayout.tsx
-import { Navigate, Outlet } from "react-router-dom";
+import { Navigate, Outlet, useLocation } from "react-router-dom";
+import { authService } from "@/services/auth.service";
 
 export function ProtectedLayout() {
+	const location = useLocation();
 	const isAuthenticated = authService.isAuthenticated();
 
-	// Se o usuário não está autenticado, redireciona para o login
 	if (!isAuthenticated) {
-		return <Navigate to="/login" replace />;
+		return <Navigate to="/login" state={{ from: location }} replace />;
 	}
 
-	// Renderiza as rotas protegidas
 	return <Outlet />;
 }

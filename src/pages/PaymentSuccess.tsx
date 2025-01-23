@@ -1,7 +1,7 @@
-// src/pages/PaymentSuccess.tsx
+//src/pages/PaymentSuccess.tsx
 import { authService } from "@/services/auth.service";
 import axios from "axios";
-import * as motion from "framer-motion";
+import { motion } from "framer-motion";
 import { ArrowRight, CheckCircle, Star } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
@@ -61,6 +61,19 @@ const PaymentSuccess = () => {
 						initial={{ opacity: 0 }}
 						animate={{ opacity: 1 }}
 						className="text-center p-8 bg-deep/20 rounded-xl backdrop-blur-lg"
+					>
+						<div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-electric mx-auto"></div>
+						<p className="text-white mt-4">
+							Verificando status do pagamento...
+						</p>
+					</motion.div>
+				)}
+
+				{status === "success" && (
+					<motion.div
+						initial={{ opacity: 0, y: 20 }}
+						animate={{ opacity: 1, y: 0 }}
+						className="bg-deep/20 backdrop-blur-lg rounded-3xl p-8 border border-electric/30"
 					>
 						<div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-electric mx-auto"></div>
 						<p className="text-white mt-4">

@@ -1,4 +1,3 @@
-// src/pages/Register.tsx
 import { Button } from "@/components/ui/button";
 import {
 	Card,
@@ -9,10 +8,13 @@ import {
 	CardTitle,
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+// src/pages/Register.tsx
+import axios from "axios";
 import { motion } from "framer-motion";
 import type React from "react";
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { toast } from "react-toastify";
 
 const MatrixRain: React.FC = () => {
 	const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -112,21 +114,57 @@ const Register: React.FC = () => {
 	const [confirmPassword, setConfirmPassword] = useState("");
 	const [showPassword, setShowPassword] = useState(false);
 	const [showConfirmPassword, setShowConfirmPassword] = useState(false);
+	const [isLoading, setIsLoading] = useState(false);
+	const [error, setError] = useState<string | null>(null);
 	const navigate = useNavigate();
 
-	const handleRegister = (e: React.FormEvent) => {
+	const handleRegister = async (e: React.FormEvent) => {
 		e.preventDefault();
-		if (password !== confirmPassword) {
-			console.error("As senhas não coincidem!");
+		setError(null);
+		setIsLoading(true);
+
+		if (!name || !email || !password || !confirmPassword) {
+			setError("Todos os campos são obrigatórios.");
+			setIsLoading(false);
 			return;
 		}
-		console.log("Dados de Registro:", {
-			name,
-			email,
-			password,
-			confirmPassword,
-		});
-		navigate("/login");
+
+		if (password !== confirmPassword) {
+			setError("As senhas não coincidem!");
+			setIsLoading(false);
+			return;
+		}
+
+		if (password.length < 8) {
+			setError("A senha deve ter pelo menos 8 caracteres.");
+			setIsLoading(false);
+			return;
+		}
+
+		try {
+			const response = await axios.post(
+				"https://api.whatlead.com.br/api/users/register",
+				{
+					name,
+					email,
+					password,
+				},
+			);
+
+			if (response.status === 201) {
+				toast.success(
+					"Registro realizado com sucesso! Redirecionando para o login...",
+				);
+				setTimeout(() => navigate("/login"), 2000);
+			} else {
+				toast.error("Erro ao registrar. Por favor, tente novamente.");
+			}
+		} catch (error: any) {
+			console.error("Erro ao registrar:", error);
+			setError(error.response?.data?.message || "Erro ao registrar.");
+		} finally {
+			setIsLoading(false);
+		}
 	};
 
 	return (
@@ -151,7 +189,7 @@ const Register: React.FC = () => {
 								animate={{ y: 0, opacity: 1 }}
 								transition={{ duration: 0.5 }}
 								className="flex justify-center mb-6"
-							></motion.div>
+							/>
 							<CardTitle className="text-center text-neon-blue text-4xl font-bold mb-2">
 								Crie sua conta
 							</CardTitle>
@@ -257,6 +295,15 @@ const Register: React.FC = () => {
                     transition-all duration-300 h-12 text-lg"
 									/>
 								</motion.div>
+								{error && (
+									<motion.div
+										initial={{ opacity: 0, y: -20 }}
+										animate={{ opacity: 1, y: 0 }}
+										className="bg-red-500/20 border border-red-500/50 text-red-300 px-4 py-3 rounded-xl mb-6 text-center"
+									>
+										{error}
+									</motion.div>
+								)}
 								<motion.div
 									initial={{ opacity: 0, y: 20 }}
 									animate={{ opacity: 1, y: 0 }}
@@ -264,12 +311,13 @@ const Register: React.FC = () => {
 								>
 									<Button
 										type="submit"
-										className="w-full bg-neon-blue text-white-pure font-bold text-xl
+										disabled={isLoading}
+										className={`w-full bg-neon-blue text-white-pure font-bold text-xl
                     py-5 rounded-xl shadow-lg transition-all duration-300
                     hover:bg-electric hover:text-black hover:shadow-neon
-                    focus:ring-4 focus:ring-neon-blue/50"
+                    focus:ring-4 focus:ring-neon-blue/50 ${isLoading ? "opacity-50 cursor-not-allowed" : ""}`}
 									>
-										Criar conta
+										{isLoading ? "Registrando..." : "Criar conta"}
 									</Button>
 								</motion.div>
 							</form>

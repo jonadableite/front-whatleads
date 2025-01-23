@@ -114,6 +114,13 @@ const Login: React.FC = () => {
 	const [loading, setLoading] = useState(false);
 	const navigate = useNavigate();
 
+	useEffect(() => {
+		// Check if user is already authenticated
+		if (authService.isAuthenticated()) {
+			navigate("/dashboard", { replace: true });
+		}
+	}, [navigate]);
+
 	const handleLogin = async (e: React.FormEvent) => {
 		e.preventDefault();
 		setLoading(true);
@@ -135,22 +142,21 @@ const Login: React.FC = () => {
 
 			if (!planStatus.hasActiveSubscription && planStatus.isTrialExpired) {
 				toast.warning("Sua assinatura expirou. Por favor, renove seu plano.");
-				navigate("/plans");
+				navigate("/plans", { replace: true });
 				return;
 			}
 
-			// Verificar se tem empresa configurada
 			if (!response.user.companyId) {
 				toast.info("Configure sua empresa para continuar.");
-				navigate("/company-setup");
+				navigate("/company-setup", { replace: true });
 				return;
 			}
 
-			// Se chegou aqui, está tudo ok
 			toast.success("Login realizado com sucesso!");
 
-			// Redirecionar para o dashboard
-			navigate("/dashboard", { replace: true });
+			// Redirect to the page the user was trying to access, or dashboard
+			const from = (location.state as any)?.from?.pathname || "/dashboard";
+			navigate(from, { replace: true });
 		} catch (error: any) {
 			const errorMessage =
 				error.response?.data?.error || error.message || "Erro ao fazer login";
