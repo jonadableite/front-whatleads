@@ -622,9 +622,20 @@ export default function Disparos() {
 												className={cn(
 													"w-full p-4 bg-electric/10 border border-electric rounded-xl text-white focus:ring-2 focus:ring-neon-green transition-all",
 													isLoadingInstances && "animate-pulse",
+													"appearance-none", // Adicione esta classe
 												)}
+												style={{
+													WebkitAppearance: "none",
+													MozAppearance: "none",
+													backgroundImage:
+														'url(\'data:image/svg+xml;utf8,<svg fill="white" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/></svg>\')',
+													backgroundRepeat: "no-repeat",
+													backgroundPosition: "right 10px top 50%",
+													backgroundSize: "24px auto",
+													paddingRight: "40px",
+												}}
 											>
-												<option value="">
+												<option value="" className="bg-deep text-white">
 													{isLoadingInstances
 														? "Carregando instâncias..."
 														: "Selecione a Instância"}
@@ -634,9 +645,9 @@ export default function Disparos() {
 														key={instance.id}
 														value={instance.id}
 														className={cn(
-															"flex items-center gap-2 p-2",
+															"bg-deep text-white",
 															instance.warmupStatus?.isRecommended &&
-																"text-green-400",
+																"text-neon-green",
 															instance.connectionStatus === "open" &&
 																"font-medium",
 														)}
@@ -710,19 +721,34 @@ export default function Disparos() {
 										</div>
 
 										<div>
-											<label className="block text-lg font-medium text-white mb-2">
+											<label
+												htmlFor="campaign-select"
+												className="block text-lg font-medium text-white mb-2"
+											>
 												Campanha
 											</label>
 											<select
+												id="campaign-select"
 												disabled={isLoadingCampaigns}
 												value={selectedCampaign}
 												onChange={(e) => setSelectedCampaign(e.target.value)}
 												className={cn(
 													"w-full p-4 bg-electric/10 border border-electric rounded-xl text-white focus:ring-2 focus:ring-neon-green transition-all",
 													isLoadingCampaigns && "animate-pulse",
+													"appearance-none", // Adicione esta classe
 												)}
+												style={{
+													WebkitAppearance: "none",
+													MozAppearance: "none",
+													backgroundImage:
+														'url(\'data:image/svg+xml;utf8,<svg fill="white" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/></svg>\')',
+													backgroundRepeat: "no-repeat",
+													backgroundPosition: "right 10px top 50%",
+													backgroundSize: "24px auto",
+													paddingRight: "40px",
+												}}
 											>
-												<option value="">
+												<option value="" className="bg-deep text-white">
 													{isLoadingCampaigns
 														? "Carregando campanhas..."
 														: "Selecione a Campanha"}
@@ -732,8 +758,9 @@ export default function Disparos() {
 														key={campaign.id}
 														value={campaign.id}
 														className={cn(
-															"flex items-center gap-2 p-2",
-															campaign.status === "running" && "text-green-400",
+															"bg-deep text-white",
+															campaign.status === "running" &&
+																"text-neon-green",
 														)}
 													>
 														{campaign.name}

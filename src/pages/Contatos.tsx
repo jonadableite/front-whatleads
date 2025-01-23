@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Toast } from "@/components/ui/toast";
+import type { SegmentationRule } from "@/interface";
 import { leadsApi } from "@/services/api/leads";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
@@ -28,22 +29,31 @@ const Contatos: React.FC = () => {
 		refetch,
 	} = useQuery({
 		queryKey: ["leads"],
-		queryFn: leadsApi.fetchLeads,
-		onError: (error: Error) => {
-			Toast.error(`Erro ao carregar leads: ${error.message}`);
+		queryFn: async () => {
+			try {
+				return await leadsApi.fetchLeads();
+			} catch (error) {
+				Toast.error(`Erro ao carregar leads: ${(error as Error).message}`);
+				throw error;
+			}
 		},
 	});
 
 	const { data: userPlan } = useQuery({
 		queryKey: ["userPlan"],
-		queryFn: leadsApi.fetchUserPlan,
-		onError: (error: Error) => {
-			Toast.error(`Erro ao carregar plano: ${error.message}`);
+		queryFn: async () => {
+			try {
+				return await leadsApi.fetchUserPlan();
+			} catch (error) {
+				Toast.error(`Erro ao carregar plano: ${(error as Error).message}`);
+				throw error;
+			}
 		},
 	});
 
 	const importLeadsMutation = useMutation({
-		mutationFn: (file: File) => leadsApi.importLeads(file),
+		mutationFn: ({ campaignId, file }: { campaignId: string; file: File }) =>
+			leadsApi.importLeads(campaignId, file),
 		onSuccess: () => {
 			Toast.success("Leads importados com sucesso!");
 			refetch();
@@ -161,9 +171,9 @@ const Contatos: React.FC = () => {
 							icon: <FiUsers />,
 							value: `${leadsData?.data?.totalLeads || 0}/${userPlan?.data?.maxLeads || 0}`,
 						},
-					].map((stat, index) => (
+					].map((stat) => (
 						<motion.div
-							key={index}
+							key={stat.title}
 							variants={itemVariants}
 							className="bg-deep/80 backdrop-blur-xl p-6 rounded-xl border border-electric shadow-lg hover:shadow-electric transition-all duration-300"
 						>

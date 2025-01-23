@@ -124,8 +124,8 @@ const fetchCampaigns = async (): Promise<
 				statistics: statsMap.get(campaign.id),
 			}),
 		);
-	} catch (error) {
-		console.error("Erro ao buscar campanhas:", error);
+	} catch {
+		console.error("Erro ao buscar campanhas:", Error);
 		return [];
 	}
 };
@@ -167,7 +167,7 @@ const Campanhas: React.FC = () => {
 			}
 			return false;
 		},
-		onError: (err) => {
+		onError: (err: Error) => {
 			console.error("Erro na query:", err);
 			setError("Erro ao carregar campanhas. Por favor, tente novamente.");
 		},
@@ -292,7 +292,7 @@ const Campanhas: React.FC = () => {
 							: "parada"
 				} com sucesso!`,
 			);
-		} catch (error) {
+		} catch {
 			Toast.error("Erro ao executar ação na campanha");
 		}
 	};
@@ -302,7 +302,7 @@ const Campanhas: React.FC = () => {
 			await deleteCampaign.mutateAsync(id);
 			await refetch();
 			Toast.success("Campanha excluída com sucesso!");
-		} catch (error) {
+		} catch {
 			Toast.error("Erro ao excluir campanha");
 		}
 	};
@@ -319,8 +319,8 @@ const Campanhas: React.FC = () => {
 			}
 			setIsModalOpen(false);
 			setSelectedCampaign(null);
-		} catch (error) {
-			console.error("Erro ao salvar campanha:", error);
+		} catch {
+			console.error("Erro ao salvar campanha");
 		}
 	};
 
@@ -408,7 +408,7 @@ const Campanhas: React.FC = () => {
 			setIsDeleting(true);
 			try {
 				await onDelete();
-			} catch (error) {
+			} catch {
 				Toast.error("Erro ao excluir campanha");
 			} finally {
 				setIsDeleting(false);
@@ -545,7 +545,8 @@ const Campanhas: React.FC = () => {
 			},
 		};
 
-		const config = statusConfig[status] || statusConfig.draft;
+		const config =
+			statusConfig[status as keyof typeof statusConfig] || statusConfig.draft;
 
 		return (
 			<div className="flex items-center gap-2">
@@ -571,7 +572,7 @@ const Campanhas: React.FC = () => {
 			<div
 				className="bg-neon-green h-2.5 rounded-full"
 				style={{ width: `${progress}%` }}
-			></div>
+			/>
 		</div>
 	);
 
@@ -648,7 +649,7 @@ const Campanhas: React.FC = () => {
 			exit={{ opacity: 0 }}
 			className="flex justify-center items-center h-64"
 		>
-			<div className="loader ease-linear rounded-full border-8 border-t-8 border-gray-200 h-32 w-32"></div>
+			<div className="loader ease-linear rounded-full border-8 border-t-8 border-gray-200 h-32 w-32" />
 		</motion.div>
 	);
 

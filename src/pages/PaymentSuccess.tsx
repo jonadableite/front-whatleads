@@ -62,7 +62,7 @@ const PaymentSuccess = () => {
 						animate={{ opacity: 1 }}
 						className="text-center p-8 bg-deep/20 rounded-xl backdrop-blur-lg"
 					>
-						<div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-electric mx-auto"></div>
+						<div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-electric mx-auto" />
 						<p className="text-white mt-4">
 							Verificando status do pagamento...
 						</p>
@@ -75,7 +75,7 @@ const PaymentSuccess = () => {
 						animate={{ opacity: 1, y: 0 }}
 						className="bg-deep/20 backdrop-blur-lg rounded-3xl p-8 border border-electric/30"
 					>
-						<div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-electric mx-auto"></div>
+						<div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-electric mx-auto" />
 						<p className="text-white mt-4">
 							Verificando status do pagamento...
 						</p>
@@ -169,6 +169,7 @@ const PaymentSuccess = () => {
 							Não foi possível verificar o status do seu pagamento.
 						</p>
 						<button
+							type="button"
 							onClick={() => navigate("/pricing")}
 							className="bg-white text-red-500 px-6 py-2 rounded-lg"
 						>
