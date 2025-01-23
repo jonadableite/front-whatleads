@@ -1,4 +1,19 @@
 // src/interface/index.ts
+export interface Plan {
+	name: string;
+	price: {
+		monthly: number;
+		annual: number;
+	};
+	features: string[];
+	icon: React.ReactNode;
+	bgGradient: string;
+	recommended: boolean;
+	priceId: {
+		monthly: string;
+		annual: string;
+	};
+}
 
 export interface LeadStatsCardProps {
 	title: string;
@@ -83,7 +98,7 @@ export interface ScheduledCampaign extends Campaign {
 }
 
 export interface HistoricoProps {
-	campaignId: string;
+	campaigns: ScheduledCampaign[];
 }
 
 export interface Dispatch {

@@ -5,7 +5,8 @@ import { useQuery } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "framer-motion";
 import { useMemo, useState } from "react";
 import { FiAlertCircle, FiCalendar, FiClock, FiSearch } from "react-icons/fi";
-import type { Dispatch, HistoricoProps } from "../interface";
+import { useParams } from "react-router-dom";
+import type { Dispatch } from "../interface";
 
 const pageTransition = {
 	out: { opacity: 0, y: 20 },
@@ -125,7 +126,8 @@ const SyncButton: React.FC<{ onClick: () => void; loading: boolean }> = ({
 	);
 };
 
-const Historico: React.FC<HistoricoProps> = ({ campaignId }) => {
+const Historico: React.FC = () => {
+	const { campaignId } = useParams<{ campaignId: string }>();
 	const [searchTerm, setSearchTerm] = useState("");
 	const [instanceFilter, setInstanceFilter] = useState("");
 	const [dateFilter, setDateFilter] = useState("");

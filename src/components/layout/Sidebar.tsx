@@ -1,20 +1,20 @@
-// src/components/layout/Sidebar.tsx
 import { Button } from "@/components/ui/button";
 import { useSidebar } from "@/contexts/SidebarContext";
 import { cn } from "@/lib/utils";
 import { authService } from "@/services/auth.service";
 import { AnimatePresence, motion } from "framer-motion";
 import {
-	Box,
 	ChevronRight,
+	Crown,
 	FileText,
 	Home,
 	LogOut,
 	Menu,
 	MessageSquareText,
+	Phone,
+	Sparkles,
 	Users,
 	X,
-	Zap,
 } from "lucide-react";
 import { useState } from "react";
 import { Link, useLocation } from "react-router-dom";
@@ -40,21 +40,13 @@ const sidebarItems: SidebarItem[] = [
 		title: "Disparos",
 		icon: <MessageSquareText className="w-5 h-5" />,
 		path: "/disparos",
-		submenu: [
-			// { title: "Histórico", path: "/disparos/historico" },
-			{ title: "Agendados", path: "/disparos/agendados" },
-		],
+		submenu: [{ title: "Agendados", path: "/disparos/agendados" }],
 	},
 	{
 		title: "Contatos",
 		icon: <Users className="w-5 h-5" />,
 		path: "/contatos",
 		badge: 5,
-	},
-	{
-		title: "Automações",
-		icon: <Zap className="w-5 h-5" />,
-		path: "/automacoes",
 	},
 	{
 		title: "Campanhas",
@@ -64,14 +56,9 @@ const sidebarItems: SidebarItem[] = [
 	},
 	{
 		title: "Instâncias",
-		icon: <Box className="w-5 h-5" />,
+		icon: <Phone className="w-5 h-5" />,
 		path: "/instancias",
 	},
-	// {
-	// 	title: "Configurações",
-	// 	icon: <Settings className="w-5 h-5" />,
-	// 	path: "/configuracoes",
-	// },
 ];
 
 export function Sidebar() {
@@ -141,7 +128,7 @@ export function Sidebar() {
 				</div>
 
 				{/* Navigation */}
-				<nav className="flex-1 overflow-y-auto scrollbar-none py-4">
+				<nav className="flex-1 py-4">
 					{sidebarItems.map((item) => (
 						<div key={item.path} className="relative">
 							{/* Active Route Indicator */}
@@ -184,12 +171,6 @@ export function Sidebar() {
 									transition={{ duration: 0.3 }}
 								>
 									{item.icon}
-									<motion.div
-										className="absolute inset-0 bg-neon-green/20 rounded-full blur-sm"
-										initial={{ scale: 0 }}
-										whileHover={{ scale: 1.5 }}
-										transition={{ duration: 0.2 }}
-									/>
 								</motion.div>
 
 								{!isCollapsed && (
@@ -208,7 +189,7 @@ export function Sidebar() {
 												animate={{ scale: 1 }}
 												whileHover={{ scale: 1.1 }}
 												className="bg-neon-green text-deep px-2 py-0.5 rounded-full text-xs z-10
-                          shadow-[0_0_10px_rgba(0,255,106,0.5)]"
+                        shadow-[0_0_10px_rgba(0,255,106,0.5)]"
 											>
 												{item.badge}
 											</motion.span>
@@ -235,7 +216,7 @@ export function Sidebar() {
 										initial={{ opacity: 0, x: 20 }}
 										whileHover={{ opacity: 1, x: 0 }}
 										className="absolute left-full ml-2 px-2 py-1 bg-deep/90 rounded-md
-                      text-sm whitespace-nowrap z-50 hidden group-hover:block"
+                    text-sm whitespace-nowrap z-50 hidden group-hover:block"
 									>
 										{item.title}
 									</motion.div>
@@ -273,7 +254,94 @@ export function Sidebar() {
 				</nav>
 
 				{/* Footer */}
-				<div className="border-t border-electric/30 p-4">
+				<div className="border-t border-electric/30 p-4 space-y-4">
+					{/* Upgrade Button */}
+					<Link
+						to="/pricing"
+						className={cn(
+							"block w-full bg-gradient-to-r from-electric to-rose-950 rounded-lg relative overflow-hidden",
+							"group hover:shadow-lg transition-all duration-300",
+							isCollapsed ? "p-2" : "p-3",
+						)}
+					>
+						<motion.div
+							className="absolute inset-0 bg-white opacity-0"
+							animate={{
+								opacity: [0, 0.2, 0],
+								scale: [1, 1.2, 1],
+							}}
+							transition={{
+								duration: 2,
+								repeat: Number.POSITIVE_INFINITY,
+								repeatType: "reverse",
+							}}
+						/>
+
+						<motion.div
+							className="absolute inset-0 bg-white opacity-0"
+							animate={{
+								scale: [1, 1.05, 1],
+							}}
+							transition={{
+								duration: 1.5,
+								repeat: Number.POSITIVE_INFINITY,
+								repeatType: "reverse",
+							}}
+						/>
+
+						{isCollapsed ? (
+							<div className="flex justify-center items-center">
+								<motion.div
+									animate={{
+										scale: [1, 1.2, 1],
+									}}
+									transition={{
+										duration: 2,
+										repeat: Number.POSITIVE_INFINITY,
+										repeatType: "reverse",
+									}}
+								>
+									<Crown className="w-6 h-6 text-yellow-300 filter drop-shadow-glow" />
+								</motion.div>
+							</div>
+						) : (
+							<div className="flex items-center gap-3">
+								<motion.div
+									animate={{
+										scale: [1, 1.2, 1],
+									}}
+									transition={{
+										duration: 2,
+										repeat: Number.POSITIVE_INFINITY,
+										repeatType: "reverse",
+									}}
+								>
+									<Crown className="w-5 h-5 text-yellow-300 filter drop-shadow-glow" />
+								</motion.div>
+								<div className="flex-1">
+									<p className="font-bold text-white">Upgrade seu plano</p>
+									<p className="text-xs text-white/90">
+										Desbloqueie todos os recursos
+									</p>
+								</div>
+								<motion.div
+									animate={{
+										scale: [1, 1.2, 1],
+										opacity: [0.5, 1, 0.5],
+									}}
+									transition={{
+										duration: 2,
+										repeat: Number.POSITIVE_INFINITY,
+										repeatType: "reverse",
+									}}
+								>
+									<Sparkles className="w-4 h-4 text-yellow-300" />
+								</motion.div>
+							</div>
+						)}
+					</Link>
+
+					{/* User Info and Logout */}
 					<div
 						className={cn(
 							"flex items-center",
@@ -323,12 +391,6 @@ export function Sidebar() {
 									>
 										<LogOut className="w-5 h-5" />
 									</motion.div>
-									<motion.div
-										className="absolute inset-0 bg-neon-pink/10 rounded-full opacity-0 group-hover:opacity-100"
-										initial={{ scale: 0.8 }}
-										whileHover={{ scale: 1 }}
-										transition={{ duration: 0.2 }}
-									/>
 								</Button>
 							</>
 						)}

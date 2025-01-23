@@ -9,32 +9,32 @@ import {
 	YAxis,
 } from "recharts";
 
-const data = [
-	{ name: "Seg", value: 400 },
-	{ name: "Ter", value: 300 },
-	{ name: "Qua", value: 600 },
-	{ name: "Qui", value: 800 },
-	{ name: "Sex", value: 500 },
-	{ name: "Sab", value: 200 },
-	{ name: "Dom", value: 300 },
-];
+interface BarChartProps {
+	data: { date: string; count: number }[];
+	xKey: string;
+	yKey: string;
+	fill: string;
+}
 
-export function BarChart() {
+export function BarChart({ data, xKey, yKey, fill }: BarChartProps) {
 	return (
 		<ResponsiveContainer width="100%" height={300}>
 			<RechartsBarChart data={data}>
 				<CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-				<XAxis dataKey="name" stroke="#94a3b8" />
+				<XAxis dataKey={xKey} stroke="#94a3b8" />
 				<YAxis stroke="#94a3b8" />
 				<Tooltip
+					cursor={{ fill: "rgba(100, 100, 100, 0.2)" }}
 					contentStyle={{
 						backgroundColor: "#1e293b",
 						border: "1px solid #7c3aed",
 						borderRadius: "8px",
+						boxShadow: "0 2px 10px rgba(0, 0, 0, 0.5)",
 					}}
 					labelStyle={{ color: "#f8fafc" }}
+					itemStyle={{ color: "#f8fafc" }}
 				/>
-				<Bar dataKey="value" fill="#7c3aed" radius={[4, 4, 0, 0]} />
+				<Bar dataKey={yKey} fill={fill} radius={[4, 4, 0, 0]} />
 			</RechartsBarChart>
 		</ResponsiveContainer>
 	);

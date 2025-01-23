@@ -3,10 +3,12 @@ import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { ProtectedLayout } from "@/components/layout/ProtectedLayout";
 import { PublicLayout } from "@/components/layout/PublicLayout";
 import Campanhas from "@/pages/Campanhas";
+import CheckoutPage from "@/pages/CheckoutPage";
 import Dashboard from "@/pages/Dashboard";
 import Disparos from "@/pages/Disparos";
 import ErrorPage from "@/pages/ErrorPage";
 import Login from "@/pages/Login";
+import PricingPage from "@/pages/Pricing";
 import Register from "@/pages/Register";
 import { RouterProvider, createBrowserRouter } from "react-router-dom";
 import Agendados from "../pages/Agendados";
@@ -39,7 +41,7 @@ const router = createBrowserRouter([
 						element: <Disparos />,
 					},
 					{
-						path: "/disparos/:id/history",
+						path: "/disparos/:campaignId/history",
 						element: <Historico />,
 					},
 					{
@@ -51,8 +53,12 @@ const router = createBrowserRouter([
 						element: <Contatos />,
 					},
 					{
-						path: "/automacoes",
-						element: <div>Automações</div>,
+						path: "/pricing",
+						element: <PricingPage />,
+					},
+					{
+						path: "/checkout",
+						element: <CheckoutPage />,
 					},
 					{
 						path: "/campanhas",

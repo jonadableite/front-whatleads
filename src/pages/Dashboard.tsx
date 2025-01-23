@@ -1,20 +1,21 @@
-import { BarChart, PieChart } from "@/components/charts";
+import { BarChart, LineChart, PieChart } from "@/components/charts";
 import { Skeleton } from "@/components/ui/Skeleton";
+import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useToast } from "@/components/ui/use-toast";
 import { authService } from "@/services/auth.service";
 import axios from "axios";
-import { format } from "date-fns";
+import { addDays, endOfDay, format, startOfDay, subDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { motion } from "framer-motion";
 import {
 	Activity,
 	CheckCircle,
+	ChevronLeft,
+	ChevronRight,
 	Clock,
 	Eye,
 	Send,
-	Wifi,
-	WifiOff,
 	Zap,
 } from "lucide-react";
 import { useEffect, useState } from "react";
@@ -58,6 +59,19 @@ const StatCard = ({ icon: Icon, title, value, description }) => (
 	</motion.div>
 );
 
+// Função auxiliar para formatar o número de telefone
+const formatPhoneNumber = (ownerJid: string) => {
+	// Remove "@s.whatsapp.net" e qualquer outro texto após o "@"
+	const number = ownerJid.split("@")[0];
+
+	// Formata o número (ajuste conforme necessário)
+	if (number.startsWith("55")) {
+		return `+${number.slice(0, 2)} ${number.slice(2, 4)} ${number.slice(4, 9)}-${number.slice(9)}`;
+	}
+
+	return number;
+};
+
 const InstanceCard = ({ instance }) => (
 	<motion.div
 		variants={itemVariants}
@@ -65,27 +79,37 @@ const InstanceCard = ({ instance }) => (
 	>
 		<div className="flex items-center justify-between">
 			<div className="flex items-center space-x-3">
-				<div
-					className={`p-2 rounded-full ${instance.connectionStatus === "open" ? "bg-neon-green/20" : "bg-red-500/20"}`}
-				>
-					{instance.connectionStatus === "open" ? (
-						<Wifi className="text-neon-green w-4 h-4" />
-					) : (
-						<WifiOff className="text-red-500 w-4 h-4" />
-					)}
-				</div>
+				{instance.profilePicUrl ? (
+					<img
+						src={instance.profilePicUrl}
+						alt={`Perfil de ${instance.instanceName}`}
+						className="w-10 h-10 rounded-full object-cover"
+					/>
+				) : (
+					<div className="w-10 h-10 rounded-full bg-electric/20 flex items-center justify-center">
+						<User className="text-electric w-6 h-6" />
+					</div>
+				)}
 				<div>
 					<h4 className="font-medium text-white">{instance.instanceName}</h4>
 					<p className="text-xs text-white/60">
-						{instance.phoneNumber || "Sem número"}
+						{instance.ownerJid
+							? formatPhoneNumber(instance.ownerJid)
+							: "Sem número"}
 					</p>
 				</div>
 			</div>
-			<span
-				className={`text-xs px-2 py-1 rounded-full ${instance.connectionStatus === "open" ? "bg-neon-green/20 text-neon-green" : "bg-red-500/20 text-red-500"}`}
-			>
-				{instance.connectionStatus === "open" ? "Conectado" : "Desconectado"}
-			</span>
+			<div className="flex flex-col items-end">
+				<span
+					className={`text-xs px-2 py-1 rounded-full ${
+						instance.connectionStatus === "open"
+							? "bg-neon-green/20 text-neon-green"
+							: "bg-red-500/20 text-red-500"
+					}`}
+				>
+					{instance.connectionStatus === "open" ? "Conectado" : "Desconectado"}
+				</span>
+			</div>
 		</div>
 	</motion.div>
 );
@@ -111,9 +135,15 @@ const MessageLogItem = ({ log }) => (
 			</div>
 			<div>
 				<h4 className="font-medium text-white">{log.content}</h4>
-				<p className="text-sm text-white/60">
-					Enviado em {format(new Date(log.messageDate), "PP", { locale: ptBR })}
-				</p>
+				<div className="flex items-center space-x-2 text-sm text-white/60">
+					<span>Enviado para: {log.campaignLead?.phone || "Sem número"}</span>
+					<span>•</span>
+					<span>
+						{format(new Date(log.messageDate), "PP 'às' HH:mm", {
+							locale: ptBR,
+						})}
+					</span>
+				</div>
 			</div>
 		</div>
 		<div className="text-right">
@@ -140,69 +170,148 @@ const MessageLogItem = ({ log }) => (
 	</div>
 );
 
+const PaginationButton = ({ onClick, disabled, children }) => (
+	<button
+		onClick={onClick}
+		disabled={disabled}
+		className={`px-3 py-2 rounded-md ${
+			disabled
+				? "bg-deep/40 text-white/40 cursor-not-allowed"
+				: "bg-electric/20 text-electric hover:bg-electric/30 transition-colors"
+		}`}
+	>
+		{children}
+	</button>
+);
+
 export default function Dashboard() {
 	const [isLoading, setIsLoading] = useState(true);
 	const [dashboardData, setDashboardData] = useState<any>(null);
+	const [messagesByDay, setMessagesByDay] = useState<Record<string, number>>(
+		{},
+	);
 	const [instances, setInstances] = useState([]);
 	const [error, setError] = useState<string | null>(null);
+	const [currentPage, setCurrentPage] = useState(1);
 	const { toast } = useToast();
 	const user = authService.getUser();
+	const [chartType, setChartType] = useState<"bar" | "line">("bar");
+	const [selectedDate, setSelectedDate] = useState(new Date());
+
+	const logsPerPage = 5;
+	const totalPages = Math.ceil(
+		(dashboardData?.messageLogs?.length || 0) / logsPerPage,
+	);
+	const currentLogs =
+		dashboardData?.messageLogs?.slice(
+			(currentPage - 1) * logsPerPage,
+			currentPage * logsPerPage,
+		) || [];
 
 	useEffect(() => {
-		const fetchData = async () => {
-			try {
-				setIsLoading(true);
-				const token = authService.getToken();
-				const [dashboardResponse, instancesResponse] = await Promise.all([
-					axios.get(`${API_URL}/api/message-logs`, {
-						headers: { Authorization: `Bearer ${token}` },
-					}),
-					axios.get(`${API_URL}/api/instances`, {
-						headers: { Authorization: `Bearer ${token}` },
-					}),
-				]);
+		fetchDailyData(selectedDate);
+	}, [selectedDate]);
 
-				setDashboardData(dashboardResponse.data);
-				setInstances(instancesResponse.data.instances || []);
-				setError(null);
-			} catch (error) {
-				console.error("Erro ao buscar dados:", error);
-				setError("Erro ao carregar dados do dashboard");
-				toast({
-					title: "Erro",
-					description: "Não foi possível carregar os dados do dashboard",
-					variant: "destructive",
-				});
-			} finally {
-				setIsLoading(false);
-			}
-		};
-
-		fetchData();
-
-		const interval = setInterval(async () => {
-			try {
-				const token = authService.getToken();
-				const realtimeStats = await axios.get(
-					`${API_URL}/api/message-logs/realtime`,
-					{
-						headers: { Authorization: `Bearer ${token}` },
-					},
-				);
-				setDashboardData((prev) => ({
-					...prev,
-					stats: {
-						...prev.stats,
-						...realtimeStats.data,
-					},
-				}));
-			} catch (error) {
-				console.error("Erro ao atualizar dados em tempo real:", error);
-			}
-		}, 30000);
-
-		return () => clearInterval(interval);
+	useEffect(() => {
+		fetchMessagesByDay();
 	}, []);
+
+	const fetchDailyData = async (date: Date) => {
+		try {
+			setIsLoading(true);
+			const token = authService.getToken();
+			const formattedDate = format(date, "yyyy-MM-dd");
+			const [dashboardResponse, instancesResponse] = await Promise.all([
+				axios.get(`${API_URL}/api/message-logs/daily`, {
+					headers: { Authorization: `Bearer ${token}` },
+					params: { date: formattedDate },
+				}),
+				axios.get(`${API_URL}/api/instances`, {
+					headers: { Authorization: `Bearer ${token}` },
+				}),
+			]);
+
+			setDashboardData(dashboardResponse.data);
+			setInstances(instancesResponse.data.instances || []);
+			setError(null);
+		} catch (error) {
+			console.error("Erro ao buscar dados diários:", error);
+			setError("Erro ao carregar dados do dashboard");
+			toast({
+				title: "Erro",
+				description: "Não foi possível carregar os dados do dashboard",
+				variant: "destructive",
+			});
+		} finally {
+			setIsLoading(false);
+		}
+	};
+
+	const fetchMessagesByDay = async () => {
+		try {
+			const token = authService.getToken();
+			const response = await axios.get(`${API_URL}/api/message-logs/by-day`, {
+				headers: { Authorization: `Bearer ${token}` },
+			});
+			setMessagesByDay(response.data.messagesByDay);
+		} catch (error) {
+			console.error("Erro ao buscar mensagens por dia:", error);
+		}
+	};
+
+	const formatChartData = (messagesByDay: Record<string, number>) => {
+		const today = new Date();
+		const end = endOfDay(today);
+		const start = startOfDay(subDays(today, 6));
+
+		const formattedData = [];
+		for (let d = start; d <= end; d = addDays(d, 1)) {
+			const dateKey = format(d, "yyyy-MM-dd");
+			formattedData.push({
+				date: format(d, "dd/MM", { locale: ptBR }),
+				count: messagesByDay[dateKey] || 0,
+			});
+		}
+		return formattedData;
+	};
+
+	const handleDateChange = (event: React.ChangeEvent<HTMLInputElement>) => {
+		const selectedDate = new Date(event.target.value + "T00:00:00");
+		setSelectedDate(selectedDate);
+	};
+
+	const stats = [
+		{
+			title: "Total de Mensagens",
+			icon: Send,
+			value: dashboardData?.stats?.total?.toLocaleString() || "0",
+			description: "Total de mensagens enviadas",
+		},
+		{
+			title: "Entregues",
+			icon: CheckCircle,
+			value: dashboardData?.stats?.delivered?.toLocaleString() || "0",
+			description: "Mensagens entregues",
+		},
+		{
+			title: "Lidas",
+			icon: Eye,
+			value: dashboardData?.stats?.read?.toLocaleString() || "0",
+			description: "Mensagens lidas",
+		},
+		{
+			title: "Taxa de Entrega",
+			icon: Zap,
+			value: `${dashboardData?.stats?.deliveryRate?.toFixed(2) || 0}%`,
+			description: "Taxa de entrega",
+		},
+		{
+			title: "Taxa de Leitura",
+			icon: Activity,
+			value: `${dashboardData?.stats?.readRate?.toFixed(2) || 0}%`,
+			description: "Taxa de leitura",
+		},
+	];
 
 	if (isLoading) {
 		return (
@@ -238,55 +347,6 @@ export default function Dashboard() {
 		);
 	}
 
-	const calculateStats = (messageLogs) => {
-		const total = messageLogs.length;
-		const delivered = messageLogs.filter(
-			(log) => log.status === "DELIVERY_ACK" || log.status === "READ",
-		).length;
-		const read = messageLogs.filter((log) => log.status === "READ").length;
-
-		return {
-			total,
-			delivered,
-			read,
-			deliveryRate: total > 0 ? (delivered / total) * 100 : 0,
-			readRate: total > 0 ? (read / total) * 100 : 0,
-		};
-	};
-
-	const stats = [
-		{
-			title: "Total de Mensagens",
-			icon: Send,
-			value: dashboardData?.stats?.total?.toLocaleString() || "0",
-			description: "Total de mensagens enviadas",
-		},
-		{
-			title: "Entregues",
-			icon: CheckCircle,
-			value: dashboardData?.stats?.delivered?.toLocaleString() || "0",
-			description: "Mensagens entregues",
-		},
-		{
-			title: "Lidas",
-			icon: Eye,
-			value: dashboardData?.stats?.read?.toLocaleString() || "0",
-			description: "Mensagens lidas",
-		},
-		{
-			title: "Taxa de Entrega",
-			icon: Zap,
-			value: `${dashboardData?.stats?.deliveryRate.toFixed(2) || 0}%`,
-			description: "Taxa de entrega",
-		},
-		{
-			title: "Taxa de Leitura",
-			icon: Activity,
-			value: `${dashboardData?.stats?.readRate.toFixed(2) || 0}%`,
-			description: "Taxa de leitura",
-		},
-	];
-
 	return (
 		<motion.div
 			initial="hidden"
@@ -301,6 +361,18 @@ export default function Dashboard() {
 				<p className="text-white/80">Aqui está um resumo das suas atividades</p>
 			</div>
 
+			<div className="mb-4">
+				<label htmlFor="date-select" className="text-white mr-2">
+					Selecione a data:
+				</label>
+				<input
+					type="date"
+					id="date-select"
+					value={format(selectedDate, "yyyy-MM-dd")}
+					onChange={handleDateChange}
+					className="bg-deep/60 text-white border border-electric rounded px-2 py-1"
+				/>
+			</div>
 			<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6 mb-8">
 				{stats.map((stat, index) => (
 					<StatCard key={index} {...stat} />
@@ -312,17 +384,48 @@ export default function Dashboard() {
 					variants={itemVariants}
 					className="bg-deep/80 backdrop-blur-xl p-6 rounded-xl border border-electric lg:col-span-2"
 				>
-					<h2 className="text-2xl font-bold text-white mb-6">
-						Mensagens por Dia
-					</h2>
-					<BarChart
-						data={Object.entries(dashboardData?.messagesByDay || {}).map(
-							([date, count]) => ({ date, count }),
-						)}
-						xKey="date"
-						yKey="count"
-						fill="#6EE7B7"
-					/>
+					<div className="flex justify-between items-center mb-6">
+						<h2 className="text-2xl font-bold text-white">Mensagens por Dia</h2>
+						<div className="space-x-2">
+							<Button
+								onClick={() => setChartType("bar")}
+								variant={chartType === "bar" ? "default" : "outline"}
+								className={`${
+									chartType === "bar"
+										? "bg-electric text-white"
+										: "text-electric hover:bg-electric/10"
+								}`}
+							>
+								Barra
+							</Button>
+							<Button
+								onClick={() => setChartType("line")}
+								variant={chartType === "line" ? "default" : "outline"}
+								className={`${
+									chartType === "line"
+										? "bg-neon-green text-white"
+										: "text-neon-green hover:bg-neon-green/10"
+								}`}
+							>
+								Linha
+							</Button>
+						</div>
+					</div>
+					{chartType === "bar" ? (
+						<BarChart
+							data={formatChartData(messagesByDay)}
+							xKey="date"
+							yKey="count"
+							fill="#7c3aed"
+						/>
+					) : (
+						<LineChart
+							data={formatChartData(messagesByDay)}
+							xKey="date"
+							yKey="count"
+							stroke="#19eb4e"
+						/>
+					)}
 				</motion.div>
 
 				<motion.div
@@ -350,10 +453,31 @@ export default function Dashboard() {
 					<h2 className="text-2xl font-bold text-white mb-6">
 						Logs de Mensagens Recentes
 					</h2>
-					<div className="space-y-4">
-						{(dashboardData?.messageLogs || []).map((log, index) => (
+					<div className="space-y-4 mb-4">
+						{currentLogs.map((log, index) => (
 							<MessageLogItem key={index} log={log} />
 						))}
+					</div>
+					<div className="flex justify-between items-center mt-4">
+						<p className="text-white/60">
+							Página {currentPage} de {totalPages}
+						</p>
+						<div className="flex space-x-2">
+							<PaginationButton
+								onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+								disabled={currentPage === 1}
+							>
+								<ChevronLeft className="w-5 h-5" />
+							</PaginationButton>
+							<PaginationButton
+								onClick={() =>
+									setCurrentPage((prev) => Math.min(prev + 1, totalPages))
+								}
+								disabled={currentPage === totalPages}
+							>
+								<ChevronRight className="w-5 h-5" />
+							</PaginationButton>
+						</div>
 					</div>
 				</motion.div>
 
