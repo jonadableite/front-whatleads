@@ -23,9 +23,9 @@ export interface LeadStatsCardProps {
 }
 
 export interface EmptyStateProps {
-  searchTerm: string;
-  onNewCampaign: () => void;
-  onImportLeads: () => void;
+	searchTerm: string;
+	onNewCampaign: () => void;
+	onImportLeads: () => void;
 }
 export interface SegmentationRule {
 	field: string;
@@ -194,7 +194,7 @@ export interface CampaignsResponse {
 	limit: number;
 }
 
-expoert export interface Instance {
+export interface Instance {
 	id: string;
 	instanceName: string;
 	connectionStatus: string;
