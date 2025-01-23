@@ -87,6 +87,7 @@ const CheckoutPage: React.FC = () => {
 			setLoading(true);
 			setError(null);
 			try {
+				// Verifique se o token está válido antes de fazer a requisição
 				if (!authService.isAuthenticated()) {
 					throw new Error("Sessão expirada. Por favor, faça login novamente.");
 				}
@@ -100,7 +101,7 @@ const CheckoutPage: React.FC = () => {
 						method: "POST",
 						headers: {
 							"Content-Type": "application/json",
-							...authService.getAuthHeaders(), // Espalhe os headers aqui
+							...authService.getAuthHeaders().headers, // Utilize o método getAuthHeaders para obter os headers
 						},
 						body: JSON.stringify({
 							priceId,
@@ -109,12 +110,14 @@ const CheckoutPage: React.FC = () => {
 					},
 				);
 
-				const data = await response.json();
-
-				if (response.status !== 200 || data.error) {
-					throw new Error(data.error || "Erro desconhecido");
+				if (!response.ok) {
+					const errorData = await response.json();
+					throw new Error(
+						errorData.error || "Erro ao criar intent de pagamento",
+					);
 				}
 
+				const data = await response.json();
 				setClientSecret(data.clientSecret);
 			} catch (err: any) {
 				setError(err.message);

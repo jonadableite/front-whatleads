@@ -160,7 +160,7 @@ class AuthService {
 
 export const authService = new AuthService();
 
-// Exemplo de uso do interceptor global
+// Interceptor de request para adicionar o token
 axios.interceptors.request.use(
 	async (config) => {
 		const token = authService.getToken();
@@ -174,6 +174,7 @@ axios.interceptors.request.use(
 	},
 );
 
+// Interceptor de response para lidar com erros de autenticação
 axios.interceptors.response.use(
 	(response) => response,
 	async (error) => {
@@ -188,10 +189,10 @@ axios.interceptors.response.use(
 					const token = authService.getToken();
 					originalRequest.headers.Authorization = `Bearer ${token}`;
 					return axios(originalRequest);
+				} else {
+					authService.logout();
 				}
 			}
-
-			authService.logout();
 		}
 		return Promise.reject(error);
 	},
