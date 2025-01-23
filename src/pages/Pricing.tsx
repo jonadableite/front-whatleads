@@ -19,16 +19,16 @@ import "react-toastify/dist/ReactToastify.css";
 const STRIPE_CONFIG = {
 	PRICES: {
 		BASIC: {
-			MONTHLY: "price_109,00",
-			ANNUAL: "price_1.229,00",
+			MONTHLY: "price_1QkGeGP7kXKQS2sw0mnJ1Io6",
+			ANNUAL: "price_1QkGnuP7kXKQS2swH6cD6jNC",
 		},
 		PRO: {
-			MONTHLY: "price_167,00",
-			ANNUAL: "price_1.800,00",
+			MONTHLY: "price_1QkGgDP7kXKQS2swZkrUAQF9",
+			ANNUAL: "price_1QkGoPP7kXKQS2sw9jMpejuo",
 		},
 		ENTERPRISE: {
-			MONTHLY: "price_209,00",
-			ANNUAL: "price_2.100,00",
+			MONTHLY: "price_1QkGj0P7kXKQS2swnk462V8c",
+			ANNUAL: "price_1QkGolP7kXKQS2swUrUStVB0",
 		},
 	},
 };
@@ -138,7 +138,7 @@ const PricingPage: React.FC = () => {
 
 	const plans: Plan[] = [
 		{
-			name: "basic",
+			name: "whatlead_basic",
 			price: {
 				monthly: 109.0,
 				annual: 1229.0,
@@ -159,7 +159,7 @@ const PricingPage: React.FC = () => {
 			},
 		},
 		{
-			name: "pro",
+			name: "whatlead_pro",
 			price: {
 				monthly: 167.0,
 				annual: 1800.0,
@@ -183,7 +183,7 @@ const PricingPage: React.FC = () => {
 			},
 		},
 		{
-			name: "enterprise",
+			name: "whatlead_enterprise",
 			price: {
 				monthly: 209.0,
 				annual: 2100.0,
