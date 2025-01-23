@@ -1,4 +1,5 @@
 // src/pages/CheckoutPage.tsx
+import { authService } from "@/services/auth.service";
 import { Elements } from "@stripe/react-stripe-js";
 import { AnimatePresence, motion } from "framer-motion";
 import {
@@ -71,11 +72,8 @@ const CheckoutPage: React.FC = () => {
 		setLoading(true);
 		setError(null);
 		try {
-			const token = localStorage.getItem("token");
-			if (!token) {
-				setError("Token não encontrado. Por favor, faça login novamente.");
-				setLoading(false);
-				return;
+			if (!authService.isAuthenticated()) {
+				throw new Error("Sessão expirada. Por favor, faça login novamente.");
 			}
 
 			const apiUrl =
@@ -84,10 +82,7 @@ const CheckoutPage: React.FC = () => {
 				`${apiUrl}/api/stripe/create-payment-intent`,
 				{
 					method: "POST",
-					headers: {
-						"Content-Type": "application/json",
-						Authorization: `Bearer ${token}`,
-					},
+					...authService.getAuthHeaders(),
 					body: JSON.stringify({
 						priceId,
 						returnUrl: `${window.location.origin}/return`,
@@ -98,21 +93,33 @@ const CheckoutPage: React.FC = () => {
 			const data = await response.json();
 
 			if (response.status !== 200 || data.error) {
-				setError(data.error || "Erro desconhecido");
-				return;
+				throw new Error(data.error || "Erro desconhecido");
 			}
 
 			setClientSecret(data.clientSecret);
 		} catch (err: any) {
 			setError(err.message);
+			if (err.message.includes("Sessão expirada")) {
+				setTimeout(() => navigate("/login"), 3000);
+			}
 		} finally {
 			setLoading(false);
 		}
-	}, [priceId]);
+	}, [priceId, navigate]);
 
 	useEffect(() => {
-		fetchClientSecret();
-	}, [fetchClientSecret]);
+		const checkAndFetchClientSecret = async () => {
+			const isValid = await authService.refreshTokenIfNeeded();
+			if (!isValid) {
+				setError("Sessão expirada. Redirecionando para o login...");
+				setTimeout(() => navigate("/login"), 3000);
+				return;
+			}
+			fetchClientSecret();
+		};
+
+		checkAndFetchClientSecret();
+	}, [fetchClientSecret, navigate]);
 
 	const getPlanDetails = () => {
 		const planDetails = {

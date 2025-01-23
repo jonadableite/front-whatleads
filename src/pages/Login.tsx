@@ -12,7 +12,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { authService } from "@/services/auth.service";
 import { motion } from "framer-motion";
-import { useEffect, useRef, useState } from "react"; // Adicione estas importações
+import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "react-toastify";
 
