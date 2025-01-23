@@ -93,7 +93,7 @@ const CheckoutPage: React.FC = () => {
 				}
 
 				const apiUrl =
-					import.meta.env.VITE_API_URL || "https://https://api.whatlead.com.br";
+					import.meta.env.VITE_API_URL || "https://api.whatlead.com.br";
 				const response = await fetch(
 					`${apiUrl}/api/stripe/create-payment-intent`,
 					{

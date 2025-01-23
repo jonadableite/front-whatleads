@@ -2,7 +2,7 @@
 import axios from "axios";
 
 const API_BASE_URL =
-	import.meta.env.VITE_API_URL || "https://https://api.whatlead.com.br";
+	import.meta.env.VITE_API_URL || "https://api.whatlead.com.br";
 
 export async function saveCreateLead(
 	name: string,

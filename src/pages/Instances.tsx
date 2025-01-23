@@ -14,7 +14,7 @@ import { FaWhatsapp } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 
 // Constantes
-const API_BASE_URL = "https://https://api.whatlead.com.br";
+const API_BASE_URL = "https://api.whatlead.com.br";
 const API_KEY = "429683C4C977415CAAFCCE10F7D57E11";
 
 // Animações

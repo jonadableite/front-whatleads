@@ -20,7 +20,7 @@ import {
 } from "lucide-react";
 import { useEffect, useState } from "react";
 
-const API_URL = "https://https://api.whatlead.com.br";
+const API_URL = "https://api.whatlead.com.br";
 
 const containerVariants = {
 	hidden: { opacity: 0, y: 20 },
