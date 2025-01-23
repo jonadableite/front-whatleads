@@ -12,10 +12,8 @@ class AuthService {
 	getAuthHeaders() {
 		const token = this.getToken();
 		return {
-			headers: {
-				Authorization: token ? `Bearer ${token}` : "",
-				"Content-Type": "application/json",
-			},
+			Authorization: token ? `Bearer ${token}` : "",
+			"Content-Type": "application/json",
 		};
 	}
 
@@ -116,7 +114,7 @@ class AuthService {
 				const response = await axios.post(
 					`${API_URL}/api/auth/refresh-token`,
 					{ token },
-					this.getAuthHeaders(),
+					{ headers: this.getAuthHeaders() },
 				);
 
 				if (response.data.access_token) {
@@ -159,41 +157,3 @@ class AuthService {
 }
 
 export const authService = new AuthService();
-
-// Interceptor de request para adicionar o token
-axios.interceptors.request.use(
-	async (config) => {
-		const token = authService.getToken();
-		if (token) {
-			config.headers.Authorization = `Bearer ${token}`;
-		}
-		return config;
-	},
-	(error) => {
-		return Promise.reject(error);
-	},
-);
-
-// Interceptor de response para lidar com erros de autenticação
-axios.interceptors.response.use(
-	(response) => response,
-	async (error) => {
-		if (error.response?.status === 401) {
-			const originalRequest = error.config;
-
-			if (!originalRequest._retry) {
-				originalRequest._retry = true;
-
-				const refreshed = await authService.refreshTokenIfNeeded();
-				if (refreshed) {
-					const token = authService.getToken();
-					originalRequest.headers.Authorization = `Bearer ${token}`;
-					return axios(originalRequest);
-				} else {
-					authService.logout();
-				}
-			}
-		}
-		return Promise.reject(error);
-	},
-);

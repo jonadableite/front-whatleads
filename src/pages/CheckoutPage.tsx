@@ -87,40 +87,51 @@ const CheckoutPage: React.FC = () => {
 			setLoading(true);
 			setError(null);
 			try {
-				// Verifique se o token está válido antes de fazer a requisição
 				if (!authService.isAuthenticated()) {
-					throw new Error("Sessão expirada. Por favor, faça login novamente.");
+					throw new Error(
+						"Token não encontrado. Por favor, faça login novamente.",
+					);
 				}
 
 				const apiUrl =
 					import.meta.env.VITE_API_URL || "https://api.whatlead.com.br";
+				console.log(
+					"Fazendo requisição para:",
+					`${apiUrl}/api/stripe/create-payment-intent`,
+				);
+				console.log("PriceId:", priceId);
+
 				const response = await fetch(
 					`${apiUrl}/api/stripe/create-payment-intent`,
 					{
 						method: "POST",
 						headers: {
 							"Content-Type": "application/json",
-							...authService.getAuthHeaders().headers, // Utilize o método getAuthHeaders para obter os headers
+							...authService.getAuthHeaders(),
 						},
-						body: JSON.stringify({
-							priceId,
-							returnUrl: `${window.location.origin}/return`,
-						}),
+						body: JSON.stringify({ priceId }),
 					},
 				);
 
 				if (!response.ok) {
 					const errorData = await response.json();
+					console.error("Resposta de erro:", errorData);
 					throw new Error(
-						errorData.error || "Erro ao criar intent de pagamento",
+						errorData.error ||
+							`Erro ${response.status}: ${response.statusText}`,
 					);
 				}
 
 				const data = await response.json();
+				console.log("Resposta bem-sucedida:", data);
 				setClientSecret(data.clientSecret);
 			} catch (err: any) {
-				setError(err.message);
-				if (err.message.includes("Sessão expirada")) {
+				console.error("Erro ao buscar clientSecret:", err);
+				setError(err.message || "Erro desconhecido ao processar o pagamento");
+				if (
+					err.message.includes("Token não encontrado") ||
+					err.message.includes("401")
+				) {
 					setTimeout(() => navigate("/login"), 3000);
 				}
 			} finally {
