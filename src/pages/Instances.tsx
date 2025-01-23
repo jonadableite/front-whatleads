@@ -14,7 +14,7 @@ import { FaWhatsapp } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
 
 // Constantes
-const API_BASE_URL = "http://localhost:9000";
+const API_BASE_URL = "https://whatlead-api-saas.hlvhsf.easypanel.host";
 const API_KEY = "429683C4C977415CAAFCCE10F7D57E11";
 
 // Animações
