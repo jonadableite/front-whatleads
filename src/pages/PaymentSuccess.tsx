@@ -1,17 +1,15 @@
 // src/pages/PaymentSuccess.tsx
 import { authService } from "@/services/auth.service";
 import axios from "axios";
-import { motion } from "framer-motion";
+import * as motion from "framer-motion";
 import { ArrowRight, CheckCircle, Star } from "lucide-react";
 import { useEffect, useState } from "react";
-import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
-import { ToastContainer, toast } from "react-toastify";
+import { useLocation, useNavigate } from "react-router-dom";
+import { ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
 const PaymentSuccess = () => {
 	const location = useLocation();
-	const paymentData = location.state;
-	const [searchParams] = useSearchParams();
 	const navigate = useNavigate();
 	const [status, setStatus] = useState("loading");
 	const [subscriptionData, setSubscriptionData] = useState<any>(null);
@@ -19,118 +17,63 @@ const PaymentSuccess = () => {
 	const MAX_ATTEMPTS = 20;
 
 	useEffect(() => {
-		if (paymentData) {
-			// Use paymentData para mostrar informações sobre o pagamento
-			console.log("Pagamento bem-sucedido:", paymentData);
-			// Aqui você pode chamar a função para verificar o status do plano
-			checkPlanUpdate();
-		} else {
-			// Se não houver dados de pagamento, redirecione para a página inicial
-			navigate("/");
-		}
-	}, [paymentData, navigate]);
-
-	const checkPlanUpdate = async () => {
-		try {
-			if (!authService.isAuthenticated()) {
-				console.log("Token não encontrado, tentando novamente...");
-				return false;
-			}
-
-			const response = await axios.get("/api/users/plan-status", {
-				headers: authService.getAuthHeaders(),
-			});
-
-			if (response.data.success) {
-				const { user, subscription } = response.data;
-				setSubscriptionData(subscription);
-
-				if (user.plan !== "free") {
-					setStatus("success");
-					toast.success("Seu plano foi atualizado com sucesso!");
-					return true;
-				}
-			}
-
-			setAttempts((prev) => prev + 1);
-			return false;
-		} catch (error) {
-			console.error("Erro ao verificar atualização do plano:", error);
-			setAttempts((prev) => prev + 1);
-			return false;
-		}
-	};
-
-	useEffect(() => {
-		const paymentIntent = searchParams.get("payment_intent");
-		const sessionId = searchParams.get("session_id");
-
-		if (!paymentIntent && !sessionId) {
+		const paymentData = location.state;
+		if (!paymentData) {
+			setStatus("error");
 			navigate("/pricing");
 			return;
 		}
 
-		let checkInterval: NodeJS.Timeout;
-
-		const startChecking = () => {
-			checkInterval = setInterval(async () => {
-				const success = await checkPlanUpdate();
-
-				if (success || attempts >= MAX_ATTEMPTS) {
-					clearInterval(checkInterval);
-					if (!success && attempts >= MAX_ATTEMPTS) {
-						setStatus("error");
-					}
+		const checkPlanUpdate = async () => {
+			try {
+				if (!authService.isAuthenticated()) {
+					setStatus("error");
+					navigate("/login");
+					return;
 				}
-			}, 3000);
-		};
 
-		startChecking();
+				const response = await axios.get("/api/users/plan-status", {
+					headers: authService.getAuthHeaders(),
+				});
 
-		return () => {
-			if (checkInterval) {
-				clearInterval(checkInterval);
+				if (response.data.success) {
+					const { user, subscription } = response.data;
+					setSubscriptionData(subscription);
+					setStatus(user.plan !== "free" ? "success" : "loading");
+				}
+			} catch (error) {
+				console.error("Erro ao verificar atualização do plano:", error);
+				setStatus("error");
+			} finally {
+				setAttempts((prev) => prev + 1);
 			}
 		};
-	}, [searchParams, attempts, navigate]);
 
-	// Efeito para verificação periódica
-	useEffect(() => {
-		const interval = setInterval(checkPlanUpdate, 5000);
-		return () => clearInterval(interval);
-	}, []);
+		checkPlanUpdate();
+	}, [navigate, location.state]);
 
 	return (
-		<div className="min-h-screen bg-gradient-to-br from-deep via-defrom-deep to-defrom-deep p-4">
-			<ToastContainer
-				position="top-right"
-				autoClose={5000}
-				hideProgressBar={false}
-				newestOnTop
-				closeOnClick
-				rtl={false}
-				pauseOnFocusLoss
-				draggable
-				pauseOnHover
-				theme="dark"
-			/>
+		<div className="min-h-screen bg-gradient-to-br from-deep to-deep-purple/90 p-4">
+			<ToastContainer />
 			<div className="max-w-2xl mx-auto">
-				{status === "loading" ? (
+				{status === "loading" && (
 					<motion.div
 						initial={{ opacity: 0 }}
 						animate={{ opacity: 1 }}
-						className="text-center p-8 bg-whatsapp-cinza/20 rounded-xl backdrop-blur-lg"
+						className="text-center p-8 bg-deep/20 rounded-xl backdrop-blur-lg"
 					>
-						<div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-eletext-electric mx-auto"></div>
-						<p className="text-whatsapp-branco mt-4">
+						<div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-electric mx-auto"></div>
+						<p className="text-white mt-4">
 							Verificando status do pagamento...
 						</p>
 					</motion.div>
-				) : status === "success" ? (
+				)}
+
+				{status === "success" && (
 					<motion.div
 						initial={{ opacity: 0, y: 20 }}
 						animate={{ opacity: 1, y: 0 }}
-						className="bg-whatsapp-cinza/20 backdrop-blur-lg rounded-3xl p-8 border border-eletext-electric/30"
+						className="bg-deep/20 backdrop-blur-lg rounded-3xl p-8 border border-electric/30"
 					>
 						<div className="text-center">
 							<motion.div
@@ -198,7 +141,9 @@ const PaymentSuccess = () => {
 							</div>
 						</div>
 					</motion.div>
-				) : (
+				)}
+
+				{status === "error" && (
 					<motion.div
 						initial={{ opacity: 0 }}
 						animate={{ opacity: 1 }}

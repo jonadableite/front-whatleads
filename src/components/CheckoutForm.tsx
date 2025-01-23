@@ -1,4 +1,3 @@
-// src/components/CheckoutForm.tsx
 import {
 	PaymentElement,
 	useElements,
@@ -9,43 +8,49 @@ import { LockIcon } from "lucide-react";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-export const CheckoutForm = ({ clientSecret, plan, price }) => {
+interface CheckoutFormProps {
+	clientSecret: string;
+	plan: string;
+	price: number;
+}
+
+export const CheckoutForm = ({
+	clientSecret,
+	plan,
+	price,
+}: CheckoutFormProps) => {
 	const stripe = useStripe();
 	const elements = useElements();
 	const navigate = useNavigate();
 	const [processing, setProcessing] = useState(false);
-	const [error, setError] = useState("");
-	const [message, setMessage] = useState(""); // Adicione esta linha
+	const [error, setError] = useState<string | null>(null);
+	const [message, setMessage] = useState<string | null>(null);
 
-	const handleSubmit = async (e) => {
+	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
-		if (!stripe || !elements) return;
-
 		setProcessing(true);
-		setError("");
-		setMessage("");
+		setError(null);
+		setMessage(null);
+
+		if (!stripe || !elements) {
+			setError("Stripe não está carregado.");
+			setProcessing(false);
+			return;
+		}
 
 		try {
-			const { error: submitError } = await elements.submit();
-			if (submitError) {
-				throw submitError;
-			}
-
-			const { error: paymentError, paymentIntent } =
+			const { error: confirmError, paymentIntent } =
 				await stripe.confirmPayment({
 					elements,
 					confirmParams: {
 						return_url: `${window.location.origin}/payment-success`,
 					},
-					redirect: "if_required",
 				});
 
-			if (paymentError) {
-				throw paymentError;
-			}
-
-			if (paymentIntent && paymentIntent.status === "succeeded") {
-				// Pagamento bem-sucedido, redirecione manualmente
+			if (confirmError) {
+				setError(confirmError.message);
+				setMessage(confirmError.message);
+			} else if (paymentIntent && paymentIntent.status === "succeeded") {
 				navigate("/payment-success", {
 					state: {
 						paymentIntentId: paymentIntent.id,
@@ -54,13 +59,11 @@ export const CheckoutForm = ({ clientSecret, plan, price }) => {
 					},
 				});
 			} else {
-				// Se o pagamento não foi bem-sucedido imediatamente, mas também não houve erro
 				setMessage("Processando seu pagamento. Por favor, aguarde...");
 			}
-		} catch (err) {
-			console.error("Erro no pagamento:", err);
-			setError(err.message || "Erro ao processar pagamento");
-			setMessage(err.message || "Erro ao processar pagamento");
+		} catch (err: any) {
+			setError(err.message || "Erro ao processar o pagamento.");
+			setMessage(err.message || "Erro ao processar o pagamento.");
 		} finally {
 			setProcessing(false);
 		}
@@ -89,7 +92,7 @@ export const CheckoutForm = ({ clientSecret, plan, price }) => {
 				<div className="space-y-4">
 					<motion.button
 						type="submit"
-						disabled={processing}
+						disabled={processing || !stripe || !elements}
 						whileHover={{ scale: 1.02 }}
 						whileTap={{ scale: 0.98 }}
 						className={`
@@ -111,13 +114,13 @@ export const CheckoutForm = ({ clientSecret, plan, price }) => {
 					</p>
 				</div>
 
-				{message && (
+				{(message || error) && (
 					<motion.div
 						initial={{ opacity: 0, y: 10 }}
 						animate={{ opacity: 1, y: 0 }}
-						className="bg-red-500/20 text-red-200 p-4 rounded-xl text-sm text-center backdrop-blur-lg border border-red-500/30"
+						className={`p-4 rounded-xl text-sm text-center backdrop-blur-lg transition-all duration-300 ${error ? "bg-red-500/20 text-red-200 border border-red-500/30" : "bg-green-500/20 text-green-200 border border-green-500/30"}`}
 					>
-						{message}
+						{message || error}
 					</motion.div>
 				)}
 			</motion.form>
