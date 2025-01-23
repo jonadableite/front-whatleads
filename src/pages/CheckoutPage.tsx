@@ -14,7 +14,7 @@ import {
 import type React from "react";
 import { useCallback, useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
-import CheckoutForm from "../components/CheckoutForm";
+import { CheckoutForm } from "../components/CheckoutForm";
 import { stripePromise } from "../lib/stripe-client";
 
 const containerVariants = {
@@ -52,6 +52,62 @@ const CheckoutPage: React.FC = () => {
 	const [clientSecret, setClientSecret] = useState<string | null>(null);
 	const [plan, setPlan] = useState<string | null>(null);
 
+	const fetchClientSecret = useCallback(async (priceId: string) => {
+		setLoading(true);
+		setError(null);
+		try {
+			if (!authService.isAuthenticated()) {
+				throw new Error(
+					"Token não encontrado. Por favor, faça login novamente.",
+				);
+			}
+
+			const apiUrl =
+				import.meta.env.VITE_API_URL || "https://api.whatlead.com.br";
+			console.log(
+				"Fazendo requisição para:",
+				`${apiUrl}/api/stripe/create-payment-intent`,
+			);
+			console.log("PriceId:", priceId);
+
+			const response = await fetch(
+				`${apiUrl}/api/stripe/create-payment-intent`,
+				{
+					method: "POST",
+					headers: {
+						"Content-Type": "application/json",
+						...authService.getAuthHeaders(),
+					},
+					body: JSON.stringify({ priceId }),
+				},
+			);
+
+			console.log("Resposta recebida:", response);
+
+			if (!response.ok) {
+				const errorData = await response.json();
+				console.error("Resposta de erro:", errorData);
+				throw new Error(
+					errorData.error || `Erro ${response.status}: ${response.statusText}`,
+				);
+			}
+
+			const data = await response.json();
+			console.log("Resposta bem-sucedida:", data);
+
+			if (data.clientSecret) {
+				setClientSecret(data.clientSecret);
+			} else {
+				throw new Error("ClientSecret não encontrado na resposta");
+			}
+		} catch (err: any) {
+			console.error("Erro ao buscar clientSecret:", err);
+			setError(err.message || "Erro desconhecido ao processar o pagamento");
+		} finally {
+			setLoading(false);
+		}
+	}, []);
+
 	useEffect(() => {
 		if (!location.state) {
 			setError("Informações do plano não encontradas.");
@@ -80,66 +136,7 @@ const CheckoutPage: React.FC = () => {
 		}
 
 		fetchClientSecret(priceId);
-	}, [location.state]);
-
-	const fetchClientSecret = useCallback(
-		async (priceId: string) => {
-			setLoading(true);
-			setError(null);
-			try {
-				if (!authService.isAuthenticated()) {
-					throw new Error(
-						"Token não encontrado. Por favor, faça login novamente.",
-					);
-				}
-
-				const apiUrl =
-					import.meta.env.VITE_API_URL || "https://api.whatlead.com.br";
-				console.log(
-					"Fazendo requisição para:",
-					`${apiUrl}/api/stripe/create-payment-intent`,
-				);
-				console.log("PriceId:", priceId);
-
-				const response = await fetch(
-					`${apiUrl}/api/stripe/create-payment-intent`,
-					{
-						method: "POST",
-						headers: {
-							"Content-Type": "application/json",
-							...authService.getAuthHeaders(),
-						},
-						body: JSON.stringify({ priceId }),
-					},
-				);
-
-				if (!response.ok) {
-					const errorData = await response.json();
-					console.error("Resposta de erro:", errorData);
-					throw new Error(
-						errorData.error ||
-							`Erro ${response.status}: ${response.statusText}`,
-					);
-				}
-
-				const data = await response.json();
-				console.log("Resposta bem-sucedida:", data);
-				setClientSecret(data.clientSecret);
-			} catch (err: any) {
-				console.error("Erro ao buscar clientSecret:", err);
-				setError(err.message || "Erro desconhecido ao processar o pagamento");
-				if (
-					err.message.includes("Token não encontrado") ||
-					err.message.includes("401")
-				) {
-					setTimeout(() => navigate("/login"), 3000);
-				}
-			} finally {
-				setLoading(false);
-			}
-		},
-		[navigate],
-	);
+	}, [location.state, fetchClientSecret]);
 
 	const getPlanDetails = () => {
 		const planDetails = {
@@ -148,9 +145,10 @@ const CheckoutPage: React.FC = () => {
 				gradient: "from-blue-500 to-blue-700",
 				features: [
 					"2 Números",
-					"Envio de Texto",
+					"Envio aovivo",
 					"Suporte Básico",
-					"Limite de 50 Mensagens/Dia",
+					"Limite de 250 Leads/Base",
+					"Analises Avançadas",
 				],
 			},
 			pro: {
@@ -158,9 +156,12 @@ const CheckoutPage: React.FC = () => {
 				gradient: "from-purple-500 to-purple-700",
 				features: [
 					"5 Números",
-					"Envio de Texto e Áudio",
+					"Envios aovivo e agendados",
 					"Suporte Prioritário",
-					"Limite de 500 Mensagens/Dia",
+					"Limite de 700 Leads/Base",
+					"Leads Personalizados",
+					"Campanhas Personalizadas",
+					"Segmentação de Leads",
 					"Relatórios Avançados",
 				],
 			},
@@ -169,11 +170,15 @@ const CheckoutPage: React.FC = () => {
 				gradient: "from-green-500 to-emerald-700",
 				features: [
 					"Números Ilimitados",
-					"Envio de Texto, Áudio e Mídia",
+					"Envio aovivo e agendado",
 					"Suporte Dedicado 24/7",
-					"Mensagens Ilimitadas",
+					"Leads/Base Ilimitadas",
 					"Relatórios Personalizados",
-					"Integração API",
+					"Segmentação Avançada de Leads",
+					"Leads Personalizados",
+					"Campanhas Ilimitadas",
+					"Campanhas Personalizadas",
+					"Agendamento e Postagem de Storys",
 					"Segurança Avançada",
 				],
 			},
@@ -281,7 +286,7 @@ const CheckoutPage: React.FC = () => {
 								</motion.button>
 							</div>
 						</motion.div>
-					) : (
+					) : clientSecret ? (
 						<motion.div
 							key="content"
 							variants={cardVariants}
@@ -360,33 +365,43 @@ const CheckoutPage: React.FC = () => {
 								variants={cardVariants}
 								className="bg-deep/80 backdrop-blur-xl rounded-3xl p-8 border border-electric/30 hover:border-electric/50 transition-colors duration-300"
 							>
-								{clientSecret && (
-									<Elements
-										stripe={stripePromise}
-										options={{
-											clientSecret,
-											appearance: {
-												theme: "night",
-												variables: {
-													colorPrimary: "#25D366",
-													colorBackground: "#1F2937",
-													colorText: "#FFFFFF",
-													colorDanger: "#EF4444",
-													fontFamily: "system-ui",
-													spacingUnit: "4px",
-													borderRadius: "8px",
-												},
+								<Elements
+									stripe={stripePromise}
+									options={{
+										clientSecret,
+										appearance: {
+											theme: "night",
+											variables: {
+												colorPrimary: "#25D366",
+												colorBackground: "#1F2937",
+												colorText: "#FFFFFF",
+												colorDanger: "#EF4444",
+												fontFamily: "system-ui",
+												spacingUnit: "4px",
+												borderRadius: "8px",
 											},
-										}}
-									>
-										<CheckoutForm
-											clientSecret={clientSecret}
-											plan={plan}
-											price={price || 0}
-										/>
-									</Elements>
-								)}
+										},
+									}}
+								>
+									<CheckoutForm
+										clientSecret={clientSecret}
+										plan={plan}
+										price={price || 0}
+									/>
+								</Elements>
 							</motion.div>
+						</motion.div>
+					) : (
+						<motion.div
+							key="noContent"
+							initial={{ opacity: 0 }}
+							animate={{ opacity: 1 }}
+							exit={{ opacity: 0 }}
+							className="flex flex-col items-center justify-center h-[70vh] gap-4"
+						>
+							<p className="text-white/80 text-lg">
+								Aguardando informações do checkout...
+							</p>
 						</motion.div>
 					)}
 				</AnimatePresence>

@@ -1,371 +1,126 @@
-// src/pages/CheckoutPage.tsx
-import { Elements } from "@stripe/react-stripe-js";
-import { AnimatePresence, motion } from "framer-motion";
+// src/components/CheckoutForm.tsx
 import {
-	ArrowLeft,
-	CheckIcon,
-	CreditCardIcon,
-	Lock,
-	Shield,
-	ShieldCheckIcon,
-	Sparkles,
-} from "lucide-react";
-import type React from "react";
-import { useCallback, useEffect, useState } from "react";
-import { useLocation, useNavigate } from "react-router-dom";
-import CheckoutForm from "../components/CheckoutForm";
-import { stripePromise } from "../lib/stripe-client";
+	PaymentElement,
+	useElements,
+	useStripe,
+} from "@stripe/react-stripe-js";
+import { motion } from "framer-motion";
+import { LockIcon } from "lucide-react";
+import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
-const containerVariants = {
-	hidden: { opacity: 0 },
-	visible: {
-		opacity: 1,
-		transition: {
-			duration: 0.5,
-			when: "beforeChildren",
-			staggerChildren: 0.1,
-		},
-	},
-};
-
-const cardVariants = {
-	hidden: { opacity: 0, y: 50 },
-	visible: {
-		opacity: 1,
-		y: 0,
-		transition: {
-			type: "spring",
-			stiffness: 100,
-			damping: 15,
-		},
-	},
-};
-
-const CheckoutPage: React.FC = () => {
-	const location = useLocation();
+export const CheckoutForm = ({ clientSecret, plan, price }) => {
+	const stripe = useStripe();
+	const elements = useElements();
 	const navigate = useNavigate();
-	const [loading, setLoading] = useState(true);
-	const [error, setError] = useState<string | null>(null);
-	const [price, setPrice] = useState<number | null>(null);
-	const [billingCycle, setBillingCycle] = useState<string | null>(null);
-	const [clientSecret, setClientSecret] = useState<string | null>(null);
+	const [processing, setProcessing] = useState(false);
+	const [error, setError] = useState("");
+	const [message, setMessage] = useState(""); // Adicione esta linha
 
-	const {
-		plan,
-		priceId,
-		price: planPrice,
-		billingCycle: planBillingCycle,
-	} = location.state as {
-		plan: string;
-		priceId: string;
-		price: number;
-		billingCycle: string;
-	};
+	const handleSubmit = async (e) => {
+		e.preventDefault();
+		if (!stripe || !elements) return;
 
-	useEffect(() => {
-		setPrice(planPrice);
-		setBillingCycle(planBillingCycle);
-	}, [planPrice, planBillingCycle]);
+		setProcessing(true);
+		setError("");
+		setMessage("");
 
-	const fetchClientSecret = useCallback(async () => {
-		setLoading(true);
-		setError(null);
 		try {
-			const token = localStorage.getItem("token");
-			if (!token) {
-				setError("Token não encontrado. Por favor, faça login novamente.");
-				setLoading(false);
-				return;
+			const { error: submitError } = await elements.submit();
+			if (submitError) {
+				throw submitError;
 			}
 
-			const apiUrl =
-				import.meta.env.VITE_API_URL || "https://api.whatlead.com.br";
-			const response = await fetch(
-				`${apiUrl}/api/stripe/create-payment-intent`,
-				{
-					method: "POST",
-					headers: {
-						"Content-Type": "application/json",
-						Authorization: `Bearer ${token}`,
+			const { error: paymentError, paymentIntent } =
+				await stripe.confirmPayment({
+					elements,
+					confirmParams: {
+						return_url: `${window.location.origin}/payment-success`,
 					},
-					body: JSON.stringify({
-						priceId,
-						returnUrl: `${window.location.origin}/return`,
-					}),
-				},
-			);
+					redirect: "if_required",
+				});
 
-			const data = await response.json();
-
-			if (response.status !== 200 || data.error) {
-				setError(data.error || "Erro desconhecido");
-				return;
+			if (paymentError) {
+				throw paymentError;
 			}
 
-			setClientSecret(data.clientSecret);
-		} catch (err: any) {
-			setError(err.message);
+			if (paymentIntent && paymentIntent.status === "succeeded") {
+				// Pagamento bem-sucedido, redirecione manualmente
+				navigate("/payment-success", {
+					state: {
+						paymentIntentId: paymentIntent.id,
+						amount: paymentIntent.amount,
+						currency: paymentIntent.currency,
+					},
+				});
+			} else {
+				// Se o pagamento não foi bem-sucedido imediatamente, mas também não houve erro
+				setMessage("Processando seu pagamento. Por favor, aguarde...");
+			}
+		} catch (err) {
+			console.error("Erro no pagamento:", err);
+			setError(err.message || "Erro ao processar pagamento");
+			setMessage(err.message || "Erro ao processar pagamento");
 		} finally {
-			setLoading(false);
+			setProcessing(false);
 		}
-	}, [priceId]);
-
-	useEffect(() => {
-		fetchClientSecret();
-	}, [fetchClientSecret]);
-
-	const getPlanDetails = () => {
-		const planDetails = {
-			basic: {
-				color: "bg-blue-500",
-				gradient: "from-blue-500 to-blue-700",
-				features: [
-					"2 Números",
-					"Envio de Texto",
-					"Suporte Básico",
-					"Limite de 50 Mensagens/Dia",
-				],
-			},
-			pro: {
-				color: "bg-purple-500",
-				gradient: "from-purple-500 to-purple-700",
-				features: [
-					"5 Números",
-					"Envio de Texto e Áudio",
-					"Suporte Prioritário",
-					"Limite de 500 Mensagens/Dia",
-					"Relatórios Avançados",
-				],
-			},
-			enterprise: {
-				color: "bg-green-500",
-				gradient: "from-green-500 to-emerald-700",
-				features: [
-					"Números Ilimitados",
-					"Envio de Texto, Áudio e Mídia",
-					"Suporte Dedicado 24/7",
-					"Mensagens Ilimitadas",
-					"Relatórios Personalizados",
-					"Integração API",
-					"Segurança Avançada",
-				],
-			},
-		};
-		return planDetails[plan as keyof typeof planDetails] || planDetails.basic;
 	};
 
 	return (
 		<motion.div
-			initial="hidden"
-			animate="visible"
-			variants={containerVariants}
-			className="min-h-screen bg-gradient-to-br from-deep to-neon-purple/10 p-4"
+			initial={{ opacity: 0 }}
+			animate={{ opacity: 1 }}
+			className="space-y-6"
 		>
-			<div className="max-w-7xl mx-auto relative">
-				<div className="absolute inset-0 bg-gradient-radial from-electric/20 via-transparent to-transparent blur-3xl" />
-				<div className="absolute -top-40 -right-40 w-80 h-80 bg-neon-green/30 rounded-full blur-3xl animate-pulse" />
-				<div className="absolute -bottom-40 -left-40 w-80 h-80 bg-electric/30 rounded-full blur-3xl animate-pulse delay-1000" />
+			<div className="text-center mb-8">
+				<h3 className="text-2xl font-bold text-white mb-2">
+					Informações de Pagamento
+				</h3>
+				<p className="text-neutral-500 text-lg">
+					Complete suas informações de pagamento de forma segura
+				</p>
+			</div>
 
-				<div className="relative z-10 flex justify-between items-center mb-8">
-					<motion.button
-						onClick={() => navigate(-1)}
-						className="flex items-center text-white gap-2 hover:text-neon-green transition-all duration-300"
-						whileHover={{ x: -5, scale: 1.05 }}
-						whileTap={{ scale: 0.95 }}
-					>
-						<ArrowLeft className="w-5 h-5" />
-						<span>Voltar para planos</span>
-					</motion.button>
-
-					<motion.div
-						initial={{ opacity: 0, x: 20 }}
-						animate={{ opacity: 1, x: 0 }}
-						className="flex items-center gap-4 text-white/80"
-					>
-						<div className="flex items-center gap-2">
-							<Lock className="w-4 h-4 text-neon-green" />
-							<span className="text-sm">Pagamento Seguro</span>
-						</div>
-						<div className="flex items-center gap-2">
-							<Shield className="w-4 h-4 text-electric" />
-							<span className="text-sm">Criptografia SSL</span>
-						</div>
-					</motion.div>
+			<motion.form onSubmit={handleSubmit} className="space-y-8">
+				<div className="bg-deep/50 rounded-xl p-6 backdrop-blur-lg border border-electric/20">
+					<PaymentElement />
 				</div>
 
-				<AnimatePresence mode="wait">
-					{loading ? (
-						<motion.div
-							key="loading"
-							initial={{ opacity: 0 }}
-							animate={{ opacity: 1 }}
-							exit={{ opacity: 0 }}
-							className="flex flex-col items-center justify-center h-[70vh] gap-4"
-						>
-							<motion.div
-								animate={{
-									rotate: 360,
-									scale: [1, 1.2, 1],
-								}}
-								transition={{
-									rotate: {
-										repeat: Number.POSITIVE_INFINITY,
-										duration: 2,
-										ease: "linear",
-									},
-									scale: {
-										repeat: Number.POSITIVE_INFINITY,
-										duration: 1,
-										ease: "easeInOut",
-									},
-								}}
-							>
-								<ShieldCheckIcon className="w-20 h-20 text-neon-green" />
-							</motion.div>
-							<motion.p
-								animate={{ opacity: [0.5, 1, 0.5] }}
-								transition={{ duration: 1.5, repeat: Number.POSITIVE_INFINITY }}
-								className="text-white/80 text-lg"
-							>
-								Preparando seu checkout seguro...
-							</motion.p>
-						</motion.div>
-					) : error ? (
-						<motion.div
-							key="error"
-							initial={{ opacity: 0, scale: 0.9 }}
-							animate={{ opacity: 1, scale: 1 }}
-							exit={{ opacity: 0, scale: 0.9 }}
-							className="relative overflow-hidden bg-red-500/10 rounded-2xl p-8 backdrop-blur-xl border border-red-500/30"
-						>
-							<div className="absolute inset-0 bg-gradient-to-br from-red-500/20 to-transparent" />
-							<div className="relative z-10 text-center space-y-4">
-								<h2 className="text-2xl font-bold text-white">
-									Erro no Checkout
-								</h2>
-								<p className="text-red-200">{error}</p>
-								<motion.button
-									whileHover={{ scale: 1.05 }}
-									whileTap={{ scale: 0.95 }}
-									onClick={() => fetchClientSecret()}
-									className="px-6 py-2 bg-white/10 rounded-full text-white hover:bg-white/20 transition-colors"
-								>
-									Tentar Novamente
-								</motion.button>
-							</div>
-						</motion.div>
-					) : (
-						<motion.div
-							key="content"
-							variants={cardVariants}
-							className="grid lg:grid-cols-2 gap-8 relative z-10"
-						>
-							<motion.div
-								variants={cardVariants}
-								className="bg-deep/80 backdrop-blur-xl rounded-3xl p-8 border border-electric/30 hover:border-electric/50 transition-colors duration-300"
-							>
-								<div className="space-y-6">
-									<motion.div
-										initial={{ y: -20, opacity: 0 }}
-										animate={{ y: 0, opacity: 1 }}
-										className="flex items-center gap-4"
-									>
-										<div className="p-3 bg-gradient-to-br from-electric to-neon-green rounded-2xl">
-											<CreditCardIcon className="w-8 h-8 text-white" />
-										</div>
-										<div>
-											<h2 className="text-3xl font-bold text-white capitalize flex items-center gap-2">
-												Plano {plan}
-												<Sparkles className="w-5 h-5 text-electric animate-pulse" />
-											</h2>
-											<p className="text-white/60">
-												{billingCycle === "monthly" ? "Mensal" : "Anual"}
-											</p>
-										</div>
-									</motion.div>
+				<div className="space-y-4">
+					<motion.button
+						type="submit"
+						disabled={processing}
+						whileHover={{ scale: 1.02 }}
+						whileTap={{ scale: 0.98 }}
+						className={`
+              w-full py-4 px-6 rounded-xl
+              bg-gradient-to-r from-neon-green to-green-700
+              text-white font-medium text-lg
+              disabled:opacity-50
+              transition-all duration-300
+              flex items-center justify-center
+              shadow-lg shadow-neon-green/20
+            `}
+					>
+						<LockIcon className="w-5 h-5 mr-2" />
+						{processing ? "Processando..." : `Pagar R$ ${price.toFixed(2)}`}
+					</motion.button>
 
-									<div className="space-y-4">
-										{getPlanDetails().features.map((feature, index) => (
-											<motion.div
-												key={index}
-												initial={{ x: -20, opacity: 0 }}
-												animate={{ x: 0, opacity: 1 }}
-												transition={{ delay: index * 0.1 }}
-												className="flex items-center gap-3 text-white group"
-											>
-												<motion.div
-													whileHover={{ scale: 1.2, rotate: 180 }}
-													className="p-1 bg-gradient-to-br from-electric to-neon-green rounded-full"
-												>
-													<CheckIcon className="w-4 h-4 text-deep" />
-												</motion.div>
-												<span className="group-hover:text-electric transition-colors">
-													{feature}
-												</span>
-											</motion.div>
-										))}
-									</div>
+					<p className="text-center text-neutral-700 text-sm">
+						Pagamento seguro processado pelo Stripe
+					</p>
+				</div>
 
-									<motion.div
-										initial={{ opacity: 0 }}
-										animate={{ opacity: 1 }}
-										className="pt-6 border-t border-electric/20"
-									>
-										<div className="flex items-center justify-between">
-											<span className="text-white/60">Total:</span>
-											<motion.div
-												className="text-right"
-												whileHover={{ scale: 1.05 }}
-											>
-												<p className="text-4xl font-bold text-white">
-													R$ {price?.toFixed(2)}
-												</p>
-												<p className="text-sm text-white/60">
-													por {billingCycle === "monthly" ? "mês" : "ano"}
-												</p>
-											</motion.div>
-										</div>
-									</motion.div>
-								</div>
-							</motion.div>
-
-							<motion.div
-								variants={cardVariants}
-								className="bg-deep/80 backdrop-blur-xl rounded-3xl p-8 border border-electric/30 hover:border-electric/50 transition-colors duration-300"
-							>
-								{clientSecret && (
-									<Elements
-										stripe={stripePromise}
-										options={{
-											clientSecret,
-											appearance: {
-												theme: "night",
-												variables: {
-													colorPrimary: "#25D366",
-													colorBackground: "#1F2937",
-													colorText: "#FFFFFF",
-													colorDanger: "#EF4444",
-													fontFamily: "system-ui",
-													spacingUnit: "4px",
-													borderRadius: "8px",
-												},
-											},
-										}}
-									>
-										<CheckoutForm
-											clientSecret={clientSecret}
-											plan={plan}
-											price={price || 0}
-										/>
-									</Elements>
-								)}
-							</motion.div>
-						</motion.div>
-					)}
-				</AnimatePresence>
-			</div>
+				{message && (
+					<motion.div
+						initial={{ opacity: 0, y: 10 }}
+						animate={{ opacity: 1, y: 0 }}
+						className="bg-red-500/20 text-red-200 p-4 rounded-xl text-sm text-center backdrop-blur-lg border border-red-500/30"
+					>
+						{message}
+					</motion.div>
+				)}
+			</motion.form>
 		</motion.div>
 	);
 };
-
-export default CheckoutPage;

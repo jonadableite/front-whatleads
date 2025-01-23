@@ -8,6 +8,7 @@ import Dashboard from "@/pages/Dashboard";
 import Disparos from "@/pages/Disparos";
 import ErrorPage from "@/pages/ErrorPage";
 import Login from "@/pages/Login";
+import PaymentSuccess from "@/pages/PaymentSuccess";
 import PricingPage from "@/pages/Pricing";
 import Register from "@/pages/Register";
 import { RouterProvider, createBrowserRouter } from "react-router-dom";
@@ -59,6 +60,10 @@ const router = createBrowserRouter([
 					{
 						path: "/checkout",
 						element: <CheckoutPage />,
+					},
+					{
+						path: "/payment-success",
+						element: <PaymentSuccess />,
 					},
 					{
 						path: "/campanhas",

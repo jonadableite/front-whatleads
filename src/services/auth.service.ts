@@ -8,15 +8,6 @@ class AuthService {
 	private readonly TOKEN_KEY = "@whatlead:token";
 	private readonly USER_KEY = "@whatlead:user";
 
-	// Função para criar headers autenticados
-	getAuthHeaders() {
-		const token = this.getToken();
-		return {
-			Authorization: token ? `Bearer ${token}` : "",
-			"Content-Type": "application/json",
-		};
-	}
-
 	// Login com tipagem forte e melhor tratamento de erro
 	async login(credentials: LoginCredentials): Promise<LoginResponse> {
 		try {
@@ -26,10 +17,12 @@ class AuthService {
 			if (token) {
 				this.setToken(token);
 				this.setUser(user);
+				console.log("Token armazenado após login:", token);
 			}
 
 			return response.data;
 		} catch (error: any) {
+			console.error("Erro durante o login:", error);
 			throw new Error(
 				error.response?.data?.message || "Erro ao realizar login",
 			);
@@ -38,24 +31,31 @@ class AuthService {
 
 	// Verificação de autenticação melhorada
 	isAuthenticated(): boolean {
-		try {
-			const token = this.getToken();
-			if (!token) return false;
+		const token = this.getToken();
+		if (!token) {
+			console.log("Token não encontrado");
+			return false;
+		}
 
+		try {
 			const payload = JSON.parse(atob(token.split(".")[1]));
 			const expiration = payload.exp * 1000;
 			const isValid = expiration > Date.now();
 
-			if (!isValid) {
-				this.logout(); // Logout automático se expirado
-				return false;
-			}
-
-			return true;
-		} catch {
-			this.logout();
+			console.log("Token válido:", isValid);
+			return isValid;
+		} catch (error) {
+			console.error("Erro ao validar token:", error);
 			return false;
 		}
+	}
+
+	getAuthHeaders() {
+		const token = this.getToken();
+		console.log("Token para headers:", token ? "Presente" : "Ausente");
+		return {
+			Authorization: token ? `Bearer ${token}` : "",
+		};
 	}
 
 	// Logout com callback opcional
