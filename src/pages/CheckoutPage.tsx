@@ -50,76 +50,83 @@ const CheckoutPage: React.FC = () => {
 	const [price, setPrice] = useState<number | null>(null);
 	const [billingCycle, setBillingCycle] = useState<string | null>(null);
 	const [clientSecret, setClientSecret] = useState<string | null>(null);
-
-	const {
-		plan,
-		priceId,
-		price: planPrice,
-		billingCycle: planBillingCycle,
-	} = location.state as {
-		plan: string;
-		priceId: string;
-		price: number;
-		billingCycle: string;
-	};
+	const [plan, setPlan] = useState<string | null>(null);
 
 	useEffect(() => {
-		setPrice(planPrice);
-		setBillingCycle(planBillingCycle);
-	}, [planPrice, planBillingCycle]);
-
-	const fetchClientSecret = useCallback(async () => {
-		setLoading(true);
-		setError(null);
-		try {
-			if (!authService.isAuthenticated()) {
-				throw new Error("Sessão expirada. Por favor, faça login novamente.");
-			}
-
-			const apiUrl =
-				import.meta.env.VITE_API_URL || "https://aquecerapi.whatlead.com.br";
-			const response = await fetch(
-				`${apiUrl}/api/stripe/create-payment-intent`,
-				{
-					method: "POST",
-					...authService.getAuthHeaders(),
-					body: JSON.stringify({
-						priceId,
-						returnUrl: `${window.location.origin}/return`,
-					}),
-				},
-			);
-
-			const data = await response.json();
-
-			if (response.status !== 200 || data.error) {
-				throw new Error(data.error || "Erro desconhecido");
-			}
-
-			setClientSecret(data.clientSecret);
-		} catch (err: any) {
-			setError(err.message);
-			if (err.message.includes("Sessão expirada")) {
-				setTimeout(() => navigate("/login"), 3000);
-			}
-		} finally {
-			setLoading(false);
+		if (!location.state) {
+			setError("Informações do plano não encontradas.");
+			return;
 		}
-	}, [priceId, navigate]);
 
-	useEffect(() => {
-		const checkAndFetchClientSecret = async () => {
-			const isValid = await authService.refreshTokenIfNeeded();
-			if (!isValid) {
-				setError("Sessão expirada. Redirecionando para o login...");
-				setTimeout(() => navigate("/login"), 3000);
-				return;
-			}
-			fetchClientSecret();
+		const {
+			plan: statePlan,
+			priceId,
+			price: planPrice,
+			billingCycle: planBillingCycle,
+		} = location.state as {
+			plan: string;
+			priceId: string;
+			price: number;
+			billingCycle: string;
 		};
 
-		checkAndFetchClientSecret();
-	}, [fetchClientSecret, navigate]);
+		setPlan(statePlan);
+		setPrice(planPrice);
+		setBillingCycle(planBillingCycle);
+
+		if (!statePlan || !priceId) {
+			setError("Plano inválido");
+			return;
+		}
+
+		fetchClientSecret(priceId);
+	}, [location.state]);
+
+	const fetchClientSecret = useCallback(
+		async (priceId: string) => {
+			setLoading(true);
+			setError(null);
+			try {
+				if (!authService.isAuthenticated()) {
+					throw new Error("Sessão expirada. Por favor, faça login novamente.");
+				}
+
+				const apiUrl =
+					import.meta.env.VITE_API_URL ||
+					"https://whatlead-api-saas.hlvhsf.easypanel.host";
+				const response = await fetch(
+					`${apiUrl}/api/stripe/create-payment-intent`,
+					{
+						method: "POST",
+						headers: {
+							"Content-Type": "application/json",
+							...authService.getAuthHeaders(), // Espalhe os headers aqui
+						},
+						body: JSON.stringify({
+							priceId,
+							returnUrl: `${window.location.origin}/return`,
+						}),
+					},
+				);
+
+				const data = await response.json();
+
+				if (response.status !== 200 || data.error) {
+					throw new Error(data.error || "Erro desconhecido");
+				}
+
+				setClientSecret(data.clientSecret);
+			} catch (err: any) {
+				setError(err.message);
+				if (err.message.includes("Sessão expirada")) {
+					setTimeout(() => navigate("/login"), 3000);
+				}
+			} finally {
+				setLoading(false);
+			}
+		},
+		[navigate],
+	);
 
 	const getPlanDetails = () => {
 		const planDetails = {

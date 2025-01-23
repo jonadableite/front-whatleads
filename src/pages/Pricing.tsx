@@ -230,7 +230,7 @@ const PricingPage: React.FC = () => {
 		navigate("/checkout", {
 			state: {
 				plan: planName,
-				priceId,
+				priceId: priceId,
 				price,
 				billingCycle,
 			},
