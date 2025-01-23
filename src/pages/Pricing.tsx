@@ -138,7 +138,7 @@ const PricingPage: React.FC = () => {
 
 	const plans: Plan[] = [
 		{
-			name: "whatlead_basic",
+			name: "Basic",
 			price: {
 				monthly: 109.0,
 				annual: 1229.0,
@@ -159,7 +159,7 @@ const PricingPage: React.FC = () => {
 			},
 		},
 		{
-			name: "whatlead_pro",
+			name: "Pro",
 			price: {
 				monthly: 167.0,
 				annual: 1800.0,
@@ -183,7 +183,7 @@ const PricingPage: React.FC = () => {
 			},
 		},
 		{
-			name: "whatlead_enterprise",
+			name: "Enterprise",
 			price: {
 				monthly: 209.0,
 				annual: 2100.0,
