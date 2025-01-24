@@ -817,11 +817,27 @@ export default function Disparos() {
 										<select
 											value={mediaType}
 											onChange={(e) => setMediaType(e.target.value)}
-											className="w-full p-4 bg-electric/10 border border-electric rounded-xl text-white focus:ring-2 focus:ring-neon-green transition-all"
+											className="w-full p-4 bg-electric/10 border border-electric rounded-xl text-white focus:ring-2 focus:ring-neon-green transition-all appearance-none"
+											style={{
+												WebkitAppearance: "none",
+												MozAppearance: "none",
+												backgroundImage:
+													'url(\'data:image/svg+xml;utf8,<svg fill="white" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/></svg>\')',
+												backgroundRepeat: "no-repeat",
+												backgroundPosition: "right 10px top 50%",
+												backgroundSize: "24px auto",
+												paddingRight: "40px",
+											}}
 										>
-											<option value="image">Imagem</option>
-											<option value="audio">Áudio</option>
-											<option value="video">Vídeo</option>
+											<option value="image" className="bg-deep text-white">
+												Imagem
+											</option>
+											<option value="audio" className="bg-deep text-white">
+												Áudio
+											</option>
+											<option value="video" className="bg-deep text-white">
+												Vídeo
+											</option>
 										</select>
 									</div>
 
