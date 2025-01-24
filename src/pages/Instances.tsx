@@ -1,4 +1,4 @@
-// src/pages/Instances.tsx
+import TypebotConfigForm from "@/components/TypebotConfigForm";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Modal } from "@/components/ui/modal";
@@ -7,7 +7,18 @@ import type { Instance } from "@/interface";
 import { authService } from "@/services/auth.service";
 import axios from "axios";
 import { motion } from "framer-motion";
-import { AlertCircle, Plus, Power, Trash2, Wifi, X } from "lucide-react";
+import {
+	AlertCircle,
+	MessageSquareMore,
+	Plus,
+	Power,
+	Settings,
+	Trash2,
+	Wifi,
+	X,
+} from "lucide-react";
+// src/pages/Instances.tsx
+import type React from "react";
 import { useEffect, useState } from "react";
 import { Toaster, toast } from "react-hot-toast";
 import { FaWhatsapp } from "react-icons/fa";
@@ -74,22 +85,32 @@ const ConnectionStatus: React.FC<{ connected: boolean }> = ({ connected }) => (
 	</motion.div>
 );
 
-// Componente: Instance Card
+// Componente: InstanceCard
 const InstanceCard: React.FC<{
 	instance: Instance;
+	onConfigureTypebot: (instance: Instance) => void;
 	onReconnect: (name: string) => void;
 	onLogout: (name: string) => void;
 	onDelete: (id: string, name: string) => void;
-}> = ({ instance, onReconnect, onLogout, onDelete }) => {
+	onConfigureProxy: (instance: Instance) => void;
+	deletingInstance: string | null;
+}> = ({
+	instance,
+	onReconnect,
+	onLogout,
+	onDelete,
+	onConfigureTypebot,
+	onConfigureProxy,
+	deletingInstance,
+}) => {
 	const isConnected = instance.connectionStatus === "open";
+	const hasTypebot = !!instance.typebot;
 
 	return (
 		<motion.div
 			variants={itemVariants}
 			whileHover={{ scale: 1.02 }}
-			className="relative bg-deep/80 backdrop-blur-xl p-6 rounded-xl
-                 border border-electric shadow-lg hover:shadow-electric
-                 transition-all duration-300"
+			className="relative bg-deep/80 backdrop-blur-xl p-6 rounded-xl border border-electric shadow-lg hover:shadow-electric transition-all duration-300"
 		>
 			<div className="absolute inset-0 bg-gradient-to-tr from-electric/5 to-neon-purple/5 opacity-50" />
 
@@ -145,36 +166,65 @@ const InstanceCard: React.FC<{
 					{!isConnected && (
 						<Button
 							variant="outline"
-							size="sm"
+							size="lg"
 							onClick={() => onReconnect(instance.instanceName)}
-							className="w-full bg-neon-green/10 text-white border-neon-green/20
-                   hover:bg-neon-green/20 hover:border-neon-green/30"
+							className="w-full bg-neon-green/10 text-white border-neon-green/20 hover:bg-neon-green/20 hover:border-neon-green/30"
 						>
-							<Wifi className="w-5 h-5 mr-2" />
-							Reconectar
+							<Wifi className="w-5 h-5 mr-2" /> Reconectar
 						</Button>
 					)}
 
 					<div className="grid grid-cols-2 gap-3">
 						<Button
 							variant="outline"
-							size="sm"
+							size="lg"
 							onClick={() => onLogout(instance.instanceName)}
-							className="bg-neon-yellow/10 text-neon-yellow border-neon-yellow/20
-                hover:bg-neon-yellow/20 hover:border-neon-yellow/30"
+							className="bg-neon-yellow/10 text-neon-yellow border-neon-yellow/20 hover:bg-neon-yellow/20 hover:border-neon-yellow/30"
 						>
-							<Power className="w-5 h-5 mr-2" />
-							Logout
+							<Power className="w-5 h-5 mr-2" /> Logout
 						</Button>
 
 						<Button
 							variant="outline"
-							size="sm"
-							onClick={() => onDelete(instance.id, instance.instanceName)}
-							className="bg-red-500/10 text-red-500 border-red-500/20
-                hover:bg-red-500/20 hover:border-red-500/30"
+							size="lg"
+							onClick={() => onConfigureTypebot(instance)}
+							className="bg-blue-500/10 text-blue-500 border-blue-500/20 hover:bg-blue-500/20 hover:border-blue-500/30 w-full"
 						>
-							<Trash2 className="w-5 h-5 mr-2" />
+							<MessageSquareMore className="w-5 h-5 mr-2" />
+							{instance.typebot ? "Editar" : "Adicionar"}
+						</Button>
+					</div>
+
+					<div className="grid grid-cols-2 gap-3">
+						<Button
+							variant="outline"
+							size="lg"
+							onClick={() => onConfigureProxy(instance)}
+							className="bg-purple-500/10 text-purple-500 border-purple-500/20 hover:bg-purple-500/20 hover:border-purple-500/30"
+						>
+							<Settings className="w-5 h-5 mr-2" /> Proxy
+						</Button>
+
+						<Button
+							variant="outline"
+							size="lg"
+							onClick={() => onDelete(instance.id, instance.instanceName)}
+							disabled={deletingInstance === instance.id}
+							className="bg-red-500/10 text-red-500 border-red-500/20 hover:bg-red-500/20 hover:border-red-500/30"
+						>
+							{deletingInstance === instance.id ? (
+								<motion.div
+									animate={{ rotate: 360 }}
+									transition={{
+										duration: 1,
+										repeat: Number.POSITIVE_INFINITY,
+										ease: "linear",
+									}}
+									className="w-5 h-5 border-2 border-red-500 border-t-transparent rounded-full mr-2"
+								/>
+							) : (
+								<Trash2 className="w-5 h-5 mr-2" />
+							)}
 							Excluir
 						</Button>
 					</div>
@@ -184,20 +234,26 @@ const InstanceCard: React.FC<{
 	);
 };
 
-// Componente Principal: Instances
+// Componente principal: Instances
 const Instances: React.FC = () => {
+	const [newInstanceName, setNewInstanceName] = useState("");
 	const navigate = useNavigate();
 	const [instances, setInstances] = useState<Instance[]>([]);
-	const [qrCodeError, setQrCodeError] = useState(false);
 	const [loading, setLoading] = useState(true);
+	const [showTypebotConfig, setShowTypebotConfig] = useState(false);
+	const [showProxyConfig, setShowProxyConfig] = useState(false);
+	const [selectedInstance, setSelectedInstance] = useState<Instance | null>(
+		null,
+	);
+	const [deletingInstance, setDeletingInstance] = useState<string | null>(null);
+	const [qrCodeError, setQrCodeError] = useState(false);
 	const [isModalOpen, setIsModalOpen] = useState(false);
-	const [newInstanceName, setNewInstanceName] = useState("");
-	const [currentPlan, setCurrentPlan] = useState<string | null>(null);
-	const [instanceLimit, setInstanceLimit] = useState<number>(0);
-	const [remainingSlots, setRemainingSlots] = useState<number>(0);
 	const [isCreatingInstance, setIsCreatingInstance] = useState(false);
+	const [currentPlan, setCurrentPlan] = useState("Gratuito");
+	const [instanceLimit, setInstanceLimit] = useState(1);
+	const [remainingSlots, setRemainingSlots] = useState(0);
 	const [pollingIntervals, setPollingIntervals] = useState<{
-		[key: string]: NodeJS.Timeout;
+		[key: string]: any;
 	}>({});
 
 	const [qrCode, setQrCode] = useState<{
@@ -219,6 +275,95 @@ const Instances: React.FC = () => {
 		setShowQrCodeModal(false);
 		setQrCode(null);
 		setQrCodeError(false);
+	};
+
+	const handleError = (error: any) => {
+		if (error.response) {
+			const status = error.response.status;
+			if (status === 401) {
+				toast.error("Sessão expirada. Faça login novamente.");
+				navigate("/login");
+			} else if (status === 403) {
+				toast.error("Você não tem permissão para acessar este recurso.");
+			} else {
+				toast.error(
+					error.response.data?.message || "Erro ao executar operação",
+				);
+			}
+		} else if (error.request) {
+			toast.error("Sem resposta do servidor. Verifique sua conexão.");
+		} else {
+			toast.error("Erro ao configurar a requisição.");
+		}
+	};
+
+	const handleUpdateTypebotConfig = async (config: any, instanceId: string) => {
+		try {
+			const token = authService.getToken();
+			if (!token) {
+				toast.error("Sessão expirada. Faça login novamente.");
+				navigate("/login");
+				return;
+			}
+
+			const response = await axios.put(
+				`${API_BASE_URL}/api/instances/instance/${instanceId}/typebot`,
+				config,
+				{ headers: { Authorization: `Bearer ${token}` } },
+			);
+
+			if (response.data.success) {
+				toast.success("Configurações do Typebot atualizadas com sucesso!");
+				setInstances((prevInstances) =>
+					prevInstances.map((instance) =>
+						instance.id === instanceId
+							? { ...instance, typebot: config }
+							: instance,
+					),
+				);
+				setShowTypebotConfig(false);
+				setSelectedInstance(null);
+			} else {
+				throw new Error(
+					response.data.error || "Falha ao atualizar configurações do Typebot",
+				);
+			}
+		} catch (error) {
+			console.error("Erro ao atualizar Typebot:", error);
+			toast.error(
+				error.response?.data?.error ||
+					"Erro ao atualizar configurações do Typebot.",
+			);
+		}
+	};
+
+	// Função para deletar a configuração do Typebot
+	const handleDeleteTypebotConfig = async (instanceId: string) => {
+		if (!window.confirm("Tem certeza que deseja remover o Typebot?")) return;
+
+		try {
+			const token = authService.getToken();
+			if (!token) {
+				toast.error("Sessão expirada. Faça login novamente.");
+				navigate("/login");
+				return;
+			}
+
+			const response = await axios.delete(
+				`${API_BASE_URL}/api/instances/instance/${instanceId}/typebot`,
+				{ headers: { Authorization: `Bearer ${token}` } },
+			);
+
+			if (response.data.success) {
+				toast.success("Typebot removido com sucesso!");
+				await fetchInstances();
+			} else {
+				toast.error("Erro ao remover Typebot.");
+			}
+		} catch (error) {
+			console.error("Erro ao remover Typebot:", error);
+			handleError(error);
+		}
 	};
 
 	const fetchUserPlan = async () => {
@@ -290,6 +435,12 @@ const Instances: React.FC = () => {
 			setRemainingSlots(Math.max(0, remaining));
 		}
 	}, [instances.length, instanceLimit]);
+
+	useEffect(() => {
+		if (!isModalOpen) {
+			setNewInstanceName("");
+		}
+	}, [isModalOpen]);
 
 	const handleCreateInstance = async () => {
 		if (!newInstanceName.trim()) {
@@ -440,6 +591,39 @@ const Instances: React.FC = () => {
 		);
 	};
 
+	const handleDeleteInstance = async (id: string, name: string) => {
+		if (!window.confirm(`Tem certeza que deseja excluir a instância ${name}?`))
+			return;
+
+		setDeletingInstance(id);
+
+		try {
+			const token = authService.getToken();
+			if (!token) {
+				toast.error("Sessão expirada. Faça login novamente.");
+				navigate("/login");
+				return;
+			}
+
+			const response = await axios.delete(
+				`${API_BASE_URL}/api/instances/instance/${id}`,
+				{ headers: { Authorization: `Bearer ${token}` } },
+			);
+
+			if (response.data.success) {
+				toast.success("Instância excluída com sucesso!");
+				await fetchInstances();
+			} else {
+				toast.error("Erro ao excluir instância.");
+			}
+		} catch (error) {
+			console.error("Erro ao excluir instância:", error);
+			handleError(error);
+		} finally {
+			setDeletingInstance(null);
+		}
+	};
+
 	const handleReconnectInstance = async (instanceName) => {
 		try {
 			// Tenta conectar e obter o QR code
@@ -535,8 +719,6 @@ const Instances: React.FC = () => {
 							}
 						}
 					}, 2000);
-
-					// Garante que o intervalo será limpo após o tempo máximo
 					setTimeout(() => {
 						clearInterval(intervalId);
 					}, 120000);
@@ -598,6 +780,16 @@ const Instances: React.FC = () => {
 				error.response?.data?.message || "Erro ao desconectar instância",
 			);
 		}
+	};
+
+	function handleConfigureTypebot(instance: Instance): void {
+		setSelectedInstance(instance);
+		setShowTypebotConfig(true);
+	}
+
+	const handleConfigureProxy = (instance: Instance) => {
+		// Por enquanto, apenas mostra um toast. Você pode implementar a lógica real mais tarde.
+		toast.info(`Configurando proxy para ${instance.instanceName}`);
 	};
 
 	return (
@@ -674,6 +866,29 @@ const Instances: React.FC = () => {
 				</Button>
 			</div>
 
+			{/* Modal de Configuração do Typebot */}
+			{showTypebotConfig && selectedInstance && (
+				<Modal
+					isOpen={showTypebotConfig}
+					onClose={() => {
+						setShowTypebotConfig(false);
+						setSelectedInstance(null);
+					}}
+					title={
+						selectedInstance.typebot ? "Editar Typebot" : "Adicionar Typebot"
+					}
+				>
+					<TypebotConfigForm
+						instance={selectedInstance}
+						onUpdate={(config) =>
+							handleUpdateTypebotConfig(config, selectedInstance.id)
+						}
+						onDelete={() => handleDeleteTypebotConfig(selectedInstance.id)}
+						isEditing={!!selectedInstance.typebot}
+					/>
+				</Modal>
+			)}
+
 			{/* Grid de Instâncias */}
 			{loading ? (
 				<div className="flex justify-center items-center h-64">
@@ -698,8 +913,11 @@ const Instances: React.FC = () => {
 							key={instance.id}
 							instance={instance}
 							onReconnect={handleReconnectInstance}
-							onLogout={() => {}}
-							onDelete={() => {}}
+							onLogout={handleLogoutInstance}
+							onDelete={handleDeleteInstance}
+							onConfigureTypebot={handleConfigureTypebot}
+							onConfigureProxy={handleConfigureProxy}
+							deletingInstance={deletingInstance}
 						/>
 					))}
 				</motion.div>

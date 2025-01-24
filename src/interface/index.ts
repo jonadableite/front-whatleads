@@ -187,6 +187,50 @@ export interface CampaignStatistics {
 	failedCount: number;
 }
 
+export interface TypebotConfigFormProps {
+	instance: {
+		typebot?: TypebotConfig;
+		instanceId?: string;
+		instanceName?: string;
+	};
+	onUpdate: (config: TypebotConfig) => Promise<void>;
+	onDelete: (instanceId: string, instanceName: string) => void;
+	isEditing: boolean;
+}
+
+export interface TypebotConfig {
+	enabled: boolean;
+	url: string;
+	typebot: {
+		typebotId: string;
+		name: string;
+	};
+	description: string;
+	triggerType: string;
+	triggerOperator: string;
+	triggerValue: string;
+	expire: number;
+	keywordFinish: string;
+	delayMessage: number;
+	unknownMessage: string;
+	listeningFromMe: boolean;
+	stopBotFromMe: boolean;
+	keepOpen: boolean;
+	debounceTime: number;
+	[key: string]: any;
+}
+
+export interface InputFieldProps {
+	label: string;
+	name: string;
+	type?: string;
+	placeholder?: string;
+	value: string;
+	onChange: (
+		e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
+	) => void;
+}
+
 export interface CampaignsResponse {
 	campaigns: Campaign[];
 	total: number;
