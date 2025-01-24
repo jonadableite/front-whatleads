@@ -1,3 +1,4 @@
+import CustomDatePicker from "@/components/CustomDatePicker";
 import { BarChart, LineChart, PieChart } from "@/components/charts";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { Button } from "@/components/ui/button";
@@ -362,17 +363,12 @@ export default function Dashboard() {
 			</div>
 
 			<div className="mb-4">
-				<label htmlFor="date-select" className="text-white mr-2">
-					Selecione a data:
-				</label>
-				<input
-					type="date"
-					id="date-select"
-					value={format(selectedDate, "yyyy-MM-dd")}
-					onChange={handleDateChange}
-					className="bg-deep/60 text-white border border-electric rounded px-2 py-1"
+				<CustomDatePicker
+					selectedDate={selectedDate}
+					onChange={(date: Date) => setSelectedDate(date)}
 				/>
 			</div>
+
 			<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6 mb-8">
 				{stats.map((stat, index) => (
 					<StatCard key={index} {...stat} />
