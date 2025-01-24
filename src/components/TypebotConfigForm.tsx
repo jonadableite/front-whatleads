@@ -147,6 +147,16 @@ const TypebotConfigForm = ({
 		</div>
 	);
 
+	const handleDelete = async () => {
+		try {
+			await onDelete(instance.id);
+			// A notificação de sucesso será mostrada no componente pai
+		} catch (error) {
+			console.error("Erro ao excluir as configurações:", error);
+			// A notificação de erro será mostrada no componente pai
+		}
+	};
+
 	const handleSave = async () => {
 		if (!validateForm()) {
 			toast.error("Preencha todos os campos obrigatórios");

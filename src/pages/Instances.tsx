@@ -1,3 +1,4 @@
+import ProxyConfigModal from "@/components/ProxyConfigModal";
 import TypebotConfigForm from "@/components/TypebotConfigForm";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -23,7 +24,6 @@ import { useEffect, useState } from "react";
 import { Toaster, toast } from "react-hot-toast";
 import { FaWhatsapp } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
-
 // Constantes
 const API_BASE_URL = "https://api.whatlead.com.br";
 const API_KEY = "429683C4C977415CAAFCCE10F7D57E11";
@@ -89,10 +89,10 @@ const ConnectionStatus: React.FC<{ connected: boolean }> = ({ connected }) => (
 const InstanceCard: React.FC<{
 	instance: Instance;
 	onConfigureTypebot: (instance: Instance) => void;
+	onConfigureProxy: (instance: Instance) => void;
 	onReconnect: (name: string) => void;
 	onLogout: (name: string) => void;
 	onDelete: (id: string, name: string) => void;
-	onConfigureProxy: (instance: Instance) => void;
 	deletingInstance: string | null;
 }> = ({
 	instance,
@@ -256,6 +256,9 @@ const Instances: React.FC = () => {
 		[key: string]: any;
 	}>({});
 
+	const [selectedInstanceForProxy, setSelectedInstanceForProxy] =
+		useState<Instance | null>(null);
+
 	const [qrCode, setQrCode] = useState<{
 		base64: string;
 		pairingCode?: string;
@@ -356,13 +359,21 @@ const Instances: React.FC = () => {
 
 			if (response.data.success) {
 				toast.success("Typebot removido com sucesso!");
-				await fetchInstances();
+				setInstances((prevInstances) =>
+					prevInstances.map((instance) =>
+						instance.id === instanceId
+							? { ...instance, typebot: null }
+							: instance,
+					),
+				);
+				setShowTypebotConfig(false);
+				setSelectedInstance(null);
 			} else {
-				toast.error("Erro ao remover Typebot.");
+				throw new Error(response.data.error || "Falha ao remover Typebot");
 			}
 		} catch (error) {
 			console.error("Erro ao remover Typebot:", error);
-			handleError(error);
+			toast.error(error.response?.data?.error || "Erro ao remover Typebot");
 		}
 	};
 
@@ -788,8 +799,45 @@ const Instances: React.FC = () => {
 	}
 
 	const handleConfigureProxy = (instance: Instance) => {
-		// Por enquanto, apenas mostra um toast. Você pode implementar a lógica real mais tarde.
-		toast.info(`Configurando proxy para ${instance.instanceName}`);
+		setSelectedInstanceForProxy(instance);
+		setShowProxyConfig(true);
+	};
+
+	const handleSaveProxyConfig = async (config: ProxyConfig) => {
+		if (!selectedInstanceForProxy) return;
+
+		try {
+			const token = authService.getToken();
+			if (!token) {
+				toast.error("Sessão expirada. Faça login novamente.");
+				navigate("/login");
+				return;
+			}
+
+			const response = await axios.put(
+				`${API_BASE_URL}/api/instances/instance/${selectedInstanceForProxy.id}/proxy`,
+				config,
+				{ headers: { Authorization: `Bearer ${token}` } },
+			);
+
+			if (response.data) {
+				toast.success("Configurações de proxy atualizadas com sucesso!");
+				setInstances((prevInstances) =>
+					prevInstances.map((instance) =>
+						instance.id === selectedInstanceForProxy.id
+							? { ...instance, proxyConfig: config }
+							: instance,
+					),
+				);
+				setShowProxyConfig(false);
+				setSelectedInstanceForProxy(null);
+			} else {
+				throw new Error("Falha ao atualizar configurações de proxy");
+			}
+		} catch (error) {
+			console.error("Erro ao atualizar configurações de proxy:", error);
+			toast.error("Erro ao atualizar configurações de proxy");
+		}
 	};
 
 	return (
@@ -865,6 +913,14 @@ const Instances: React.FC = () => {
 					{remainingSlots <= 0 && " (Limite atingido)"}
 				</Button>
 			</div>
+			{/* Modal de Configuração do Proxy */}
+			{showProxyConfig && selectedInstanceForProxy && (
+				<ProxyConfigModal
+					instanceName={selectedInstanceForProxy.instanceName}
+					onClose={() => setShowProxyConfig(false)}
+					onSave={handleSaveProxyConfig}
+				/>
+			)}
 
 			{/* Modal de Configuração do Typebot */}
 			{showTypebotConfig && selectedInstance && (
@@ -883,7 +939,7 @@ const Instances: React.FC = () => {
 						onUpdate={(config) =>
 							handleUpdateTypebotConfig(config, selectedInstance.id)
 						}
-						onDelete={() => handleDeleteTypebotConfig(selectedInstance.id)}
+						onDelete={handleDeleteTypebotConfig}
 						isEditing={!!selectedInstance.typebot}
 					/>
 				</Modal>
