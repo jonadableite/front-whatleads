@@ -17,6 +17,7 @@ import Agendados from "../pages/Agendados";
 import Contatos from "../pages/Contatos";
 import Historico from "../pages/Historico";
 import Instances from "../pages/Instances";
+import PasswordRecovery from "../pages/PasswordRecovery";
 
 const router = createBrowserRouter([
 	{
@@ -99,7 +100,7 @@ const router = createBrowserRouter([
 			},
 			{
 				path: "/forgot-password",
-				element: <div>Esqueci minha senha</div>, // Placeholder para a página de recuperação de senha
+				element: <PasswordRecovery />,
 			},
 		],
 	},

@@ -279,6 +279,7 @@ const Login: React.FC = () => {
 							<Button
 								variant="link"
 								className="text-neon-pink hover:text-white-pure transition-colors duration-300 text-lg"
+								onClick={() => navigate("/forgot-password")}
 							>
 								Esqueceu a senha?
 							</Button>
