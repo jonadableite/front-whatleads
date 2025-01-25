@@ -16,7 +16,7 @@ import { FiPieChart, FiUsers } from "react-icons/fi";
 
 const Contatos: React.FC = () => {
 	const [searchTerm, setSearchTerm] = useState("");
-	const [selectedSegment, setSelectedSegment] = useState("all");
+	const [selectedSegment, setSelectedSegment] = useState("");
 	const [isImportModalOpen, setIsImportModalOpen] = useState(false);
 	const [isSegmentModalOpen, setIsSegmentModalOpen] = useState(false);
 	const [currentPage, setCurrentPage] = useState(1);
@@ -79,7 +79,7 @@ const Contatos: React.FC = () => {
 	const filteredLeads = useMemo(() => {
 		let leads = leadsData?.data?.leads || [];
 
-		if (selectedSegment && selectedSegment !== "") {
+		if (selectedSegment) {
 			leads = leads.filter((lead) => lead.status === selectedSegment);
 		}
 
@@ -166,13 +166,26 @@ const Contatos: React.FC = () => {
 		}
 	}
 
-	const handleSaveEditedLead = async (updatedLead: any) => {
+	const handleSaveEditedLead = async (updatedLead: {
+		id: string;
+		name: string;
+		phone: string;
+		status: string;
+		email: string;
+	}) => {
 		try {
-			await leadsApi.updateLead(updatedLead.id, updatedLead);
+			const dataToUpdate = {
+				name: updatedLead.name,
+				phone: updatedLead.phone,
+				status: updatedLead.status,
+				email: updatedLead.email,
+				// Adicione outros campos que podem ser atualizados
+			};
+			await leadsApi.updateLead(updatedLead.id, dataToUpdate);
 			Toast.success("Lead atualizado com sucesso!");
 			refetch();
 		} catch (error) {
-			Toast.error(`Erro ao atualizar lead: ${(error as Error).message}`);
+			Toast.error(`Erro ao atualizar lead: ${error.message}`);
 		}
 	};
 
@@ -255,7 +268,7 @@ const Contatos: React.FC = () => {
 							onChange={(e) => setSelectedSegment(e.target.value)}
 							className="flex-grow bg-deep border-electric text-white"
 						>
-							<option value="">Selecione um status</option>
+							<option value="">Todos os status</option>
 							<option value="novo">Novo</option>
 							<option value="SENT">Em Progresso</option>
 							<option value="READ">Qualificado</option>

@@ -129,7 +129,7 @@ export const LeadTable: React.FC<LeadTableProps> = ({
 									<Th key={index} className="text-electric font-bold">
 										<motion.div
 											className="flex items-center gap-2"
-											whileHover={{ scale: 1.05, color: "#00FFFF" }}
+											whileHover={{ scale: 1.05, color: "#00ff6a" }}
 										>
 											{index === 0 && <FiUser className="text-lg" />}
 											{index === 1 && <FiPhone className="text-lg" />}
