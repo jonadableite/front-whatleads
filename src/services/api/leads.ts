@@ -65,7 +65,7 @@ export const leadsApi = {
 		return response.data;
 	},
 
-	segmentLeads: async (rules: SegmentationRule[]) => {
+	async segmentLeads(rules: SegmentationRule[]) {
 		const response = await api.main.post("/leads/segment", { rules });
 		return response.data;
 	},

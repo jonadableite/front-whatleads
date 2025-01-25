@@ -2,16 +2,19 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Modal } from "@/components/ui/modal";
 import { Select } from "@/components/ui/select";
+import { useLeadSegmentation } from "@/hooks/useLeadSegmentation"; // Importe o hook
 import type { SegmentationModalProps, SegmentationRule } from "@/interface";
 import { Trash2 } from "lucide-react";
 import type React from "react";
 import { useState } from "react";
 
-export const SegmentationModal: React.FC<SegmentationModalProps> = ({
+const SegmentationModal: React.FC<SegmentationModalProps> = ({
 	isOpen,
 	onClose,
 	onSegment,
 }) => {
+	const { handleSegmentation, isSegmenting } = useLeadSegmentation();
+
 	const [rules, setRules] = useState<SegmentationRule[]>([
 		{ field: "", operator: "", value: "" },
 	]);
@@ -35,13 +38,18 @@ export const SegmentationModal: React.FC<SegmentationModalProps> = ({
 		setRules(newRules);
 	};
 
-	const handleSegmentation = async () => {
-		await onSegment(rules);
+	const handleSubmit = async () => {
+		await handleSegmentation(rules);
+		onSegment(rules);
 		onClose();
 	};
 
 	return (
-		<Modal isOpen={isOpen} onClose={onClose}>
+		<Modal
+			isOpen={isOpen}
+			onClose={onClose}
+			title="Configurar Segmentação de Leads"
+		>
 			<div className="bg-deep rounded-lg p-6 max-w-2xl w-full">
 				<h2 className="text-2xl font-bold mb-6 text-electric">
 					Configurar Segmentação de Leads
@@ -60,6 +68,8 @@ export const SegmentationModal: React.FC<SegmentationModalProps> = ({
 							<option value="name">Nome</option>
 							<option value="email">E-mail</option>
 							<option value="phone">Telefone</option>
+							<option value="status">Status</option>
+							<option value="segment">Segmento</option>
 						</Select>
 						<Select
 							value={rule.operator}
@@ -67,18 +77,39 @@ export const SegmentationModal: React.FC<SegmentationModalProps> = ({
 							className="bg-deep border-electric text-white"
 						>
 							<option value="">Selecione um operador</option>
-							<option value="contains">Contém</option>
 							<option value="equals">Igual a</option>
+							<option value="contains">Contém</option>
 							<option value="startsWith">Começa com</option>
+							<option value="before">Antes de</option>
+							<option value="after">Depois de</option>
 						</Select>
 						<div className="flex items-center">
-							<Input
-								type="text"
-								value={rule.value}
-								onChange={(e) => updateRule(index, "value", e.target.value)}
-								placeholder="Valor"
-								className="flex-grow bg-deep border-electric text-white"
-							/>
+							{rule.field === "status" || rule.field === "segment" ? (
+								<Select
+									value={rule.value}
+									onChange={(e) => updateRule(index, "value", e.target.value)}
+									className="flex-grow bg-deep border-electric text-white"
+								>
+									<option value="">Selecione um valor</option>
+									<option value="READ">Lido</option>
+									<option value="SENT">Enviado</option>
+									<option value="MODERATE">Moderado</option>
+									<option value="REGULAR_ENGAGEMENT">
+										Engajamento Regular
+									</option>
+									<option value="HIGHLY_ENGAGED">Altamente Engajado</option>
+									<option value="LOW_ENGAGEMENT">Baixo Engajamento</option>
+									{/* Adicione outros status e segmentos conforme necessário */}
+								</Select>
+							) : (
+								<Input
+									type="text"
+									value={rule.value}
+									onChange={(e) => updateRule(index, "value", e.target.value)}
+									placeholder="Valor"
+									className="flex-grow bg-deep border-electric text-white"
+								/>
+							)}
 							<Button
 								onClick={() => removeRule(index)}
 								className="ml-2 bg-red-500 hover:bg-red-600 text-white"
@@ -104,13 +135,16 @@ export const SegmentationModal: React.FC<SegmentationModalProps> = ({
 						Cancelar
 					</Button>
 					<Button
-						onClick={handleSegmentation}
+						onClick={handleSubmit}
+						disabled={isSegmenting}
 						className="bg-electric hover:bg-electric/80 text-deep"
 					>
-						Segmentar
+						{isSegmenting ? "Segmentando..." : "Segmentar"}
 					</Button>
 				</div>
 			</div>
 		</Modal>
 	);
 };
+
+export default SegmentationModal;

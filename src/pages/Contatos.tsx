@@ -1,8 +1,7 @@
 // src/pages/Contatos.tsx
 import { ImportLeadsModal } from "@/components/leads/ImportLeadsModal";
 import { LeadTable } from "@/components/leads/LeadTable";
-import { SegmentationModal } from "@/components/leads/SegmentationModal";
-import { Button } from "@/components/ui/button";
+import SegmentationModal from "@/components/leads/SegmentationModal";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Toast } from "@/components/ui/toast";
@@ -12,7 +11,7 @@ import { useMutation, useQuery } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import type React from "react";
 import { useMemo, useState } from "react";
-import { FiFilter, FiPieChart, FiUsers } from "react-icons/fi";
+import { FiPieChart, FiUsers } from "react-icons/fi";
 
 const Contatos: React.FC = () => {
 	const [searchTerm, setSearchTerm] = useState("");
@@ -75,17 +74,24 @@ const Contatos: React.FC = () => {
 	});
 
 	const filteredLeads = useMemo(() => {
-		const leads = leadsData?.data?.leads || [];
-		if (!searchTerm) return leads;
+		let leads = leadsData?.data?.leads || [];
 
-		return leads.filter((lead) => {
-			const searchLower = searchTerm.toLowerCase();
-			return (
-				(lead.name?.toLowerCase() || "").includes(searchLower) ||
-				(lead.phone || "").includes(searchTerm)
-			);
-		});
-	}, [leadsData?.data?.leads, searchTerm]);
+		if (selectedSegment && selectedSegment !== "") {
+			leads = leads.filter((lead) => lead.status === selectedSegment);
+		}
+
+		if (searchTerm) {
+			leads = leads.filter((lead) => {
+				const searchLower = searchTerm.toLowerCase();
+				return (
+					(lead.name?.toLowerCase() || "").includes(searchLower) ||
+					(lead.phone || "").includes(searchTerm)
+				);
+			});
+		}
+
+		return leads;
+	}, [leadsData?.data?.leads, searchTerm, selectedSegment]);
 
 	const paginatedLeads = useMemo(() => {
 		return filteredLeads.slice(
@@ -102,6 +108,7 @@ const Contatos: React.FC = () => {
 
 	const handleSegmentLeads = async (segmentationRules: any) => {
 		await segmentLeadsMutation.mutateAsync(segmentationRules);
+		refetch();
 	};
 
 	const containerVariants = {
@@ -126,6 +133,10 @@ const Contatos: React.FC = () => {
 		},
 	};
 
+	function updateRule(index: any, arg1: string, value: string): void {
+		throw new Error("Function not implemented.");
+	}
+
 	return (
 		<motion.div
 			initial="hidden"
@@ -139,14 +150,14 @@ const Contatos: React.FC = () => {
 					className="flex justify-between items-center mb-12"
 				>
 					<h1 className="text-4xl font-bold text-white">Contatos</h1>
-					<div className="flex space-x-4">
+					{/* <div className="flex space-x-4">
 						<Button
 							onClick={() => setIsSegmentModalOpen(true)}
 							className="bg-electric text-deep hover:bg-electric/80"
 						>
 							<FiFilter className="mr-2" /> Segmentar Leads
 						</Button>
-					</div>
+					</div> */}
 				</motion.div>
 
 				<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
@@ -200,10 +211,13 @@ const Contatos: React.FC = () => {
 						<Select
 							value={selectedSegment}
 							onChange={(e) => setSelectedSegment(e.target.value)}
-							className="bg-deep/50 text-white border-electric"
+							className="flex-grow bg-deep border-electric text-white"
 						>
-							<option value="all">Todos os segmentos</option>
-							{/* Adicione opções de segmentos aqui */}
+							<option value="">Selecione um status</option>
+							<option value="novo">Novo</option>
+							<option value="SENT">Em Progresso</option>
+							<option value="READ">Qualificado</option>
+							<option value="DELIVERED">Desqualificado</option>
 						</Select>
 					</div>
 				</motion.div>

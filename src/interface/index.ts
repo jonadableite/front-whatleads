@@ -231,6 +231,15 @@ export interface InputFieldProps {
 	) => void;
 }
 
+export interface LeadBehavior {
+	responseRate: number;
+	averageResponseTime: number;
+	messageReadRate: number;
+	lastInteraction: Date;
+	totalMessages: number;
+	engagementScore: number;
+}
+
 export interface CampaignsResponse {
 	campaigns: Campaign[];
 	total: number;
