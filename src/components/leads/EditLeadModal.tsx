@@ -4,7 +4,7 @@ import { AnimatePresence, motion } from "framer-motion";
 // src/components/leads/EditLeadModal.tsx
 import type React from "react";
 import { useEffect, useState } from "react";
-import { FiCheckCircle, FiMail, FiPhone, FiUser, FiX } from "react-icons/fi";
+import { FiCheckCircle, FiPhone, FiUser, FiX } from "react-icons/fi";
 
 interface EditLeadModalProps {
 	isOpen: boolean;
@@ -13,7 +13,6 @@ interface EditLeadModalProps {
 		id: string;
 		name: string;
 		phone: string;
-		email: string;
 		status: string;
 	};
 	onSave: (updatedLead: any) => void;
@@ -114,18 +113,6 @@ const EditLeadModal: React.FC<EditLeadModalProps> = ({
 										value={editedLead.phone}
 										onChange={handleChange}
 										placeholder="Telefone"
-										className="pl-10 bg-deep/50 border-electric text-white placeholder-white/50"
-									/>
-								</div>
-
-								<div className="relative">
-									<FiMail className="absolute top-3 left-3 text-electric" />
-									<Input
-										type="email"
-										name="email"
-										value={editedLead.email}
-										onChange={handleChange}
-										placeholder="E-mail"
 										className="pl-10 bg-deep/50 border-electric text-white placeholder-white/50"
 									/>
 								</div>

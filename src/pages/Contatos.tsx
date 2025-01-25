@@ -171,15 +171,12 @@ const Contatos: React.FC = () => {
 		name: string;
 		phone: string;
 		status: string;
-		email: string;
 	}) => {
 		try {
 			const dataToUpdate = {
 				name: updatedLead.name,
 				phone: updatedLead.phone,
 				status: updatedLead.status,
-				email: updatedLead.email,
-				// Adicione outros campos que podem ser atualizados
 			};
 			await leadsApi.updateLead(updatedLead.id, dataToUpdate);
 			Toast.success("Lead atualizado com sucesso!");

@@ -11,8 +11,8 @@ import {
 	FiClock,
 	FiEdit2,
 	FiHelpCircle,
-	FiMail,
 	FiPhone,
+	FiTag,
 	FiTrash2,
 	FiUser,
 	FiXCircle,
@@ -124,7 +124,7 @@ export const LeadTable: React.FC<LeadTableProps> = ({
 				<Table>
 					<Thead>
 						<Tr className="bg-electric/20">
-							{["Nome", "Telefone", "E-mail", "Status", "Ações"].map(
+							{["Nome", "Telefone", "Campanha", "Status", "Ações"].map(
 								(header, index) => (
 									<Th key={index} className="text-electric font-bold">
 										<motion.div
@@ -133,7 +133,7 @@ export const LeadTable: React.FC<LeadTableProps> = ({
 										>
 											{index === 0 && <FiUser className="text-lg" />}
 											{index === 1 && <FiPhone className="text-lg" />}
-											{index === 2 && <FiMail className="text-lg" />}
+											{index === 2 && <FiTag className="text-lg" />}
 											{header}
 										</motion.div>
 									</Th>
@@ -170,10 +170,11 @@ export const LeadTable: React.FC<LeadTableProps> = ({
 											whileHover={{ scale: 1.05 }}
 											className="flex items-center gap-2"
 										>
-											<FiMail className="text-electric" />
-											{lead.email || "-"}
+											<FiTag className="text-electric" />
+											{lead.campaignName || "-"}
 										</motion.div>
 									</Td>
+
 									<Td>
 										<motion.div
 											whileHover={{ scale: 1.05 }}
@@ -237,35 +238,39 @@ export const LeadTable: React.FC<LeadTableProps> = ({
 						onClick={() => onPageChange(currentPage - 1)}
 						disabled={currentPage === 1}
 						variant="outline"
-						className="flex items-center gap-2 hover:bg-electric/30 hover:text-electric disabled:opacity-50 transition-all duration-200"
+						className="flex items-center justify-center gap-2 hover:bg-electric/30 hover:text-electric disabled:opacity-50 transition-all duration-200 w-32 h-10 rounded-full"
 					>
-						<FiChevronLeft />
-						Anterior
+						<FiChevronLeft className="text-lg" />
+						<span>Anterior</span>
 					</Button>
 					<Button
 						onClick={() => onPageChange(currentPage + 1)}
 						disabled={currentPage === pageCount}
 						variant="outline"
-						className="flex items-center gap-2 hover:bg-electric/30 hover:text-electric disabled:opacity-50 transition-all duration-200"
+						className="flex items-center justify-center gap-2 hover:bg-electric/30 hover:text-electric disabled:opacity-50 transition-all duration-200 w-32 h-10 rounded-full"
 					>
-						Próxima
-						<FiChevronRight />
+						<span>Próxima</span>
+						<FiChevronRight className="text-lg" />
 					</Button>
 				</div>
 
 				<div className="flex flex-col items-center gap-2 md:flex-row md:gap-4">
-					<motion.span
-						className="text-white/90 bg-deep/70 px-4 py-2 rounded-lg backdrop-blur-sm"
+					<motion.div
+						className="flex items-center justify-center bg-deep/70 px-6 py-2 rounded-full backdrop-blur-sm"
 						whileHover={{ scale: 1.05 }}
 					>
-						Página {currentPage} de {pageCount}
-					</motion.span>
+						<span className="text-white/90 mr-2">Página</span>
+						<span className="text-electric font-bold">{currentPage}</span>
+						<span className="text-white/90 mx-2">de</span>
+						<span className="text-electric font-bold">{pageCount}</span>
+					</motion.div>
 
 					<motion.div
-						className="text-electric text-sm bg-electric/20 px-4 py-2 rounded-lg backdrop-blur-sm"
+						className="flex items-center justify-center text-electric text-sm bg-electric/20 px-6 py-2 rounded-full backdrop-blur-sm"
 						whileHover={{ scale: 1.05 }}
 					>
-						Total de {leads.length} leads encontrados
+						<FiUser className="mr-2" />
+						<span>Total de {leads.length} leads encontrados</span>
 					</motion.div>
 				</div>
 			</motion.div>
