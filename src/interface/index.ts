@@ -74,6 +74,8 @@ export interface LeadTableProps {
 	currentPage: number;
 	pageCount: number;
 	onPageChange: (page: number) => void;
+	onEdit?: (leadId: string) => void;
+	onDelete?: (leadId: string) => void;
 }
 
 export interface ScheduledCampaign extends Campaign {

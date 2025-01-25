@@ -1,3 +1,4 @@
+import EditLeadModal from "@/components/leads/EditLeadModal";
 // src/pages/Contatos.tsx
 import { ImportLeadsModal } from "@/components/leads/ImportLeadsModal";
 import { LeadTable } from "@/components/leads/LeadTable";
@@ -20,6 +21,8 @@ const Contatos: React.FC = () => {
 	const [isSegmentModalOpen, setIsSegmentModalOpen] = useState(false);
 	const [currentPage, setCurrentPage] = useState(1);
 	const [leadsPerPage] = useState(20);
+	const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+	const [selectedLead, setSelectedLead] = useState(null);
 
 	// Atualizar as queries para incluir tratamento de erro
 	const {
@@ -137,6 +140,45 @@ const Contatos: React.FC = () => {
 		throw new Error("Function not implemented.");
 	}
 
+	function handleDeleteLead(leadId: string): void {
+		if (window.confirm("Tem certeza que deseja deletar este lead?")) {
+			leadsApi
+				.deleteLead(leadId)
+				.then(() => {
+					Toast.success("Lead deletado com sucesso!");
+					refetch(); // Recarrega a lista de leads
+				})
+				.catch((error: Error) => {
+					Toast.error(`Erro ao deletar lead: ${error.message}`);
+				});
+		}
+	}
+
+	function handleEditLead(leadId: string): void {
+		const leadToEdit = leadsData?.data?.leads.find(
+			(lead) => lead.id === leadId,
+		);
+		if (leadToEdit) {
+			setSelectedLead(leadToEdit);
+			setIsEditModalOpen(true);
+		} else {
+			Toast.error("Lead não encontrado para edição.");
+		}
+	}
+
+	const handleSaveEditedLead = async (updatedLead: any) => {
+		try {
+			await leadsApi.updateLead(updatedLead.id, updatedLead);
+			Toast.success("Lead atualizado com sucesso!");
+			refetch();
+		} catch (error) {
+			Toast.error(`Erro ao atualizar lead: ${(error as Error).message}`);
+		}
+	};
+
+	function handlePageChange(page: number): void {
+		setCurrentPage(page);
+	}
 	return (
 		<motion.div
 			initial="hidden"
@@ -246,11 +288,22 @@ const Contatos: React.FC = () => {
 							leads={paginatedLeads}
 							currentPage={currentPage}
 							pageCount={pageCount}
-							onPageChange={setCurrentPage}
+							onPageChange={handlePageChange}
+							onEdit={handleEditLead}
+							onDelete={handleDeleteLead}
 						/>
 					)}
 				</motion.div>
 			</div>
+
+			{selectedLead && (
+				<EditLeadModal
+					isOpen={isEditModalOpen}
+					onClose={() => setIsEditModalOpen(false)}
+					lead={selectedLead}
+					onSave={handleSaveEditedLead}
+				/>
+			)}
 
 			<ImportLeadsModal
 				isOpen={isImportModalOpen}

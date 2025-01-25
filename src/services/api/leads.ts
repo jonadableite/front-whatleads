@@ -43,6 +43,16 @@ export const leadsApi = {
 		return response.data;
 	},
 
+	deleteLead: async (leadId: string) => {
+		const response = await api.main.delete(`/leads/${leadId}`);
+		return response.data;
+	},
+
+	updateLead: async (leadId: string, data: Partial<Lead>) => {
+		const response = await api.main.put(`/leads/${leadId}`, data);
+		return response.data;
+	},
+
 	fetchUserPlan: async () => {
 		const response = await api.main.get<UserPlanResponse>("/users/plan");
 		return response.data;

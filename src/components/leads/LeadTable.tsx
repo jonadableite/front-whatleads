@@ -74,7 +74,7 @@ export const LeadTable: React.FC<LeadTableProps> = ({
 			if (typeof onEdit === "function") {
 				onEdit(leadId);
 			} else {
-				console.error("onEdit is not a function");
+				console.warn("onEdit não é uma função ou não foi fornecida");
 			}
 		},
 		[onEdit],
