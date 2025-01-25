@@ -1,4 +1,3 @@
-import { Toast } from "@/components/ui/toast";
 import { leadsApi } from "@/services/api/leads";
 // src/hooks/useLeadsData.ts
 import { useQuery } from "@tanstack/react-query";
@@ -14,7 +13,7 @@ export const useLeadsData = () => {
 			try {
 				return await leadsApi.fetchLeads();
 			} catch (error) {
-				Toast.error(`Erro ao carregar leads: ${(error as Error).message}`);
+				console.error("Error fetching leads:", error);
 				throw error;
 			}
 		},
@@ -26,23 +25,28 @@ export const useLeadsData = () => {
 			try {
 				return await leadsApi.fetchUserPlan();
 			} catch (error) {
-				Toast.error(`Erro ao carregar plano: ${(error as Error).message}`);
+				console.error("Error fetching user plan:", error);
 				throw error;
 			}
 		},
 	});
 
+	const totalLeads = leadsData?.data?.total || 0;
+	const leads = leadsData?.data?.leads || [];
+	const activeLeads = leads.filter((lead) => lead.status === "READ").length;
+	const conversionRate = totalLeads > 0 ? (activeLeads / totalLeads) * 100 : 0;
+
 	const statistics = {
-		totalLeads: leadsData?.data?.totalLeads || 0,
-		activeLeads: leadsData?.data?.activeLeads || 0,
-		conversionRate: leadsData?.data?.conversionRate || 0,
-		leadLimit: userPlan?.data?.maxLeads || 0,
+		totalLeads,
+		activeLeads,
+		conversionRate,
+		leadLimit: userPlan?.limits?.maxLeads || 0,
 	};
 
 	return {
-		leads: leadsData?.data?.leads,
+		leads,
 		isLoading,
-		userPlan: userPlan?.data,
+		userPlan,
 		statistics,
 		refetchLeads,
 	};

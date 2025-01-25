@@ -5,9 +5,10 @@ import SegmentationModal from "@/components/leads/SegmentationModal";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
 import { Toast } from "@/components/ui/toast";
+import { useLeadsData } from "@/hooks/useLeadsData";
 import type { SegmentationRule } from "@/interface";
 import { leadsApi } from "@/services/api/leads";
-import { useMutation, useQuery } from "@tanstack/react-query";
+import { useMutation } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import type React from "react";
 import { useMemo, useState } from "react";
@@ -22,43 +23,17 @@ const Contatos: React.FC = () => {
 	const [leadsPerPage] = useState(20);
 	const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 	const [selectedLead, setSelectedLead] = useState(null);
-
-	const {
-		data: leadsData,
-		isLoading,
-		refetch,
-	} = useQuery({
-		queryKey: ["leads"],
-		queryFn: async () => {
-			try {
-				return await leadsApi.fetchLeads();
-			} catch (error) {
-				Toast.error(`Erro ao carregar leads: ${(error as Error).message}`);
-				throw error;
-			}
-		},
-	});
-
-	const { data: userPlan } = useQuery({
-		queryKey: ["userPlan"],
-		queryFn: async () => {
-			try {
-				const response = await leadsApi.fetchUserPlan();
-				return response.data;
-			} catch (error) {
-				Toast.error(`Erro ao carregar plano: ${(error as Error).message}`);
-				throw error;
-			}
-		},
-	});
+	const { leads, isLoading, userPlan, statistics, refetchLeads } =
+		useLeadsData();
 
 	const importLeadsMutation = useMutation({
 		mutationFn: ({ campaignId, file }: { campaignId: string; file: File }) =>
 			leadsApi.importLeads(campaignId, file),
 		onSuccess: () => {
 			Toast.success("Leads importados com sucesso!");
-			refetch();
+			refetchLeads();
 		},
+
 		onError: (error: Error) => {
 			Toast.error(`Erro ao importar leads: ${error.message}`);
 		},
@@ -76,14 +51,16 @@ const Contatos: React.FC = () => {
 	});
 
 	const filteredLeads = useMemo(() => {
-		let leads = leadsData?.data?.leads || [];
+		let filteredLeads = leads || [];
 
 		if (selectedSegment) {
-			leads = leads.filter((lead) => lead.status === selectedSegment);
+			filteredLeads = filteredLeads.filter(
+				(lead) => lead.status === selectedSegment,
+			);
 		}
 
 		if (searchTerm) {
-			leads = leads.filter((lead) => {
+			filteredLeads = filteredLeads.filter((lead) => {
 				const searchLower = searchTerm.toLowerCase();
 				return (
 					(lead.name?.toLowerCase() || "").includes(searchLower) ||
@@ -92,8 +69,8 @@ const Contatos: React.FC = () => {
 			});
 		}
 
-		return leads;
-	}, [leadsData?.data?.leads, searchTerm, selectedSegment]);
+		return filteredLeads;
+	}, [leads, searchTerm, selectedSegment]);
 
 	const paginatedLeads = useMemo(() => {
 		return filteredLeads.slice(
@@ -116,7 +93,7 @@ const Contatos: React.FC = () => {
 
 	const handleSegmentLeads = async (segmentationRules: any) => {
 		await segmentLeadsMutation.mutateAsync(segmentationRules);
-		refetch();
+		refetchLeads();
 	};
 
 	const containerVariants = {
@@ -147,7 +124,7 @@ const Contatos: React.FC = () => {
 				.deleteLead(leadId)
 				.then(() => {
 					Toast.success("Lead deletado com sucesso!");
-					refetch();
+					refetchLeads();
 				})
 				.catch((error: Error) => {
 					Toast.error(`Erro ao deletar lead: ${error.message}`);
@@ -156,9 +133,7 @@ const Contatos: React.FC = () => {
 	}
 
 	function handleEditLead(leadId: string): void {
-		const leadToEdit = leadsData?.data?.leads.find(
-			(lead) => lead.id === leadId,
-		);
+		const leadToEdit = leads?.find((lead) => lead.id === leadId);
 		if (leadToEdit) {
 			setSelectedLead(leadToEdit);
 			setIsEditModalOpen(true);
@@ -181,7 +156,7 @@ const Contatos: React.FC = () => {
 			};
 			await leadsApi.updateLead(updatedLead.id, dataToUpdate);
 			Toast.success("Lead atualizado com sucesso!");
-			refetch();
+			refetchLeads();
 		} catch (error) {
 			Toast.error(`Erro ao atualizar lead: ${(error as Error).message}`);
 		}
@@ -191,12 +166,10 @@ const Contatos: React.FC = () => {
 		setCurrentPage(page);
 	}
 
-	const totalLeads = leadsData?.data?.total || 0;
-	const activeLeads =
-		leadsData?.data?.leads.filter((lead) => lead.status === "READ").length || 0;
-	const conversionRate =
-		totalLeads > 0 ? ((activeLeads / totalLeads) * 100).toFixed(2) : "0.00";
-	const maxLeads = userPlan?.limits?.maxLeads || 0;
+	const totalLeads = statistics.totalLeads;
+	const activeLeads = statistics.activeLeads;
+	const conversionRate = statistics.conversionRate.toFixed(2);
+	const maxLeads = statistics.leadLimit;
 
 	return (
 		<motion.div
