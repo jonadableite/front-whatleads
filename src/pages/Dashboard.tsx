@@ -198,6 +198,9 @@ export default function Dashboard() {
 	const user = authService.getUser();
 	const [chartType, setChartType] = useState<"bar" | "line">("bar");
 	const [selectedDate, setSelectedDate] = useState(new Date());
+	const [segmentDistribution, setSegmentDistribution] = useState<
+		Record<string, number>
+	>({});
 
 	const logsPerPage = 5;
 	const totalPages = Math.ceil(
@@ -222,18 +225,32 @@ export default function Dashboard() {
 			setIsLoading(true);
 			const token = authService.getToken();
 			const formattedDate = format(date, "yyyy-MM-dd");
-			const [dashboardResponse, instancesResponse] = await Promise.all([
-				axios.get(`${API_URL}/api/message-logs/daily`, {
-					headers: { Authorization: `Bearer ${token}` },
-					params: { date: formattedDate },
-				}),
-				axios.get(`${API_URL}/api/instances`, {
-					headers: { Authorization: `Bearer ${token}` },
-				}),
-			]);
+
+			const [dashboardResponse, instancesResponse, leadsResponse] =
+				await Promise.all([
+					axios.get(`${API_URL}/api/message-logs/daily`, {
+						headers: { Authorization: `Bearer ${token}` },
+						params: { date: formattedDate },
+					}),
+					axios.get(`${API_URL}/api/instances`, {
+						headers: { Authorization: `Bearer ${token}` },
+					}),
+					axios.get(`${API_URL}/api/leads`, {
+						headers: { Authorization: `Bearer ${token}` },
+					}),
+				]);
+
+			console.log(
+				"Resposta completa da API de leads:",
+				JSON.stringify(leadsResponse.data, null, 2),
+			);
+
+			const segments = processSegmentData(leadsResponse.data);
+			setSegmentDistribution(segments);
 
 			setDashboardData(dashboardResponse.data);
 			setInstances(instancesResponse.data.instances || []);
+
 			setError(null);
 		} catch (error) {
 			console.error("Erro ao buscar dados diários:", error);
@@ -246,6 +263,27 @@ export default function Dashboard() {
 		} finally {
 			setIsLoading(false);
 		}
+	};
+
+	const processSegmentData = (data) => {
+		let leads = [];
+		if (data.data && Array.isArray(data.data.leads)) {
+			leads = data.data.leads;
+		} else if (Array.isArray(data.leads)) {
+			leads = data.leads;
+		} else if (Array.isArray(data)) {
+			leads = data;
+		}
+
+		const segments = leads.reduce((acc, lead) => {
+			if (lead.segment) {
+				acc[lead.segment] = (acc[lead.segment] || 0) + 1;
+			}
+			return acc;
+		}, {});
+
+		console.log("Distribuição de segmentos processada:", segments);
+		return segments;
 	};
 
 	const fetchMessagesByDay = async () => {
@@ -429,15 +467,20 @@ export default function Dashboard() {
 					className="bg-deep/80 backdrop-blur-xl p-6 rounded-xl border border-electric"
 				>
 					<h2 className="text-2xl font-bold text-white mb-6">
-						Distribuição de Status
+						Distribuição de Segmentos
 					</h2>
-					<PieChart
-						data={Object.entries(dashboardData?.statusDistribution || {}).map(
-							([status, count]) => ({ status, count }),
-						)}
-						nameKey="status"
-						dataKey="count"
-					/>
+					{Object.keys(segmentDistribution).length > 0 ? (
+						<PieChart
+							data={Object.entries(segmentDistribution).map(
+								([segment, count]) => ({
+									segment: segment.replace("_", " ").toLowerCase(),
+									count,
+								}),
+							)}
+						/>
+					) : (
+						<p className="text-white">Nenhum dado de segmento disponível</p>
+					)}
 				</motion.div>
 			</div>
 

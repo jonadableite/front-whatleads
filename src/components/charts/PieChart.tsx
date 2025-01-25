@@ -1,21 +1,16 @@
 // src/components/charts/PieChart.tsx
 import {
 	Cell,
+	Legend,
 	Pie,
 	PieChart as RechartsPieChart,
 	ResponsiveContainer,
 	Tooltip,
 } from "recharts";
 
-const data = [
-	{ name: "Ativos", value: 400 },
-	{ name: "Inativos", value: 300 },
-	{ name: "Novos", value: 200 },
-];
+const COLORS = ["#7c3aed", "#00FF6A", "#3b82f6", "#f59e0b", "#ef4444"];
 
-const COLORS = ["#7c3aed", "#00FF6A", "#3b82f6"];
-
-export function PieChart() {
+export function PieChart({ data }) {
 	return (
 		<ResponsiveContainer width="100%" height={300}>
 			<RechartsPieChart>
@@ -27,7 +22,9 @@ export function PieChart() {
 					outerRadius={80}
 					fill="#8884d8"
 					paddingAngle={5}
-					dataKey="value"
+					dataKey="count"
+					nameKey="segment"
+					label
 				>
 					{data.map((entry, index) => (
 						<Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
@@ -41,6 +38,7 @@ export function PieChart() {
 					}}
 					labelStyle={{ color: "#f8fafc" }}
 				/>
+				<Legend />
 			</RechartsPieChart>
 		</ResponsiveContainer>
 	);
