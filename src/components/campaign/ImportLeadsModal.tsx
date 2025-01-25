@@ -12,6 +12,9 @@ interface ImportLeadsModalProps {
 	onClose: () => void;
 	onImport: (campaignId: string, file: File) => Promise<void>;
 	campaigns: Campaign[];
+	disableImport: boolean;
+	totalLeads: number;
+	maxLeads: number;
 }
 
 export const ImportLeadsModal: React.FC<ImportLeadsModalProps> = ({
@@ -19,6 +22,9 @@ export const ImportLeadsModal: React.FC<ImportLeadsModalProps> = ({
 	onClose,
 	onImport,
 	campaigns,
+	disableImport,
+	totalLeads,
+	maxLeads,
 }) => {
 	const [selectedCampaign, setSelectedCampaign] = useState("");
 	const [selectedFile, setSelectedFile] = useState<File | null>(null);
@@ -112,6 +118,13 @@ export const ImportLeadsModal: React.FC<ImportLeadsModalProps> = ({
 			fileInputRef.current.value = "";
 		}
 		onClose();
+	};
+
+	const getLimitStatus = () => {
+		const percentage = (totalLeads / maxLeads) * 100;
+		if (percentage >= 100) return "text-red-500";
+		if (percentage >= 90) return "text-yellow-500";
+		return "text-green-500";
 	};
 
 	return (
@@ -231,33 +244,46 @@ export const ImportLeadsModal: React.FC<ImportLeadsModalProps> = ({
 					)}
 				</AnimatePresence>
 
-				<div className="flex justify-end gap-3">
-					<Button
-						type="button"
-						variant="outline"
-						onClick={handleClose}
-						disabled={isLoading}
-						className="border-electric/30 text-white hover:bg-electric/20"
-					>
-						Cancelar
-					</Button>
-					<Button
-						type="submit"
-						disabled={!selectedCampaign || !selectedFile || isLoading}
-						className="bg-neon-green hover:bg-neon-green/80 text-white"
-					>
-						{isLoading ? (
-							<div className="flex items-center">
-								<div className="animate-spin mr-2 h-4 w-4 border-2 border-white/20 border-t-white rounded-full" />
-								Importando...
-							</div>
-						) : (
-							<>
-								<FiUpload className="mr-2" />
-								Importar Leads
-							</>
-						)}
-					</Button>
+				<div className="flex flex-col items-end gap-3">
+					<div className={`text-sm ${getLimitStatus()}`}>
+						Limite de Leads: {totalLeads}/{maxLeads}
+					</div>
+					<div className="flex justify-end gap-3">
+						<Button
+							type="button"
+							variant="outline"
+							onClick={handleClose}
+							disabled={isLoading}
+							className="border-electric/30 text-white hover:bg-electric/20"
+						>
+							Cancelar
+						</Button>
+						<Button
+							type="submit"
+							disabled={
+								!selectedCampaign || !selectedFile || isLoading || disableImport
+							}
+							className={`${
+								disableImport
+									? "bg-gray-400"
+									: "bg-neon-green hover:bg-neon-green/80"
+							} text-white`}
+						>
+							{isLoading ? (
+								<div className="flex items-center">
+									<div className="animate-spin mr-2 h-4 w-4 border-2 border-white/20 border-t-white rounded-full" />
+									Importando...
+								</div>
+							) : disableImport ? (
+								"Limite Atingido"
+							) : (
+								<>
+									<FiUpload className="mr-2" />
+									Importar Leads
+								</>
+							)}
+						</Button>
+					</div>
 				</div>
 			</form>
 		</Modal>

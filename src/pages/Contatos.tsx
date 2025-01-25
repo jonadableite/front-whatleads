@@ -1,5 +1,4 @@
 import EditLeadModal from "@/components/leads/EditLeadModal";
-// src/pages/Contatos.tsx
 import { ImportLeadsModal } from "@/components/leads/ImportLeadsModal";
 import { LeadTable } from "@/components/leads/LeadTable";
 import SegmentationModal from "@/components/leads/SegmentationModal";
@@ -24,7 +23,6 @@ const Contatos: React.FC = () => {
 	const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 	const [selectedLead, setSelectedLead] = useState(null);
 
-	// Atualizar as queries para incluir tratamento de erro
 	const {
 		data: leadsData,
 		isLoading,
@@ -45,7 +43,8 @@ const Contatos: React.FC = () => {
 		queryKey: ["userPlan"],
 		queryFn: async () => {
 			try {
-				return await leadsApi.fetchUserPlan();
+				const response = await leadsApi.fetchUserPlan();
+				return response.data;
 			} catch (error) {
 				Toast.error(`Erro ao carregar plano: ${(error as Error).message}`);
 				throw error;
@@ -106,6 +105,12 @@ const Contatos: React.FC = () => {
 	const pageCount = Math.ceil((filteredLeads?.length || 0) / leadsPerPage);
 
 	const handleImportLeads = async (campaignId: string, file: File) => {
+		if (totalLeads >= maxLeads) {
+			Toast.error(
+				"Limite de leads atingido. Não é possível importar mais leads.",
+			);
+			return;
+		}
 		await importLeadsMutation.mutateAsync({ campaignId, file });
 	};
 
@@ -136,17 +141,13 @@ const Contatos: React.FC = () => {
 		},
 	};
 
-	function updateRule(index: any, arg1: string, value: string): void {
-		throw new Error("Function not implemented.");
-	}
-
 	function handleDeleteLead(leadId: string): void {
 		if (window.confirm("Tem certeza que deseja deletar este lead?")) {
 			leadsApi
 				.deleteLead(leadId)
 				.then(() => {
 					Toast.success("Lead deletado com sucesso!");
-					refetch(); // Recarrega a lista de leads
+					refetch();
 				})
 				.catch((error: Error) => {
 					Toast.error(`Erro ao deletar lead: ${error.message}`);
@@ -182,13 +183,21 @@ const Contatos: React.FC = () => {
 			Toast.success("Lead atualizado com sucesso!");
 			refetch();
 		} catch (error) {
-			Toast.error(`Erro ao atualizar lead: ${error.message}`);
+			Toast.error(`Erro ao atualizar lead: ${(error as Error).message}`);
 		}
 	};
 
 	function handlePageChange(page: number): void {
 		setCurrentPage(page);
 	}
+
+	const totalLeads = leadsData?.data?.total || 0;
+	const activeLeads =
+		leadsData?.data?.leads.filter((lead) => lead.status === "READ").length || 0;
+	const conversionRate =
+		totalLeads > 0 ? ((activeLeads / totalLeads) * 100).toFixed(2) : "0.00";
+	const maxLeads = userPlan?.limits?.maxLeads || 0;
+
 	return (
 		<motion.div
 			initial="hidden"
@@ -202,14 +211,6 @@ const Contatos: React.FC = () => {
 					className="flex justify-between items-center mb-12"
 				>
 					<h1 className="text-4xl font-bold text-white">Contatos</h1>
-					{/* <div className="flex space-x-4">
-						<Button
-							onClick={() => setIsSegmentModalOpen(true)}
-							className="bg-electric text-deep hover:bg-electric/80"
-						>
-							<FiFilter className="mr-2" /> Segmentar Leads
-						</Button>
-					</div> */}
 				</motion.div>
 
 				<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
@@ -217,22 +218,22 @@ const Contatos: React.FC = () => {
 						{
 							title: "Total de Leads",
 							icon: <FiUsers />,
-							value: leadsData?.data?.totalLeads || 0,
+							value: totalLeads,
 						},
 						{
 							title: "Leads Ativos",
 							icon: <FiPieChart />,
-							value: leadsData?.data?.activeLeads || 0,
+							value: activeLeads,
 						},
 						{
-							title: "Taxa de Conversão",
+							title: "Taxa de Visualização",
 							icon: <FiPieChart />,
-							value: `${leadsData?.data?.conversionRate || 0}%`,
+							value: `${conversionRate}%`,
 						},
 						{
 							title: "Limite de Leads",
 							icon: <FiUsers />,
-							value: `${leadsData?.data?.totalLeads || 0}/${userPlan?.data?.maxLeads || 0}`,
+							value: `${totalLeads}/${maxLeads}`,
 						},
 					].map((stat) => (
 						<motion.div
@@ -266,10 +267,9 @@ const Contatos: React.FC = () => {
 							className="flex-grow bg-deep border-electric text-white"
 						>
 							<option value="">Todos os status</option>
-							<option value="novo">Novo</option>
-							<option value="SENT">Em Progresso</option>
-							<option value="READ">Qualificado</option>
-							<option value="DELIVERED">Desqualificado</option>
+							<option value="SENT">Enviado</option>
+							<option value="READ">Lido</option>
+							<option value="DELIVERED">Entregue</option>
 						</Select>
 					</div>
 				</motion.div>
