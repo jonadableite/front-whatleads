@@ -1,3 +1,4 @@
+import Logo from "@/components/Logo";
 import { Button } from "@/components/ui/button";
 import { useSidebar } from "@/contexts/SidebarContext";
 import { cn } from "@/lib/utils";
@@ -91,16 +92,26 @@ export function Sidebar() {
 					<div className="flex items-center justify-between">
 						<AnimatePresence mode="wait">
 							{!isCollapsed && (
-								<motion.img
+								<motion.div
 									key="logo"
-									src="/Logo.png"
-									alt="Logo"
 									initial={{ opacity: 0, scale: 0.3 }}
 									animate={{ opacity: 1, scale: 1 }}
 									exit={{ opacity: 0, scale: 0.3 }}
 									transition={{ duration: 0.3 }}
-									className="h-16 w-auto object-contain"
-								/>
+								>
+									<Logo variant="default" />
+								</motion.div>
+							)}
+							{isCollapsed && (
+								<motion.div
+									key="icon"
+									initial={{ opacity: 0, scale: 0.3 }}
+									animate={{ opacity: 1, scale: 1 }}
+									exit={{ opacity: 0, scale: 0.3 }}
+									transition={{ duration: 0.3 }}
+								>
+									<Logo variant="icon" />
+								</motion.div>
 							)}
 						</AnimatePresence>
 

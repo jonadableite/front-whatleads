@@ -1,5 +1,5 @@
 // src/pages/Login.tsx
-import Logo from "@/assets/Logo.png";
+import Logo from "@/components/Logo";
 import { Button } from "@/components/ui/button";
 import {
 	Card,
@@ -188,12 +188,9 @@ const Login: React.FC = () => {
 								initial={{ y: -20, opacity: 0 }}
 								animate={{ y: 0, opacity: 1 }}
 								transition={{ duration: 0.5 }}
-								className="flex justify-center mb-6"
+								className="flex flex-col items-center mb-6"
 							>
-								<motion.img
-									src={Logo}
-									alt="Logo"
-									className="h-28 w-auto"
+								<motion.div
 									initial={{ rotate: -180, opacity: 0 }}
 									animate={{ rotate: 0, opacity: 1 }}
 									transition={{
@@ -203,15 +200,20 @@ const Login: React.FC = () => {
 										delay: 0.3,
 									}}
 									whileHover={{ scale: 1.05 }}
-								/>
+									className="mb-4" // Adicionado espaço abaixo do logo
+								>
+									<Logo variant="login" />
+								</motion.div>
+
+								<CardTitle className="text-center text-neon-green text-4xl font-bold mb-2">
+									Bem-vindo de volta!
+								</CardTitle>
+								<CardDescription className="text-center text-white-pure/90 text-xl">
+									Entre na sua conta para acessar o painel
+								</CardDescription>
 							</motion.div>
-							<CardTitle className="text-center text-neon-green text-4xl font-bold mb-2">
-								Bem-vindo de volta!
-							</CardTitle>
-							<CardDescription className="text-center text-white-pure/90 text-xl">
-								Entre na sua conta para acessar o painel
-							</CardDescription>
 						</CardHeader>
+
 						<CardContent className="mt-6">
 							<form onSubmit={handleLogin} className="space-y-6">
 								<div className="space-y-3">
