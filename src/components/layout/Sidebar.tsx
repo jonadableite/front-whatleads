@@ -11,6 +11,7 @@ import {
 	Home,
 	LogOut,
 	Menu,
+	MessageCircle,
 	MessageSquareText,
 	Phone,
 	Sparkles,
@@ -59,6 +60,12 @@ const sidebarItems: SidebarItem[] = [
 		title: "Instâncias",
 		icon: <Phone className="w-5 h-5" />,
 		path: "/instancias",
+	},
+
+	{
+		title: "Chat CRM",
+		icon: <MessageCircle className="w-5 h-5" />,
+		path: "https://chat.whatlead.com.br",
 	},
 ];
 
