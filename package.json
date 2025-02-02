@@ -45,6 +45,7 @@
 		"react-popover": "^0.5.10",
 		"react-router-dom": "^7.1.1",
 		"react-toastify": "^11.0.2",
+		"reactflow": "^11.11.4",
 		"recharts": "^2.15.0",
 		"tailwind-merge": "^2.6.0",
 		"tailwind-scrollbar-hide": "^2.0.0",

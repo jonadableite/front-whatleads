@@ -240,3 +240,22 @@
 .input-text-white {
 	color: #242424 !important;
 }
+@layer utilities {
+	.text-opacity-92 {
+		--tw-text-opacity: 0.92;
+	}
+}
+
+.react-flow__edge-path {
+	stroke-dasharray: 5, 5;
+	animation: flowAnimation 7s linear infinite;
+}
+
+@keyframes flowAnimation {
+	0% {
+		stroke-dashoffset: 0;
+	}
+	100% {
+		stroke-dashoffset: -100;
+	}
+}

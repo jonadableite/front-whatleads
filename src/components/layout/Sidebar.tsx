@@ -5,6 +5,7 @@ import { cn } from "@/lib/utils";
 import { authService } from "@/services/auth.service";
 import { AnimatePresence, motion } from "framer-motion";
 import {
+	Bot,
 	ChevronRight,
 	Crown,
 	FileText,
@@ -66,6 +67,15 @@ const sidebarItems: SidebarItem[] = [
 		title: "Chat CRM",
 		icon: <MessageCircle className="w-5 h-5" />,
 		path: "https://chat.whatlead.com.br",
+	},
+	{
+		title: "Chatbot",
+		icon: <Bot className="w-5 h-5" />,
+		path: "/chatbot",
+		submenu: [
+			{ title: "Fluxos", path: "/chatbot/flows" },
+			{ title: "Estatísticas", path: "/chatbot/stats" },
+		],
 	},
 ];
 

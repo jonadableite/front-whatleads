@@ -1,3 +1,4 @@
+//src/pages/Dashboard.tsx
 import CustomDatePicker from "@/components/CustomDatePicker";
 import { BarChart, LineChart, PieChart } from "@/components/charts";
 import { Skeleton } from "@/components/ui/Skeleton";
@@ -224,7 +225,12 @@ export default function Dashboard() {
 		try {
 			setIsLoading(true);
 			const token = authService.getToken();
-			const formattedDate = format(date, "yyyy-MM-dd");
+
+			// Adicione um dia à data selecionada
+			const adjustedDate = addDays(date, 1);
+			const formattedDate = format(adjustedDate, "yyyy-MM-dd");
+
+			console.log("Data ajustada para busca:", formattedDate);
 
 			const [dashboardResponse, instancesResponse, leadsResponse] =
 				await Promise.all([
@@ -403,7 +409,12 @@ export default function Dashboard() {
 			<div className="mb-4">
 				<CustomDatePicker
 					selectedDate={selectedDate}
-					onChange={(date: Date) => setSelectedDate(date)}
+					onChange={(date: Date) => {
+						// Subtraia um dia da data selecionada pelo usuário
+						const adjustedDate = subDays(date, 1);
+						setSelectedDate(adjustedDate);
+					}}
+					maxDate={subDays(new Date(), 1)} // Limite a seleção até ontem
 				/>
 			</div>
 

@@ -15,6 +15,13 @@ export interface Plan {
 	};
 }
 
+export interface NodeData {
+	label: string;
+	type: string;
+	text: string;
+	onChange: (id: string, newData: { text: string }) => void;
+}
+
 export interface LeadStatsCardProps {
 	title: string;
 	value: number | string;
