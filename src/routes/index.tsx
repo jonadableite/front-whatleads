@@ -3,7 +3,6 @@ import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { ProtectedLayout } from "@/components/layout/ProtectedLayout";
 import { PublicLayout } from "@/components/layout/PublicLayout";
 import Campanhas from "@/pages/Campanhas";
-import ChatbotFlow from "@/pages/ChatbotFlow";
 import CheckoutPage from "@/pages/CheckoutPage";
 import Dashboard from "@/pages/Dashboard";
 import Disparos from "@/pages/Disparos";
@@ -87,10 +86,10 @@ const router = createBrowserRouter([
 					},
 				],
 			},
-			{
-				path: "/chatbot",
-				element: <ChatbotFlow />,
-			},
+			// {
+			// 	path: "/chatbot",
+			// 	element: <ChatbotFlow />,
+			// },
 		],
 	},
 	{

@@ -71,11 +71,11 @@ const sidebarItems: SidebarItem[] = [
 	{
 		title: "Chatbot",
 		icon: <Bot className="w-5 h-5" />,
-		path: "/chatbot",
-		submenu: [
-			{ title: "Fluxos", path: "/chatbot/flows" },
-			{ title: "Estatísticas", path: "/chatbot/stats" },
-		],
+		path: "https://flowapi.whatlead.com.br",
+		// submenu: [
+		// 	{ title: "Fluxos", path: "/chatbot/flows" },
+		// 	{ title: "Estatísticas", path: "/chatbot/stats" },
+		// ],
 	},
 ];
 

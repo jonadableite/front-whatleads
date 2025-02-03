@@ -248,7 +248,7 @@
 
 .react-flow__edge-path {
 	stroke-dasharray: 5, 5;
-	animation: flowAnimation 7s linear infinite;
+	animation: flowAnimation 5s linear infinite;
 }
 
 @keyframes flowAnimation {
