@@ -391,10 +391,11 @@ export default function Disparos() {
 				maxDelay,
 			});
 
+			// **Enviar requisição para iniciar campanha**
 			const response = await api.main.post(`/campaigns/${campaignId}/start`, {
 				instanceName: selectedInstanceData.instanceName,
-				message: message,
-				media: mediaPayload,
+				message: message.trim(), // **Garante que a mensagem seja enviada**
+				media: mediaPayload, // **Pode ser null**
 				minDelay,
 				maxDelay,
 			});
