@@ -1,3 +1,4 @@
+// src/pages/Instances.tsx
 import ProxyConfigModal from "@/components/ProxyConfigModal";
 import TypebotConfigForm from "@/components/TypebotConfigForm";
 import { Button } from "@/components/ui/button";
@@ -309,33 +310,43 @@ const Instances: React.FC = () => {
 				return;
 			}
 
+			// Certifique-se de enviar o objeto completo no formato correto
+			const payload = {
+				typebot: {
+					enabled: config.enabled,
+					url: config.url,
+					typebot: config.typebot,
+					triggerType: config.triggerType,
+					triggerOperator: config.triggerOperator,
+					triggerValue: config.triggerValue,
+					expire: config.expire,
+					keywordFinish: config.keywordFinish,
+					delayMessage: config.delayMessage,
+					unknownMessage: config.unknownMessage,
+					listeningFromMe: config.listeningFromMe,
+					stopBotFromMe: config.stopBotFromMe,
+					keepOpen: config.keepOpen,
+					debounceTime: config.debounceTime,
+				},
+			};
+
 			const response = await axios.put(
 				`${API_BASE_URL}/api/instances/instance/${instanceId}/typebot`,
-				config,
+				payload,
 				{ headers: { Authorization: `Bearer ${token}` } },
 			);
 
 			if (response.data.success) {
 				toast.success("Configurações do Typebot atualizadas com sucesso!");
-				setInstances((prevInstances) =>
-					prevInstances.map((instance) =>
-						instance.id === instanceId
-							? { ...instance, typebot: config }
-							: instance,
-					),
-				);
-				setShowTypebotConfig(false);
-				setSelectedInstance(null);
 			} else {
 				throw new Error(
-					response.data.error || "Falha ao atualizar configurações do Typebot",
+					response.data.error || "Erro desconhecido ao atualizar configuração",
 				);
 			}
-		} catch (error) {
-			console.error("Erro ao atualizar Typebot:", error);
+		} catch (error: any) {
 			toast.error(
 				error.response?.data?.error ||
-					"Erro ao atualizar configurações do Typebot.",
+					"Erro ao salvar configuração. Verifique sua conexão ou tente novamente.",
 			);
 		}
 	};

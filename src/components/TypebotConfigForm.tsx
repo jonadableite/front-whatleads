@@ -1,3 +1,6 @@
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Select } from "@/components/ui/select";
 import { motion } from "framer-motion";
 import { Check, MessageSquare, Settings2, Zap } from "lucide-react";
 import { useState } from "react";
@@ -12,7 +15,6 @@ const TypebotConfigForm = ({
 	const [currentStep, setCurrentStep] = useState(1);
 	const [isSaving, setIsSaving] = useState(false);
 
-	// Adicionando verificação de segurança para instance.typebot
 	const [config, setConfig] = useState({
 		enabled: true,
 		url: instance?.typebot?.url || "",
@@ -65,7 +67,7 @@ const TypebotConfigForm = ({
 						: value,
 		}));
 	};
-	// Função para validar os campos obrigatórios
+
 	const validateForm = () => {
 		return (
 			config.url.trim() !== "" &&
@@ -75,14 +77,12 @@ const TypebotConfigForm = ({
 		);
 	};
 
-	// Função para lidar com a navegação entre etapas
 	const handleNextStep = () => {
 		if (currentStep < steps.length) {
 			setCurrentStep((prev) => prev + 1);
 		}
 	};
 
-	// Função para lidar com o retorno entre etapas
 	const handlePreviousStep = () => {
 		if (currentStep > 1) {
 			setCurrentStep((prev) => prev - 1);
@@ -93,16 +93,16 @@ const TypebotConfigForm = ({
 		<div className="flex flex-col items-center w-full">
 			<div
 				className={`
-        w-10 h-10 rounded-full flex items-center justify-center
-        transition-colors duration-200
-        ${
-					isActive
-						? "bg-neon-green text-white"
-						: isCompleted
-							? "bg-green-200 text-green-700"
-							: "bg-gray-200 text-gray-500"
-				}
-      `}
+          w-10 h-10 rounded-full flex items-center justify-center
+          transition-colors duration-200
+          ${
+						isActive
+							? "bg-neon-green text-white"
+							: isCompleted
+								? "bg-green-200 text-green-700"
+								: "bg-gray-200 text-gray-500"
+					}
+        `}
 			>
 				{isCompleted ? <Check className="w-6 h-6" /> : step.icon}
 			</div>
@@ -116,13 +116,13 @@ const TypebotConfigForm = ({
 			<label className="block text-sm font-medium text-gray-600 mb-1">
 				{label}
 			</label>
-			<input
+			<Input
 				type={type}
 				name={name}
 				value={config[name]}
 				onChange={handleChange}
 				placeholder={placeholder}
-				className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-electric-dark focus:border-transparent"
+				className="w-full"
 			/>
 		</div>
 	);
@@ -132,28 +132,27 @@ const TypebotConfigForm = ({
 			<label className="block text-sm font-medium text-gray-600 mb-1">
 				{label}
 			</label>
-			<select
+			<Select
 				name={name}
 				value={config[name]}
 				onChange={handleChange}
-				className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-electric-dark focus:border-transparent"
+				className="w-full"
 			>
 				{options.map((option) => (
 					<option key={option.value} value={option.value}>
 						{option.label}
 					</option>
 				))}
-			</select>
+			</Select>
 		</div>
 	);
 
 	const handleDelete = async () => {
 		try {
 			await onDelete(instance.id);
-			// A notificação de sucesso será mostrada no componente pai
 		} catch (error) {
 			console.error("Erro ao excluir as configurações:", error);
-			// A notificação de erro será mostrada no componente pai
+			toast.error("Erro ao excluir as configurações do Typebot");
 		}
 	};
 
@@ -166,6 +165,10 @@ const TypebotConfigForm = ({
 		setIsSaving(true);
 		try {
 			await onUpdate(config);
+			toast.success("Configurações do Typebot salvas com sucesso!");
+		} catch (error) {
+			console.error("Erro ao salvar as configurações:", error);
+			toast.error("Erro ao salvar as configurações do Typebot");
 		} finally {
 			setIsSaving(false);
 		}
@@ -174,13 +177,13 @@ const TypebotConfigForm = ({
 	const ActionButtons = () => (
 		<div className="flex justify-end space-x-2 mb-4">
 			{isEditing && (
-				<button
-					type="button"
-					onClick={() => onDelete(instance.instanceId, instance.instanceName)}
-					className="px-4 py-2 text-sm text-red-600 hover:text-red-700 font-medium"
+				<Button
+					variant="outline"
+					onClick={() => onDelete(instance.id)}
+					className="text-red-600 hover:text-red-700"
 				>
 					Remover Fluxo
-				</button>
+				</Button>
 			)}
 		</div>
 	);
@@ -189,7 +192,6 @@ const TypebotConfigForm = ({
 		<div className="max-w-3xl mx-auto bg-electric/10 rounded-xl shadow-lg p-6">
 			<ActionButtons />
 
-			{/* Progress Steps */}
 			<div className="flex justify-between mb-8 relative">
 				<div className="absolute top-5 left-0 right-0 h-0.5 bg-neon-purple -z-10" />
 				{steps.map((step, idx) => (
@@ -210,170 +212,129 @@ const TypebotConfigForm = ({
 				>
 					{currentStep === 1 && (
 						<div className="space-y-4">
-							<div className="mb-4">
-								<label className="block text-sm font-medium text-gray-600 mb-1">
-									URL do Servidor Typebot
-								</label>
-								<input
-									type="url"
-									name="url"
-									value={config.url}
-									onChange={handleChange}
-									placeholder="https://seu-typebot.com"
-									className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-electric-dark focus:border-transparent"
-								/>
-							</div>
-							<div className="mb-4">
-								<label className="block text-sm font-medium text-gray-600 mb-1">
-									Nome do Fluxo
-								</label>
-								<input
-									type="text"
-									name="typebot"
-									value={config.typebot}
-									onChange={handleChange}
-									placeholder="Nome do seu fluxo"
-									className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-electric-dark focus:border-transparent"
-								/>
-							</div>
-							<div className="mb-4">
-								<label className="block text-sm font-medium text-gray-600 mb-1">
-									Descrição
-								</label>
-								<input
-									type="text"
-									name="description"
-									value={config.description}
-									onChange={handleChange}
-									placeholder="Breve descrição do fluxo"
-									className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-electric-dark focus:border-transparent"
-								/>
-							</div>
+							<InputField
+								label="URL do Servidor Typebot"
+								name="url"
+								type="url"
+								placeholder="https://seu-typebot.com"
+							/>
+							<InputField
+								label="Nome do Fluxo"
+								name="typebot"
+								placeholder="Nome do seu fluxo"
+							/>
+							<InputField
+								label="Descrição"
+								name="description"
+								placeholder="Breve descrição do fluxo"
+							/>
 						</div>
 					)}
 
 					{currentStep === 2 && (
 						<div className="space-y-4">
-							<div className="mb-4">
-								<label className="block text-sm font-medium text-gray-600 mb-1">
-									Tipo de Gatilho
-								</label>
-								<select
-									name="triggerType"
-									value={config.triggerType}
-									onChange={handleChange}
-									className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-electric-dark focus:border-transparent"
-								>
-									<option value="keyword">Palavra-chave</option>
-									<option value="all">Todas mensagens</option>
-									<option value="none">Nenhum</option>
-								</select>
-							</div>
-							<div className="mb-4">
-								<label className="block text-sm font-medium text-gray-600 mb-1">
-									Operador do Gatilho
-								</label>
-								<select
-									name="triggerOperator"
-									value={config.triggerOperator}
-									onChange={handleChange}
-									className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-electric-dark focus:border-transparent"
-								>
-									<option value="contains">Contém</option>
-									<option value="equals">Igual</option>
-									<option value="startsWith">Começa com</option>
-									<option value="endsWith">Termina com</option>
-								</select>
-							</div>
-							<div className="mb-4">
-								<label className="block text-sm font-medium text-gray-600 mb-1">
-									Palavra-chave
-								</label>
-								<input
-									type="text"
-									name="triggerValue"
-									value={config.triggerValue}
-									onChange={handleChange}
-									placeholder="Digite a palavra-chave"
-									className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-electric-dark focus:border-transparent"
-								/>
-							</div>
+							<SelectField
+								label="Tipo de Gatilho"
+								name="triggerType"
+								options={[
+									{ value: "keyword", label: "Palavra-chave" },
+									{ value: "all", label: "Todas mensagens" },
+									{ value: "none", label: "Nenhum" },
+								]}
+							/>
+							<SelectField
+								label="Operador do Gatilho"
+								name="triggerOperator"
+								options={[
+									{ value: "contains", label: "Contém" },
+									{ value: "equals", label: "Igual" },
+									{ value: "startsWith", label: "Começa com" },
+									{ value: "endsWith", label: "Termina com" },
+								]}
+							/>
+							<InputField
+								label="Palavra-chave"
+								name="triggerValue"
+								placeholder="Digite a palavra-chave"
+							/>
 						</div>
 					)}
 
 					{currentStep === 3 && (
 						<div className="space-y-4">
-							<div className="mb-4">
-								<label className="block text-sm font-medium text-gray-600 mb-1">
-									Mensagem de Erro
-								</label>
+							<InputField
+								label="Mensagem de Erro"
+								name="unknownMessage"
+								placeholder="Mensagem não reconhecida"
+							/>
+							<InputField
+								label="Atraso das Mensagens (ms)"
+								name="delayMessage"
+								type="number"
+							/>
+							<InputField
+								label="Tempo para Expirar (min)"
+								name="expire"
+								type="number"
+							/>
+							<InputField
+								label="Palavra-chave para Finalizar"
+								name="keywordFinish"
+							/>
+							<div className="flex items-center space-x-2">
 								<input
-									type="text"
-									name="unknownMessage"
-									value={config.unknownMessage}
+									type="checkbox"
+									name="listeningFromMe"
+									checked={config.listeningFromMe}
 									onChange={handleChange}
-									placeholder="Mensagem não reconhecida"
-									className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-electric-dark focus:border-transparent"
 								/>
+								<label>Escutar minhas próprias mensagens</label>
 							</div>
-							<div className="mb-4">
-								<label className="block text-sm font-medium text-gray-600 mb-1">
-									Atraso das Mensagens (ms)
-								</label>
+							<div className="flex items-center space-x-2">
 								<input
-									type="number"
-									name="delayMessage"
-									value={config.delayMessage}
+									type="checkbox"
+									name="stopBotFromMe"
+									checked={config.stopBotFromMe}
 									onChange={handleChange}
-									className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-electric-dark focus:border-transparent"
 								/>
+								<label>Parar bot com minhas mensagens</label>
 							</div>
-							<div className="mb-4">
-								<label className="block text-sm font-medium text-gray-600 mb-1">
-									Tempo para Expirar (min)
-								</label>
+							<div className="flex items-center space-x-2">
 								<input
-									type="number"
-									name="expire"
-									value={config.expire}
+									type="checkbox"
+									name="keepOpen"
+									checked={config.keepOpen}
 									onChange={handleChange}
-									className="w-full p-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-electric-dark focus:border-transparent"
 								/>
+								<label>Manter sessão aberta</label>
 							</div>
+							<InputField
+								label="Tempo de Debounce (segundos)"
+								name="debounceTime"
+								type="number"
+							/>
 						</div>
 					)}
 				</motion.div>
 
 				<div className="mt-8 flex justify-between">
-					{/* Botão Anterior */}
-					<button
+					<Button
 						type="button"
 						onClick={handlePreviousStep}
-						className={`px-6 py-2 rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-50 ${
-							currentStep === 1 ? "invisible" : ""
-						}`}
+						variant="outline"
+						className={currentStep === 1 ? "invisible" : ""}
 					>
 						Anterior
-					</button>
+					</Button>
 
-					{/* Botões Próximo/Salvar */}
 					{currentStep < steps.length ? (
-						<button
-							type="button"
-							onClick={handleNextStep}
-							className="px-6 py-2 rounded-lg bg-neon-green text-white hover:bg-neon-green/50"
-						>
+						<Button type="button" onClick={handleNextStep}>
 							Próximo
-						</button>
+						</Button>
 					) : (
-						<button
-							type="button" // Mudado para type="button"
-							onClick={handleSave} // Usa handleSave em vez de submit
-							disabled={isSaving}
-							className="px-6 py-2 rounded-lg bg-neon-green text-white hover:bg-neon-green/50 disabled:opacity-50"
-						>
+						<Button type="button" onClick={handleSave} disabled={isSaving}>
 							{isSaving ? "Salvando..." : "Salvar Configurações"}
-						</button>
+						</Button>
 					)}
 				</div>
 			</form>
