@@ -66,6 +66,9 @@ export default function Disparos() {
 
 	// Função para pausar a campanha
 	const handlePauseCampaign = async () => {
+		console.log(
+			"Chamando handlePauseCampaign() - Enviando requisição para pausar campanha",
+		);
 		try {
 			await api.main.post(`/campaigns/${selectedCampaign}/pause`);
 			toast.success("Campanha pausada com sucesso!");
