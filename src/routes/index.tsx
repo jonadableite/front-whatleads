@@ -2,6 +2,7 @@
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { ProtectedLayout } from "@/components/layout/ProtectedLayout";
 import { PublicLayout } from "@/components/layout/PublicLayout";
+import AdminDashboard from "@/pages/AdminDashboard";
 import Campanhas from "@/pages/Campanhas";
 import CheckoutPage from "@/pages/CheckoutPage";
 import Dashboard from "@/pages/Dashboard";
@@ -38,6 +39,10 @@ const router = createBrowserRouter([
 					{
 						path: "/disparos",
 						element: <Disparos />,
+					},
+					{
+						path: "/admin",
+						element: <AdminDashboard />,
 					},
 					{
 						path: "/disparos/novo",

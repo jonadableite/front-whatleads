@@ -28,7 +28,10 @@ const createApiInstance = (baseURL: string) => {
 			if (token) {
 				config.headers.Authorization = `Bearer ${token}`;
 			}
-			console.log("Config da requisição:", config); // Para depuração
+			console.log(
+				"Config da requisição (token enviado):",
+				config.headers.Authorization,
+			);
 			return config;
 		},
 		(error) => {

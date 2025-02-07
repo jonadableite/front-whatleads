@@ -15,6 +15,32 @@ export interface Plan {
 	};
 }
 
+export interface Payment {
+	dueDate: string;
+	status: "pending" | "overdue" | "completed";
+	amount: number;
+}
+
+export interface DashboardData {
+	totalUsers: number;
+	totalRevenue: number;
+	revenueWithDiscount: number;
+	overduePayments: number;
+	completedPayments: number;
+	usersWithDuePayments: UserWithPayment[];
+}
+
+export interface EditPaymentModalProps {
+	payment: Payment;
+	onClose: () => void;
+	onSave: (paymentId: string, updatedData: Partial<Payment>) => Promise<void>;
+}
+
+export interface Affiliate {
+	id: string;
+	name: string;
+}
+
 export interface NodeData {
 	label: string;
 	type: string;
@@ -293,12 +319,14 @@ export interface LoginCredentials {
 }
 
 export interface User {
+	affiliate: any;
 	id: string;
 	name: string;
 	email: string;
 	profile: string;
 	plan: string;
 	companyId?: string;
+	payments: Payment[];
 }
 
 export interface LoginResponse {
