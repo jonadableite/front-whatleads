@@ -285,13 +285,13 @@ const Login: React.FC = () => {
 							>
 								Esqueceu a senha?
 							</Button>
-							<Button
+							{/* <Button
 								variant="link"
 								className="text-neon-blue hover:text-white-pure transition-colors duration-300 text-lg"
 								onClick={() => navigate("/register")}
 							>
 								Registre-se
-							</Button>
+							</Button> */}
 						</CardFooter>
 					</Card>
 				</div>
