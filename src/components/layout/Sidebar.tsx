@@ -31,6 +31,7 @@ interface SidebarItem {
 		title: string;
 		path: string;
 	}[];
+	adminOnly?: boolean;
 }
 
 const sidebarItems: SidebarItem[] = [
@@ -62,7 +63,6 @@ const sidebarItems: SidebarItem[] = [
 		icon: <Phone className="w-5 h-5" />,
 		path: "/instancias",
 	},
-
 	{
 		title: "Chat CRM",
 		icon: <MessageCircle className="w-5 h-5" />,
@@ -72,10 +72,13 @@ const sidebarItems: SidebarItem[] = [
 		title: "Chatbot",
 		icon: <Bot className="w-5 h-5" />,
 		path: "https://flowapi.whatlead.com.br",
-		// submenu: [
-		// 	{ title: "Fluxos", path: "/chatbot/flows" },
-		// 	{ title: "Estatísticas", path: "/chatbot/stats" },
-		// ],
+	},
+	// Novo item para o Painel de Admin
+	{
+		title: "Painel de Admin",
+		icon: <Crown className="w-5 h-5" />,
+		path: "/admin",
+		adminOnly: true, // Nova propriedade para indicar que é apenas para admins
 	},
 ];
 
@@ -84,6 +87,7 @@ export function Sidebar() {
 	const [openSubmenu, setOpenSubmenu] = useState<string | null>(null);
 	const location = useLocation();
 	const user = authService.getUser();
+	const isAdmin = user?.role === "admin";
 
 	const handleLogout = () => {
 		authService.logout();
@@ -157,128 +161,137 @@ export function Sidebar() {
 
 				{/* Navigation */}
 				<nav className="flex-1 py-4">
-					{sidebarItems.map((item) => (
-						<div key={item.path} className="relative">
-							{/* Active Route Indicator */}
-							<AnimatePresence>
-								{location.pathname === item.path && (
-									<motion.div
-										initial={{ opacity: 0, x: -5 }}
-										animate={{ opacity: 1, x: 0 }}
-										exit={{ opacity: 0, x: -5 }}
-										className="absolute left-0 top-0 h-full w-1 bg-neon-green rounded-r-full"
-									/>
-								)}
-							</AnimatePresence>
+					{sidebarItems.map((item) => {
+						// Verifica se o item deve ser exibido apenas para admins
+						if (item.adminOnly && !isAdmin) {
+							return null;
+						}
 
-							<Link
-								to={item.path}
-								className={cn(
-									"flex items-center gap-3 px-4 py-3 text-white/80 relative group",
-									"transition-all duration-200",
-									location.pathname === item.path && "text-white",
-									isCollapsed && "justify-center",
-								)}
-								onClick={() => item.submenu && toggleSubmenu(item.path)}
-							>
-								{/* Hover Background Effect */}
-								<motion.div
-									className="absolute inset-0 bg-electric/10 rounded-lg opacity-0 group-hover:opacity-100"
-									initial={{ scale: 0.95, opacity: 0 }}
-									whileHover={{ scale: 1, opacity: 1 }}
-									transition={{ duration: 0.2 }}
-								/>
-
-								{/* Icon with effects */}
-								<motion.div
-									className={cn(
-										"relative z-10",
-										location.pathname === item.path && "text-neon-green",
+						return (
+							<div key={item.path} className="relative">
+								{/* Active Route Indicator */}
+								<AnimatePresence>
+									{location.pathname === item.path && (
+										<motion.div
+											initial={{ opacity: 0, x: -5 }}
+											animate={{ opacity: 1, x: 0 }}
+											exit={{ opacity: 0, x: -5 }}
+											className="absolute left-0 top-0 h-full w-1 bg-neon-green rounded-r-full"
+										/>
 									)}
-									whileHover={{ scale: 1.1, rotate: [0, -10, 10, -10, 0] }}
-									transition={{ duration: 0.3 }}
-								>
-									{item.icon}
-								</motion.div>
+								</AnimatePresence>
 
-								{!isCollapsed && (
-									<>
-										<motion.span
-											className="flex-1 relative z-10 group-hover:text-white"
-											whileHover={{ x: 5 }}
-											transition={{ duration: 0.2 }}
+								<Link
+									to={item.path}
+									className={cn(
+										"flex items-center gap-3 px-4 py-3 text-white/80 relative group",
+										"transition-all duration-200",
+										location.pathname === item.path && "text-white",
+										isCollapsed && "justify-center",
+									)}
+									onClick={() => item.submenu && toggleSubmenu(item.path)}
+								>
+									{/* Hover Background Effect */}
+									<motion.div
+										className="absolute inset-0 bg-electric/10 rounded-lg opacity-0 group-hover:opacity-100"
+										initial={{ scale: 0.95, opacity: 0 }}
+										whileHover={{ scale: 1, opacity: 1 }}
+										transition={{ duration: 0.2 }}
+									/>
+
+									{/* Icon with effects */}
+									<motion.div
+										className={cn(
+											"relative z-10",
+											location.pathname === item.path && "text-neon-green",
+										)}
+										whileHover={{ scale: 1.1, rotate: [0, -10, 10, -10, 0] }}
+										transition={{ duration: 0.3 }}
+									>
+										{item.icon}
+									</motion.div>
+
+									{!isCollapsed && (
+										<>
+											<motion.span
+												className="flex-1 relative z-10 group-hover:text-white"
+												whileHover={{ x: 5 }}
+												transition={{ duration: 0.2 }}
+											>
+												{item.title}
+											</motion.span>
+
+											{item.badge && (
+												<motion.span
+													initial={{ scale: 0.8 }}
+													animate={{ scale: 1 }}
+													whileHover={{ scale: 1.1 }}
+													className="bg-neon-green text-deep px-2 py-0.5 rounded-full text-xs z-10
+                        shadow-[0_0_10px_rgba(0,255,106,0.5)]"
+												>
+													{item.badge}
+												</motion.span>
+											)}
+
+											{item.submenu && (
+												<motion.div
+													animate={{
+														rotate: openSubmenu === item.path ? 90 : 0,
+														color:
+															openSubmenu === item.path ? "#00FF6A" : "#ffffff",
+													}}
+													className="z-10"
+												>
+													<ChevronRight className="w-4 h-4" />
+												</motion.div>
+											)}
+										</>
+									)}
+
+									{/* Tooltip for collapsed state */}
+									{isCollapsed && (
+										<motion.div
+											initial={{ opacity: 0, x: 20 }}
+											whileHover={{ opacity: 1, x: 0 }}
+											className="absolute left-full ml-2 px-2 py-1 bg-deep/90 rounded-md
+                    text-sm whitespace-nowrap z-50 hidden group-hover:block"
 										>
 											{item.title}
-										</motion.span>
+										</motion.div>
+									)}
+								</Link>
 
-										{item.badge && (
-											<motion.span
-												initial={{ scale: 0.8 }}
-												animate={{ scale: 1 }}
-												whileHover={{ scale: 1.1 }}
-												className="bg-neon-green text-deep px-2 py-0.5 rounded-full text-xs z-10
-                        shadow-[0_0_10px_rgba(0,255,106,0.5)]"
-											>
-												{item.badge}
-											</motion.span>
-										)}
-
-										{item.submenu && (
+								{/* Submenu */}
+								<AnimatePresence>
+									{!isCollapsed &&
+										item.submenu &&
+										openSubmenu === item.path && (
 											<motion.div
-												animate={{
-													rotate: openSubmenu === item.path ? 90 : 0,
-													color:
-														openSubmenu === item.path ? "#00FF6A" : "#ffffff",
-												}}
-												className="z-10"
+												initial={{ height: 0, opacity: 0 }}
+												animate={{ height: "auto", opacity: 1 }}
+												exit={{ height: 0, opacity: 0 }}
+												className="overflow-hidden bg-deep/50"
 											>
-												<ChevronRight className="w-4 h-4" />
+												{item.submenu.map((subItem) => (
+													<Link
+														key={subItem.path}
+														to={subItem.path}
+														className={cn(
+															"flex items-center gap-3 px-12 py-2 text-white/70",
+															"hover:text-white transition-all duration-200",
+															location.pathname === subItem.path &&
+																"bg-electric/30 text-white",
+														)}
+													>
+														<span>{subItem.title}</span>
+													</Link>
+												))}
 											</motion.div>
 										)}
-									</>
-								)}
-
-								{/* Tooltip for collapsed state */}
-								{isCollapsed && (
-									<motion.div
-										initial={{ opacity: 0, x: 20 }}
-										whileHover={{ opacity: 1, x: 0 }}
-										className="absolute left-full ml-2 px-2 py-1 bg-deep/90 rounded-md
-                    text-sm whitespace-nowrap z-50 hidden group-hover:block"
-									>
-										{item.title}
-									</motion.div>
-								)}
-							</Link>
-
-							{/* Submenu */}
-							<AnimatePresence>
-								{!isCollapsed && item.submenu && openSubmenu === item.path && (
-									<motion.div
-										initial={{ height: 0, opacity: 0 }}
-										animate={{ height: "auto", opacity: 1 }}
-										exit={{ height: 0, opacity: 0 }}
-										className="overflow-hidden bg-deep/50"
-									>
-										{item.submenu.map((subItem) => (
-											<Link
-												key={subItem.path}
-												to={subItem.path}
-												className={cn(
-													"flex items-center gap-3 px-12 py-2 text-white/70",
-													"hover:text-white transition-all duration-200",
-													location.pathname === subItem.path &&
-														"bg-electric/30 text-white",
-												)}
-											>
-												<span>{subItem.title}</span>
-											</Link>
-										))}
-									</motion.div>
-								)}
-							</AnimatePresence>
-						</div>
-					))}
+								</AnimatePresence>
+							</div>
+						);
+					})}
 				</nav>
 
 				{/* Footer */}

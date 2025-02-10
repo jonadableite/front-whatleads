@@ -2,15 +2,7 @@ import axios from "axios";
 import { differenceInDays, format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { AnimatePresence, motion } from "framer-motion";
-import {
-	Calendar,
-	CheckCircle,
-	DollarSign,
-	Edit2,
-	PlusCircle,
-	User,
-	X,
-} from "lucide-react";
+import { Calendar, DollarSign, Edit2, PlusCircle, User, X } from "lucide-react";
 import { useEffect, useState } from "react";
 
 import CustomDatePicker from "@/components/CustomDatePicker";
@@ -139,13 +131,45 @@ export default function AdminDashboard() {
 		}
 	};
 
+	const formatDate = (dateString: string | null | undefined) => {
+		if (!dateString) return "N/A";
+		try {
+			const date = new Date(dateString);
+			if (isNaN(date.getTime())) {
+				throw new Error("Invalid date");
+			}
+			return format(date, "dd/MM/yyyy", { locale: ptBR });
+		} catch (error) {
+			console.error("Error formatting date:", dateString, error);
+			return "Data inválida";
+		}
+	};
+
+	const formattedUserSignups = userSignups.map((item) => ({
+		...item,
+		date: formatDate(item.date),
+	}));
+
 	const fetchUserSignups = async () => {
 		try {
 			const token = authService.getToken();
-			const response = await axios.get(`${API_URL}/api/admin/user-signups`, {
+			if (!token) throw new Error("Token não encontrado");
+			const resposta = await axios.get(`${API_URL}/api/admin/user-signups`, {
 				headers: { Authorization: `Bearer ${token}` },
 			});
-			setUserSignups(response.data);
+
+			console.log("Dados de cadastros de usuários:", resposta.data);
+
+			// Ordena os dados por data
+			const sortedData = resposta.data
+				.map((item) => ({
+					...item,
+					date: new Date(item.date),
+				}))
+				.filter((item) => !isNaN(item.date.getTime()))
+				.sort((a, b) => a.date.getTime() - b.date.getTime());
+
+			setUserSignups(sortedData);
 		} catch (error) {
 			console.error("Erro ao buscar cadastros de usuários:", error);
 		}
@@ -154,10 +178,21 @@ export default function AdminDashboard() {
 	const fetchRevenueByDay = async () => {
 		try {
 			const token = authService.getToken();
-			const response = await axios.get(`${API_URL}/api/admin/revenue-by-day`, {
+			if (!token) throw new Error("Token não encontrado");
+			const resposta = await axios.get(`${API_URL}/api/admin/revenue-by-day`, {
 				headers: { Authorization: `Bearer ${token}` },
 			});
-			setRevenueByDay(response.data);
+
+			console.log("Dados de faturamento por dia:", resposta.data);
+
+			const formattedData = resposta.data
+				.map((item) => ({
+					...item,
+					date: formatDate(item.date),
+				}))
+				.filter((item) => item.date !== "Data inválida");
+
+			setRevenueByDay(formattedData);
 		} catch (error) {
 			console.error("Erro ao buscar faturamento por dia:", error);
 		}
@@ -268,9 +303,9 @@ export default function AdminDashboard() {
 					value={data?.overduePayments || 0}
 				/>
 				<StatCard
-					icon={CheckCircle}
-					title="Pagamentos Concluídos"
-					value={data?.completedPayments || 0}
+					icon={Calendar}
+					title="Pagamentos Pendentes"
+					value={formatCurrency(data?.pendingPaymentsTotal || 0)}
 				/>
 			</div>
 
@@ -283,7 +318,7 @@ export default function AdminDashboard() {
 						Cadastros de Usuários
 					</h2>
 					<BarChart
-						data={userSignups}
+						data={formattedUserSignups}
 						xKey="date"
 						yKey="count"
 						fill="#7c3aed"
@@ -300,8 +335,8 @@ export default function AdminDashboard() {
 					<LineChart
 						data={revenueByDay}
 						xKey="date"
-						yKey="amount"
-						stroke="#19eb4e"
+						yKeys={["completed", "pending", "overdue"]}
+						colors={["#19eb4e", "#fbbf24", "#ef4444"]}
 					/>
 				</motion.div>
 			</div>
@@ -321,57 +356,69 @@ export default function AdminDashboard() {
 				className="bg-deep/90 backdrop-blur-2xl rounded-2xl border border-electric/40 overflow-hidden shadow-2xl"
 				variants={animations.item}
 			>
-				<Table>
-					<Thead>
-						<Tr className="bg-electric/20">
-							<Th className="text-electric font-bold">Nome</Th>
-							<Th className="text-electric font-bold">Email</Th>
-							<Th className="text-electric font-bold">Plano</Th>
-							<Th className="text-electric font-bold">Valor</Th>
-							<Th className="text-electric font-bold">Vencimento</Th>
-							<Th className="text-electric font-bold">Status</Th>
-							<Th className="text-electric font-bold">Afiliado</Th>
-							<Th className="text-electric font-bold">Ações</Th>
-						</Tr>
-					</Thead>
-					<Tbody>
-						{data?.usersWithDuePayments &&
-							data.usersWithDuePayments.map((user) => (
-								<Tr key={user.id} className="hover:bg-electric/10">
-									<Td className="font-medium">{user.name}</Td>
-									<Td>{user.email}</Td>
-									<Td>{user.plan}</Td>
-									<Td>{formatCurrency(user.payments[0]?.amount || 0)}</Td>
-									<Td>
-										{user.payments[0] &&
-											format(new Date(user.payments[0].dueDate), "dd/MM/yyyy", {
-												locale: ptBR,
-											})}
-									</Td>
-									<Td>
-										<PaymentStatus
-											dueDate={user.payments[0]?.dueDate}
-											status={user.payments[0]?.status}
-										/>
-									</Td>
-									<Td>{user.affiliate?.name || "Nenhum"}</Td>
-									<Td>
-										<div className="flex gap-2">
-											<Button
-												size="sm"
-												variant="ghost"
-												className="hover:bg-electric/30 hover:text-electric transition-all duration-200"
-												onClick={() => handleEditPayment(user.payments[0])}
-											>
-												<Edit2 className="w-4 h-4 mr-1" />
-												Editar
-											</Button>
-										</div>
-									</Td>
-								</Tr>
-							))}
-					</Tbody>
-				</Table>
+				{data?.usersWithDuePayments && data.usersWithDuePayments.length > 0 ? (
+					<Table className="[&_tr:hover]:!bg-transparent">
+						<Thead>
+							<Tr className="bg-electric/20">
+								<Th className="text-electric font-bold">Nome</Th>
+								<Th className="text-electric font-bold">Email</Th>
+								<Th className="text-electric font-bold">Plano</Th>
+								<Th className="text-electric font-bold">Valor</Th>
+								<Th className="text-electric font-bold">Vencimento</Th>
+								<Th className="text-electric font-bold">Status</Th>
+								<Th className="text-electric font-bold">Afiliado</Th>
+								<Th className="text-electric font-bold">Ações</Th>
+							</Tr>
+						</Thead>
+						<Tbody className="[&_tr:hover]:bg-transparent">
+							{data?.usersWithDuePayments &&
+								[...data.usersWithDuePayments]
+									.sort((a, b) => {
+										const dateA = a.payments[0]?.dueDate
+											? new Date(a.payments[0].dueDate).getTime()
+											: 0;
+										const dateB = b.payments[0]?.dueDate
+											? new Date(b.payments[0].dueDate).getTime()
+											: 0;
+										return isNaN(dateA) || isNaN(dateB) ? 0 : dateA - dateB;
+									})
+
+									.map((user) => (
+										<Tr key={user.id} className="hover:bg-electric/10">
+											<Td className="font-medium">{user.name}</Td>
+											<Td>{user.email}</Td>
+											<Td>{user.plan}</Td>
+											<Td>{formatCurrency(user.payments[0]?.amount || 0)}</Td>
+											<Td>{formatDate(user.payments[0]?.dueDate)}</Td>
+											<Td>
+												<PaymentStatus
+													dueDate={user.payments[0]?.dueDate}
+													status={user.payments[0]?.status}
+												/>
+											</Td>
+											<Td>{user.affiliate?.name || "Nenhum"}</Td>
+											<Td>
+												<div className="flex gap-2">
+													<Button
+														size="sm"
+														variant="ghost"
+														className="hover:bg-electric/30 hover:text-electric transition-all duration-200"
+														onClick={() => handleEditPayment(user.payments[0])}
+													>
+														<Edit2 className="w-4 h-4 mr-1" />
+														Editar
+													</Button>
+												</div>
+											</Td>
+										</Tr>
+									))}
+						</Tbody>
+					</Table>
+				) : (
+					<div className="text-white text-center py-4">
+						Nenhum pagamento pendente
+					</div>
+				)}
 			</motion.div>
 
 			{/* Modal para editar pagamento */}
@@ -553,16 +600,22 @@ const PaymentStatus = ({
 	dueDate,
 	status,
 }: {
-	dueDate: string;
+	dueDate: string | null | undefined;
 	status: string;
 }) => {
-	const daysToDue = differenceInDays(new Date(dueDate), new Date());
+	const daysToDue = dueDate
+		? differenceInDays(new Date(dueDate), new Date())
+		: null;
 
 	const getStatusConfig = () => {
-		if (status === "overdue" || daysToDue < 0) {
+		if (
+			!dueDate ||
+			status === "overdue" ||
+			(daysToDue !== null && daysToDue < 0)
+		) {
 			return { color: "text-red-500", text: "Vencido" };
 		}
-		if (daysToDue <= 3) {
+		if (daysToDue !== null && daysToDue <= 3) {
 			return { color: "text-yellow-500", text: "Próximo do vencimento" };
 		}
 		return { color: "text-green-500", text: "Em dia" };
@@ -573,7 +626,10 @@ const PaymentStatus = ({
 	return (
 		<span className={`font-bold ${statusConfig.color}`}>
 			{statusConfig.text}
-			{daysToDue > 0 && ` (em ${daysToDue} dias)`}
+			{dueDate &&
+				daysToDue !== null &&
+				daysToDue > 0 &&
+				` (em ${daysToDue} dias)`}
 		</span>
 	);
 };

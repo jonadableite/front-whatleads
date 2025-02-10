@@ -27,7 +27,26 @@ export interface DashboardData {
 	revenueWithDiscount: number;
 	overduePayments: number;
 	completedPayments: number;
+	pendingPaymentsTotal: number;
 	usersWithDuePayments: UserWithPayment[];
+}
+
+export interface AffiliateDashboardData {
+	totalReferrals: number;
+	totalEarnings: number;
+	pendingPayments: number;
+	referredUsers: Array<{
+		id: string;
+		name: string;
+		email: string;
+		plan: string;
+		createdAt: string;
+		payments: Array<{
+			amount: number;
+			status: string;
+			dueDate: string;
+		}>;
+	}>;
 }
 
 export interface EditPaymentModalProps {

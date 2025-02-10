@@ -1,4 +1,3 @@
-// src/components/charts/LineChart.tsx
 import {
 	CartesianGrid,
 	Line,
@@ -10,13 +9,13 @@ import {
 } from "recharts";
 
 interface LineChartProps {
-	data: { date: string; count: number }[];
+	data: { date: string; [key: string]: number }[];
 	xKey: string;
-	yKey: string;
-	stroke: string;
+	yKeys: string[];
+	colors: string[];
 }
 
-export function LineChart({ data, xKey, yKey, stroke }: LineChartProps) {
+export function LineChart({ data, xKey, yKeys, colors }: LineChartProps) {
 	return (
 		<ResponsiveContainer width="100%" height={300}>
 			<RechartsLineChart data={data}>
@@ -34,13 +33,16 @@ export function LineChart({ data, xKey, yKey, stroke }: LineChartProps) {
 					labelStyle={{ color: "#f8fafc" }}
 					itemStyle={{ color: "#f8fafc" }}
 				/>
-				<Line
-					type="monotone"
-					dataKey={yKey}
-					stroke={stroke}
-					strokeWidth={2}
-					dot={{ fill: stroke, strokeWidth: 2 }}
-				/>
+				{yKeys.map((key, index) => (
+					<Line
+						key={key}
+						type="monotone"
+						dataKey={key}
+						stroke={colors[index]}
+						strokeWidth={2}
+						dot={{ fill: colors[index], strokeWidth: 2 }}
+					/>
+				))}
 			</RechartsLineChart>
 		</ResponsiveContainer>
 	);
