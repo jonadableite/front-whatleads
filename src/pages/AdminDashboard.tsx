@@ -177,7 +177,7 @@ export default function AdminDashboard() {
 
 	const fetchRevenueByDay = async () => {
 		try {
-			const token = getToken();
+			const token = authService.getToken();
 			if (!token) throw new Error("Token não encontrado");
 			const response = await axios.get(`${API_URL}/api/admin/revenue-by-day`, {
 				headers: { Authorization: `Bearer ${token}` },
@@ -193,6 +193,7 @@ export default function AdminDashboard() {
 					(a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
 				);
 
+			console.log("Dados de faturamento por dia:", sortedData);
 			setRevenueByDay(sortedData);
 		} catch (error) {
 			console.error("Erro ao buscar faturamento por dia:", error);
@@ -333,12 +334,18 @@ export default function AdminDashboard() {
 					<h2 className="text-2xl font-bold text-white mb-6">
 						Faturamento por Dia
 					</h2>
-					<LineChart
-						data={revenueByDay}
-						xKey="date"
-						yKeys={["completed", "pending", "overdue"]}
-						colors={["#19eb4e", "#fbbf24", "#ef4444"]}
-					/>
+					{revenueByDay.length > 0 ? (
+						<LineChart
+							data={revenueByDay}
+							xKey="date"
+							yKeys={["completed", "pending", "overdue"]}
+							colors={["#19eb4e", "#fbbf24", "#ef4444"]}
+						/>
+					) : (
+						<div className="text-white">
+							Sem dados de faturamento disponíveis
+						</div>
+					)}
 				</motion.div>
 			</div>
 

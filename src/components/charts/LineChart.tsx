@@ -30,6 +30,10 @@ export function LineChart({ data, xKey, yKeys, colors }: LineChartProps) {
 		[xKey]: formatDate(item[xKey]),
 	}));
 
+	if (!data || data.length === 0) {
+		return <div>Sem dados para exibir</div>;
+	}
+
 	return (
 		<ResponsiveContainer width="100%" height={300}>
 			<RechartsLineChart data={formattedData}>
