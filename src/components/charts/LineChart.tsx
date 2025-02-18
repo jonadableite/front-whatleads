@@ -1,3 +1,5 @@
+import { format, isValid, parseISO } from "date-fns";
+import { ptBR } from "date-fns/locale";
 import {
 	CartesianGrid,
 	Line,
@@ -16,11 +18,32 @@ interface LineChartProps {
 }
 
 export function LineChart({ data, xKey, yKeys, colors }: LineChartProps) {
+	const formatDate = (dateString: string) => {
+		const date = parseISO(dateString);
+		return isValid(date)
+			? format(date, "dd/MM/yyyy", { locale: ptBR })
+			: dateString;
+	};
+
+	const formattedData = data.map((item) => ({
+		...item,
+		[xKey]: formatDate(item[xKey]),
+	}));
+
 	return (
 		<ResponsiveContainer width="100%" height={300}>
-			<RechartsLineChart data={data}>
+			<RechartsLineChart data={formattedData}>
 				<CartesianGrid strokeDasharray="3 3" stroke="#334155" />
-				<XAxis dataKey={xKey} stroke="#94a3b8" />
+				<XAxis
+					dataKey={xKey}
+					stroke="#94a3b8"
+					tickFormatter={(value) => {
+						const date = parseISO(value);
+						return isValid(date)
+							? format(date, "dd/MM", { locale: ptBR })
+							: value;
+					}}
+				/>
 				<YAxis stroke="#94a3b8" />
 				<Tooltip
 					cursor={{ stroke: "rgba(100, 100, 100, 0.2)", strokeWidth: 2 }}
@@ -32,6 +55,12 @@ export function LineChart({ data, xKey, yKeys, colors }: LineChartProps) {
 					}}
 					labelStyle={{ color: "#f8fafc" }}
 					itemStyle={{ color: "#f8fafc" }}
+					labelFormatter={(label) => {
+						const date = parseISO(label);
+						return isValid(date)
+							? format(date, "dd/MM/yyyy", { locale: ptBR })
+							: label;
+					}}
 				/>
 				{yKeys.map((key, index) => (
 					<Line

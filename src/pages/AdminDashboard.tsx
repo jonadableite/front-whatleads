@@ -177,22 +177,23 @@ export default function AdminDashboard() {
 
 	const fetchRevenueByDay = async () => {
 		try {
-			const token = authService.getToken();
+			const token = getToken();
 			if (!token) throw new Error("Token não encontrado");
-			const resposta = await axios.get(`${API_URL}/api/admin/revenue-by-day`, {
+			const response = await axios.get(`${API_URL}/api/admin/revenue-by-day`, {
 				headers: { Authorization: `Bearer ${token}` },
 			});
 
-			console.log("Dados de faturamento por dia:", resposta.data);
-
-			const formattedData = resposta.data
+			// Ordena os dados por data e garante que as datas estão no formato correto
+			const sortedData = response.data
 				.map((item) => ({
 					...item,
-					date: formatDate(item.date),
+					date: item.date.split("T")[0], // Pega apenas a parte da data, removendo a hora se existir
 				}))
-				.filter((item) => item.date !== "Data inválida");
+				.sort(
+					(a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
+				);
 
-			setRevenueByDay(formattedData);
+			setRevenueByDay(sortedData);
 		} catch (error) {
 			console.error("Erro ao buscar faturamento por dia:", error);
 		}
