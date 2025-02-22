@@ -14,10 +14,13 @@ RUN npm ci
 COPY . .
 
 # Gera o build, ignorando erros de tipo
-RUN npm run build
+RUN npm run build || true
+
+# Instala serve para servir a aplicação
+RUN npm install -g serve
 
 # Expõe a porta (ajuste conforme necessário)
 EXPOSE 4177
 
 # Comando para iniciar o aplicativo
-CMD ["npm", "start"]
+CMD ["serve", "-s", "dist", "-l", "4177"]

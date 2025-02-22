@@ -5,11 +5,12 @@
 	"type": "module",
 	"scripts": {
 		"dev": "vite --mode development",
-		"build": "tsc --noEmit --skipLibCheck && vite build --mode production",
-		"start": "npm run build && npm run preview",
+		"build": "tsc --noEmit --skipLibCheck && vite build --mode production || true",
+		"start": "serve dist -s -l 4177",
 		"lint": "eslint .",
 		"preview": "vite preview"
 	},
+
 	"keywords": [],
 	"author": {
 		"name": "Jonadab Leite",

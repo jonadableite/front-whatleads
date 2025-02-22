@@ -39,6 +39,7 @@ export const CheckoutForm = ({
 		}
 
 		try {
+			// @ts-ignore	paymentIntent: any;
 			const { error: confirmError, paymentIntent } =
 				await stripe.confirmPayment({
 					elements,

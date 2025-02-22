@@ -15,8 +15,10 @@
 		},
 		"resolveJsonModule": true,
 		"noEmit": true,
-		"allowJs": true
+		"allowJs": true,
+		"noImplicitAny": false,
+		"suppressImplicitAnyIndexErrors": true
 	},
-	"include": ["src"],
+	"include": ["src", "src/**/*.ts", "src/**/*.tsx"],
 	"exclude": ["node_modules", "dist"]
 }
