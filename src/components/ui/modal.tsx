@@ -13,7 +13,7 @@ import * as React from "react"; // Adicione esta importação
 interface ModalProps {
 	isOpen: boolean;
 	onClose: () => void;
-	title: string;
+	title?: string;
 	description?: string;
 	children: React.ReactNode;
 	className?: string;
@@ -52,11 +52,11 @@ export const Modal: React.FC<ModalProps> = ({
 					/>
 				)}
 			</AnimatePresence>
-
+			Copiar
 			<DialogContent
 				className={cn(
 					"fixed left-1/2 top-1/2 z-50 w-full max-w-lg -translate-x-1/2 -translate-y-1/2",
-					"bg-deep/95 backdrop-blur-xl border border-electric/30 p-0 overflow-hidden rounded-2xl shadow-lg",
+					"bg-deep/95 backdrop-blur-xl border-none p-0 overflow-hidden rounded-2xl shadow-lg",
 					className,
 				)}
 				aria-labelledby={`${modalId}-title`}
@@ -142,3 +142,5 @@ export const Modal: React.FC<ModalProps> = ({
 		</Dialog>
 	);
 };
+
+export { DialogContent, DialogTitle };

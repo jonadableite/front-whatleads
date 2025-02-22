@@ -31,6 +31,22 @@ export interface DashboardData {
 	usersWithDuePayments: UserWithPayment[];
 }
 
+export interface ProgressViewProps {
+	progress: number;
+	numbersProcessed: number;
+	totalNumbers: number;
+	campaignStatus: string | null;
+	onPause?: () => void;
+	onResume?: () => void;
+	onCancel?: () => void;
+}
+
+export interface StatsGridProps {
+	totalNumbers: number;
+	numbersProcessed: number;
+	remaining: number;
+}
+
 export interface AffiliateDashboardData {
 	totalReferrals: number;
 	totalEarnings: number;

@@ -4,12 +4,18 @@
 	"version": "0.0.0",
 	"type": "module",
 	"scripts": {
-		"dev": "vite",
-		"build": "tsc --noEmit || true && vite build",
+		"dev": "vite --mode development",
+		"build": "tsc --noEmit || true && vite build --mode production",
 		"lint": "eslint .",
-		"preview": "vite preview",
-		"start": "vite preview --host 0.0.0.0 --port 4177"
+		"preview": "vite preview"
 	},
+	"keywords": [],
+	"author": {
+		"name": "Jonadab Leite",
+		"email": "jonadab.leite@gmail.com"
+	},
+	"license": "ISC",
+	"description": "",
 	"dependencies": {
 		"@hookform/resolvers": "^3.10.0",
 		"@radix-ui/react-accordion": "^1.2.2",

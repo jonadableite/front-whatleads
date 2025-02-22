@@ -315,7 +315,6 @@ export default function Disparos() {
 			setIsStarting(true);
 			setIsModalOpen(true);
 			setCampaignStatus("running");
-			setToastId(toast.info("Iniciando campanha...", { autoClose: false }));
 
 			const selectedInstanceData = instances.find(
 				(i) => i.id === selectedInstance,
@@ -350,8 +349,8 @@ export default function Disparos() {
 				};
 			}
 
-			// Importar leads apenas se estiver no modo "new" e houver arquivo
 			if (dispatchMode === "new" && file) {
+				// Importar leads apenas se estiver no modo "new" e houver arquivo
 				console.log("Importando novos leads...");
 				const formData = new FormData();
 				formData.append("file", file);
@@ -373,6 +372,9 @@ export default function Disparos() {
 				}
 				console.log("Leads importados com sucesso:", importResponse.data);
 			}
+
+			// Adicione um delay pequeno para garantir que os leads foram processados
+			await new Promise((resolve) => setTimeout(resolve, 1000));
 
 			// Verificar se existem leads na campanha
 			console.log("Verificando leads existentes...");
@@ -407,29 +409,28 @@ export default function Disparos() {
 
 			if (response.data.success) {
 				startProgressMonitoring(campaignId);
-				if (toastId) {
-					toast.update(toastId, {
-						render: "Campanha iniciada com sucesso!",
-						type: "success",
-						autoClose: 5000,
-					});
-				}
+				toast.update(toastId, {
+					render: "Campanha iniciada com sucesso!",
+					type: "success",
+					autoClose: 5000,
+				});
 			} else {
 				throw new Error(response.data.message || "Erro ao iniciar campanha");
 			}
 		} catch (error) {
 			console.error("Erro ao iniciar campanha:", error);
-			if (toastId) {
-				toast.update(toastId, {
-					render:
-						error instanceof Error ? error.message : "Erro ao iniciar campanha",
-					type: "error",
-					autoClose: 5000,
-				});
-			}
+			toast.update(toastId, {
+				render:
+					error instanceof Error ? error.message : "Erro ao iniciar campanha",
+				type: "error",
+				autoClose: 5000,
+			});
 			setIsModalOpen(false);
 			setCampaignStatus(null);
 		} finally {
+			if (toastId) {
+				toast.dismiss(toastId);
+			}
 			setIsStarting(false);
 		}
 	};
@@ -486,6 +487,14 @@ export default function Disparos() {
 
 		try {
 			setIsStarting(true);
+
+			if (dispatchMode === "new") {
+				toast.update(toastId, {
+					render: "Importando leads...",
+					type: "info",
+					isLoading: true,
+				});
+			}
 
 			if (sendType === "scheduled") {
 				const scheduledDateTime = new Date(`${scheduledDate}T${scheduledTime}`);

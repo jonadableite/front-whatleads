@@ -1,3 +1,4 @@
+import { ProgressModalProps, type StatsGridProps } from "@/interface";
 // src/components/ProgressModal.tsx
 import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useState } from "react";
@@ -11,7 +12,7 @@ import {
 	FiX,
 } from "react-icons/fi";
 import { useCampaignProgress } from "../hooks/useCampaignProgress";
-import { Modal } from "./ui/modal";
+import { DialogContent, DialogTitle, Modal } from "./ui/modal";
 
 interface ProgressModalProps {
 	isOpen: boolean;
@@ -54,78 +55,81 @@ export const ProgressModal: React.FC<ProgressModalProps> = ({
 	// Retornar o componente do modal
 	return (
 		<Modal isOpen={isOpen} onClose={onClose}>
-			<div className="p-8 bg-deep/95 backdrop-blur-xl rounded-xl border border-electric/20">
-				{/* Cabeçalho */}
-				<div className="flex justify-between items-center mb-6">
-					<motion.h2
-						initial={{ y: -20, opacity: 0 }}
-						animate={{ y: 0, opacity: 1 }}
-						className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-900 via-neon-purple to-electric"
-					>
-						Status do Disparo
-					</motion.h2>
-					{/* Botões de controle */}
-					<div className="flex gap-2">
-						{campaignStatus === "running" && handlePause && (
-							<motion.button
-								whileHover={{ scale: 1.05 }}
-								whileTap={{ scale: 0.95 }}
-								className="p-2 rounded-lg bg-yellow-500/20 text-yellow-400 hover:bg-yellow-500/30"
-								onClick={handlePause}
-							>
-								<FiPause />
-							</motion.button>
-						)}
-						{campaignStatus === "paused" && handleResume && (
-							<motion.button
-								whileHover={{ scale: 1.05 }}
-								whileTap={{ scale: 0.95 }}
-								className="p-2 rounded-lg bg-electric/20 text-electric hover:bg-electric/30"
-								onClick={handleResume}
-							>
-								<FiPlay />
-							</motion.button>
-						)}
-						{handleCancel && campaignStatus !== "completed" && (
-							<motion.button
-								whileHover={{ scale: 1.05 }}
-								whileTap={{ scale: 0.95 }}
-								className="p-2 rounded-lg bg-red-500/20 text-red-400 hover:bg-red-500/30"
-								onClick={handleCancel}
-							>
-								<FiX />
-							</motion.button>
-						)}
+			<DialogTitle className="sr-only">Status do Disparo</DialogTitle>
+			<DialogContent>
+				<div className="p-8 bg-deep/95 backdrop-blur-xl rounded-xl border-none">
+					{/* Cabeçalho */}
+					<div className="flex justify-between items-center mb-6">
+						<motion.h2
+							initial={{ y: -20, opacity: 0 }}
+							animate={{ y: 0, opacity: 1 }}
+							className="text-3xl font-bold text-transparent bg-clip-text bg-gradient-to-r from-blue-900 via-neon-purple to-electric"
+						>
+							Status do Disparo
+						</motion.h2>
+						{/* Botões de controle */}
+						<div className="flex gap-2">
+							{campaignStatus === "running" && handlePause && (
+								<motion.button
+									whileHover={{ scale: 1.05 }}
+									whileTap={{ scale: 0.95 }}
+									className="p-2 rounded-lg bg-yellow-500/20 text-yellow-400 hover:bg-yellow-500/30"
+									onClick={handlePause}
+								>
+									<FiPause />
+								</motion.button>
+							)}
+							{campaignStatus === "paused" && handleResume && (
+								<motion.button
+									whileHover={{ scale: 1.05 }}
+									whileTap={{ scale: 0.95 }}
+									className="p-2 rounded-lg bg-electric/20 text-electric hover:bg-electric/30"
+									onClick={handleResume}
+								>
+									<FiPlay />
+								</motion.button>
+							)}
+							{handleCancel && campaignStatus !== "completed" && (
+								<motion.button
+									whileHover={{ scale: 1.05 }}
+									whileTap={{ scale: 0.95 }}
+									className="p-2 rounded-lg bg-red-500/20 text-red-400 hover:bg-red-500/30"
+									onClick={handleCancel}
+								>
+									<FiX />
+								</motion.button>
+							)}
+						</div>
 					</div>
-				</div>
 
-				{/* Corpo principal */}
-				{error ? (
-					<motion.div
-						initial={{ opacity: 0 }}
-						animate={{ opacity: 1 }}
-						className="text-red-500 text-center py-4"
-					>
-						{error}
-					</motion.div>
-				) : (
-					<AnimatePresence mode="wait">
-						{isInitializing ? (
-							<InitializingView />
-						) : (
-							<ProgressView
-								progress={progress}
-								numbersProcessed={numbersProcessed}
-								totalNumbers={totalNumbers}
-								campaignStatus={campaignStatus}
-								onPause={handlePause}
-								onResume={handleResume}
-								onCancel={handleCancel}
-							/>
-						)}
-					</AnimatePresence>
-				)}
-			</div>
+					{/* Corpo principal */}
+					{error ? (
+						<motion.div
+							initial={{ opacity: 0 }}
+							animate={{ opacity: 1 }}
+							className="text-red-500 text-center py-4"
+						>
+							{error}
+						</motion.div>
+					) : (
+						<AnimatePresence mode="wait">
+							{isInitializing ? (
+								<InitializingView />
+							) : (
+								<ProgressView
+									progress={progress}
+									numbersProcessed={numbersProcessed}
+									totalNumbers={totalNumbers}
+									campaignStatus={campaignStatus}
+									onPause={handlePause}
+									onResume={handleResume}
+									onCancel={handleCancel}
+								/>
+							)}
+						</AnimatePresence>
+					)}
+				</div>
+			</DialogContent>
 		</Modal>
 	);
 };
@@ -243,7 +247,11 @@ const ProgressView = ({
 );
 
 // Grid de Estatísticas
-const StatsGrid = ({ totalNumbers, numbersProcessed, remaining }) => (
+const StatsGrid: React.FC<StatsGridProps> = ({
+	totalNumbers,
+	numbersProcessed,
+	remaining,
+}) => (
 	<div className="grid grid-cols-3 gap-4">
 		<StatsCard
 			icon={<FiUsers />}
