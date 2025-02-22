@@ -699,6 +699,7 @@ const Instances: React.FC = () => {
 			console.log("Dados recebidos do backend:", response.data);
 
 			// Aqui é onde a nova parte se encaixa
+			// biome-ignore lint/complexity/useOptionalChain: <explanation>
 			if (response.data && response.data.instance) {
 				const newInstance = response.data.instance;
 				setInstances((prev) => [...prev, newInstance]);
@@ -722,6 +723,7 @@ const Instances: React.FC = () => {
 						setNewInstanceName("");
 
 						console.log("QR Code configurado:", {
+							// biome-ignore lint/style/useTemplate: <explanation>
 							base64: qrBase64.substring(0, 100) + "...",
 							pairingCode: qrcode.pairingCode,
 						});
@@ -757,6 +759,7 @@ const Instances: React.FC = () => {
 		if (qrCode) {
 			console.log("QR Code atualizado:", {
 				base64Length: qrCode.base64?.length,
+				// biome-ignore lint/style/useTemplate: <explanation>
 				base64Preview: qrCode.base64?.substring(0, 100) + "...",
 				pairingCode: qrCode.pairingCode,
 			});
