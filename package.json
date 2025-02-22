@@ -6,9 +6,11 @@
 	"scripts": {
 		"dev": "vite --mode development",
 		"build": "tsc --noEmit || true && vite build --mode production",
+		"start": "npm run build && npm run preview",
 		"lint": "eslint .",
 		"preview": "vite preview"
 	},
+
 	"keywords": [],
 	"author": {
 		"name": "Jonadab Leite",
