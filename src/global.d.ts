@@ -27,3 +27,11 @@ declare module "cmdk";
 interface CustomMouseEvent extends MouseEvent {
 	dataTransfer?: DataTransfer;
 }
+
+interface CustomDragEvent extends DragEvent {
+	dataTransfer?: DataTransfer;
+}
+
+interface CustomClipboardEvent extends ClipboardEvent {
+	dataTransfer?: DataTransfer;
+}
