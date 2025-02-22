@@ -14,7 +14,7 @@ RUN npm ci
 COPY . .
 
 # Gera o build, ignorando erros de tipo
-RUN npm run build || true
+RUN npm run build
 
 # Expõe a porta (ajuste conforme necessário)
 EXPOSE 4177
