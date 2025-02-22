@@ -31,6 +31,31 @@ export interface DashboardData {
 	usersWithDuePayments: UserWithPayment[];
 }
 
+export interface TypebotConfig {
+	id?: string;
+	instanceId: string;
+	url: string;
+	typebot: string;
+	description: string;
+	triggerType: "keyword" | "all" | "none";
+	triggerOperator?:
+		| "contains"
+		| "equals"
+		| "startsWith"
+		| "endsWith"
+		| undefined;
+	triggerValue?: string | undefined;
+	enabled: boolean;
+	expire: number;
+	keywordFinish: string;
+	delayMessage: number;
+	unknownMessage: string;
+	listeningFromMe: boolean;
+	stopBotFromMe: boolean;
+	keepOpen: boolean;
+	debounceTime: number;
+}
+
 export interface ProgressViewProps {
 	progress: number;
 	numbersProcessed: number;

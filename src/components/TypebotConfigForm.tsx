@@ -5,6 +5,7 @@ import { motion } from "framer-motion";
 import { Check, MessageSquare, Settings2, Zap } from "lucide-react";
 import { useState } from "react";
 import { toast } from "react-hot-toast";
+import type { TypebotConfig } from "../interface";
 
 const TypebotConfigForm = ({
 	instance = {},
@@ -15,19 +16,20 @@ const TypebotConfigForm = ({
 	const [currentStep, setCurrentStep] = useState(1);
 	const [isSaving, setIsSaving] = useState(false);
 
-	const [config, setConfig] = useState({
-		enabled: true,
+	const [config, setConfig] = useState<TypebotConfig>({
+		instanceId: instance?.id || "",
 		url: instance?.typebot?.url || "",
 		typebot: instance?.typebot?.typebot || "",
 		description: instance?.typebot?.description || "",
 		triggerType: instance?.typebot?.triggerType || "keyword",
 		triggerOperator: instance?.typebot?.triggerOperator || "contains",
 		triggerValue: instance?.typebot?.triggerValue || "",
+		enabled: instance?.typebot?.enabled ?? true,
 		expire: instance?.typebot?.expire || 0,
 		keywordFinish: instance?.typebot?.keywordFinish || "#SAIR",
 		delayMessage: instance?.typebot?.delayMessage || 1000,
 		unknownMessage:
-			instance?.typebot?.unknownMessage || "Message not recognized",
+			instance?.typebot?.unknownMessage || "Mensagem não reconhecida",
 		listeningFromMe: instance?.typebot?.listeningFromMe || false,
 		stopBotFromMe: instance?.typebot?.stopBotFromMe || false,
 		keepOpen: instance?.typebot?.keepOpen || false,
