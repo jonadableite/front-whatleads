@@ -10,7 +10,6 @@
 		"lint": "eslint .",
 		"preview": "vite preview"
 	},
-
 	"keywords": [],
 	"author": {
 		"name": "Jonadab Leite",

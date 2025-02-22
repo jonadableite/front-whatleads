@@ -17,8 +17,8 @@
 		"noEmit": true,
 		"allowJs": true,
 		"noImplicitAny": false,
-		"suppressImplicitAnyIndexErrors": true
+		"strictNullChecks": false
 	},
-	"include": ["src", "src/**/*.ts", "src/**/*.tsx"],
+	"include": ["src"],
 	"exclude": ["node_modules", "dist"]
 }

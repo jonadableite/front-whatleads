@@ -3,6 +3,7 @@ import {
 	useElements,
 	useStripe,
 } from "@stripe/react-stripe-js";
+import type { StripePaymentElementOptions } from "@stripe/stripe-js";
 import { motion } from "framer-motion";
 import { LockIcon } from "lucide-react";
 import { useState } from "react";
@@ -39,35 +40,51 @@ export const CheckoutForm = ({
 		}
 
 		try {
-			// @ts-ignore	paymentIntent: any;
-			const { error: confirmError, paymentIntent } =
-				await stripe.confirmPayment({
-					elements,
-					confirmParams: {
-						return_url: `${window.location.origin}/payment-success`,
-					},
-				});
+			const { error, paymentIntent } = await stripe.confirmPayment({
+				elements,
+				confirmParams: {
+					return_url: `${window.location.origin}/payment-success`,
+				},
+				redirect: "if_required",
+			});
 
-			if (confirmError) {
-				setError(confirmError.message);
-				setMessage(confirmError.message);
-			} else if (paymentIntent && paymentIntent.status === "succeeded") {
-				navigate("/payment-success", {
-					state: {
-						paymentIntentId: paymentIntent.id,
-						amount: paymentIntent.amount,
-						currency: paymentIntent.currency,
-					},
-				});
-			} else {
-				setMessage("Processando seu pagamento. Por favor, aguarde...");
+			if (error) {
+				setError(error.message || "Erro ao processar o pagamento.");
+				setMessage(error.message || "Erro ao processar o pagamento.");
+			} else if (paymentIntent) {
+				switch (paymentIntent.status) {
+					case "succeeded":
+						navigate("/payment-success", {
+							state: {
+								paymentIntentId: paymentIntent.id,
+								amount: paymentIntent.amount,
+								currency: paymentIntent.currency,
+							},
+						});
+						break;
+					case "processing":
+						setMessage("Processando seu pagamento. Por favor, aguarde...");
+						break;
+					default:
+						setError("Pagamento não concluído.");
+						break;
+				}
 			}
-		} catch (err: any) {
-			setError(err.message || "Erro ao processar o pagamento.");
-			setMessage(err.message || "Erro ao processar o pagamento.");
+		} catch (err: unknown) {
+			const errorMessage =
+				err instanceof Error
+					? err.message
+					: "Erro desconhecido ao processar o pagamento.";
+
+			setError(errorMessage);
+			setMessage(errorMessage);
 		} finally {
 			setProcessing(false);
 		}
+	};
+
+	const paymentElementOptions: StripePaymentElementOptions = {
+		layout: "tabs",
 	};
 
 	return (
@@ -87,7 +104,7 @@ export const CheckoutForm = ({
 
 			<motion.form onSubmit={handleSubmit} className="space-y-8">
 				<div className="bg-deep/50 rounded-xl p-6 backdrop-blur-lg border border-electric/20">
-					<PaymentElement />
+					<PaymentElement options={paymentElementOptions} />
 				</div>
 
 				<div className="space-y-4">
@@ -119,7 +136,11 @@ export const CheckoutForm = ({
 					<motion.div
 						initial={{ opacity: 0, y: 10 }}
 						animate={{ opacity: 1, y: 0 }}
-						className={`p-4 rounded-xl text-sm text-center backdrop-blur-lg transition-all duration-300 ${error ? "bg-red-500/20 text-red-200 border border-red-500/30" : "bg-green-500/20 text-green-200 border border-green-500/30"}`}
+						className={`p-4 rounded-xl text-sm text-center backdrop-blur-lg transition-all duration-300 ${
+							error
+								? "bg-red-500/20 text-red-200 border border-red-500/30"
+								: "bg-green-500/20 text-green-200 border border-green-500/30"
+						}`}
 					>
 						{message || error}
 					</motion.div>
