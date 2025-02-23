@@ -1,13 +1,14 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
+import type { TypebotConfig, TypebotConfigFormProps } from "@/interface";
 import { motion } from "framer-motion";
 import { Check, MessageSquare, Settings2, Zap } from "lucide-react";
+import type React from "react";
 import { useState } from "react";
 import { toast } from "react-hot-toast";
-import type { TypebotConfig } from "../interface";
 
-const TypebotConfigForm = ({
+const TypebotConfigForm: React.FC<TypebotConfigFormProps> = ({
 	instance = {},
 	onUpdate,
 	onDelete,
@@ -19,10 +20,26 @@ const TypebotConfigForm = ({
 	const [config, setConfig] = useState<TypebotConfig>({
 		instanceId: instance?.id || "",
 		url: instance?.typebot?.url || "",
-		typebot: instance?.typebot?.typebot || "",
+		typebot: {
+			typebotId:
+				typeof instance?.typebot === "object"
+					? instance.typebot.typebotId || ""
+					: "",
+			name:
+				typeof instance?.typebot === "object"
+					? instance.typebot.name || ""
+					: "",
+		},
 		description: instance?.typebot?.description || "",
-		triggerType: instance?.typebot?.triggerType || "keyword",
-		triggerOperator: instance?.typebot?.triggerOperator || "contains",
+		triggerType:
+			(instance?.typebot?.triggerType as "keyword" | "all" | "none") ||
+			"keyword",
+		triggerOperator:
+			(instance?.typebot?.triggerOperator as
+				| "contains"
+				| "equals"
+				| "startsWith"
+				| "endsWith") || "contains",
 		triggerValue: instance?.typebot?.triggerValue || "",
 		enabled: instance?.typebot?.enabled ?? true,
 		expire: instance?.typebot?.expire || 0,
@@ -57,13 +74,15 @@ const TypebotConfigForm = ({
 		},
 	];
 
-	const handleChange = (e) => {
-		const { name, value, type, checked } = e.target;
+	const handleChange = (
+		e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>,
+	) => {
+		const { name, value, type } = e.target;
 		setConfig((prev) => ({
 			...prev,
 			[name]:
 				type === "checkbox"
-					? checked
+					? (e.target as HTMLInputElement).checked
 					: type === "number"
 						? Number(value)
 						: value,
@@ -73,7 +92,8 @@ const TypebotConfigForm = ({
 	const validateForm = () => {
 		return (
 			config.url.trim() !== "" &&
-			config.typebot.trim() !== "" &&
+			typeof config.typebot === "object" &&
+			config.typebot.typebotId.trim() !== "" &&
 			config.description.trim() !== "" &&
 			(config.triggerType !== "keyword" || config.triggerValue.trim() !== "")
 		);
@@ -91,7 +111,11 @@ const TypebotConfigForm = ({
 		}
 	};
 
-	const StepIndicator = ({ step, isActive, isCompleted }) => (
+	const StepIndicator: React.FC<{
+		step: (typeof steps)[number];
+		isActive: boolean;
+		isCompleted: boolean;
+	}> = ({ step, isActive, isCompleted }) => (
 		<div className="flex flex-col items-center w-full">
 			<div
 				className={`
@@ -113,7 +137,12 @@ const TypebotConfigForm = ({
 		</div>
 	);
 
-	const InputField = ({ label, name, type = "text", placeholder = "" }) => (
+	const InputField: React.FC<{
+		label: string;
+		name: string;
+		type?: string;
+		placeholder?: string;
+	}> = ({ label, name, type = "text", placeholder = "" }) => (
 		<div className="mb-4">
 			<label className="block text-sm font-medium text-gray-600 mb-1">
 				{label}
@@ -121,7 +150,7 @@ const TypebotConfigForm = ({
 			<Input
 				type={type}
 				name={name}
-				value={config[name]}
+				value={typeof config[name] === "string" ? (config[name] as string) : ""}
 				onChange={handleChange}
 				placeholder={placeholder}
 				className="w-full"
@@ -129,14 +158,18 @@ const TypebotConfigForm = ({
 		</div>
 	);
 
-	const SelectField = ({ label, name, options }) => (
+	const SelectField: React.FC<{
+		label: string;
+		name: string;
+		options: { value: string; label: string }[];
+	}> = ({ label, name, options }) => (
 		<div className="mb-4">
 			<label className="block text-sm font-medium text-gray-600 mb-1">
 				{label}
 			</label>
 			<Select
 				name={name}
-				value={config[name]}
+				value={config[name] as string}
 				onChange={handleChange}
 				className="w-full"
 			>
@@ -148,15 +181,6 @@ const TypebotConfigForm = ({
 			</Select>
 		</div>
 	);
-
-	const handleDelete = async () => {
-		try {
-			await onDelete(instance.id);
-		} catch (error) {
-			console.error("Erro ao excluir as configurações:", error);
-			toast.error("Erro ao excluir as configurações do Typebot");
-		}
-	};
 
 	const handleSave = async () => {
 		if (!validateForm()) {
@@ -176,12 +200,24 @@ const TypebotConfigForm = ({
 		}
 	};
 
+	const handleDelete = async () => {
+		try {
+			if (instance.id && instance.instanceName) {
+				await onDelete(instance.id, instance.instanceName);
+				toast.success("Configuração removida com sucesso");
+			}
+		} catch (error) {
+			console.error("Erro ao excluir as configurações:", error);
+			toast.error("Erro ao excluir as configurações do Typebot");
+		}
+	};
+
 	const ActionButtons = () => (
 		<div className="flex justify-end space-x-2 mb-4">
 			{isEditing && (
 				<Button
 					variant="outline"
-					onClick={() => onDelete(instance.id)}
+					onClick={handleDelete}
 					className="text-red-600 hover:text-red-700"
 				>
 					Remover Fluxo
@@ -196,7 +232,7 @@ const TypebotConfigForm = ({
 
 			<div className="flex justify-between mb-8 relative">
 				<div className="absolute top-5 left-0 right-0 h-0.5 bg-neon-purple -z-10" />
-				{steps.map((step, idx) => (
+				{steps.map((step) => (
 					<StepIndicator
 						key={step.id}
 						step={step}

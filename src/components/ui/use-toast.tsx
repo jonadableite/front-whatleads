@@ -1,39 +1,56 @@
 // src/components/ui/use-toast.tsx
 import * as React from "react";
-import { Toast } from "./toast";
-
-type ToastProps = React.ComponentProps<typeof Toast>;
-
-const ToastContext = React.createContext<{
-	toast: (props: ToastProps) => void;
-}>({
-	toast: () => {},
-});
+import { Toast, type ToastProps, toast } from "./toast";
 
 export function ToastProvider({ children }: { children: React.ReactNode }) {
 	const [toasts, setToasts] = React.useState<ToastProps[]>([]);
 
-	const toast = React.useCallback((props: ToastProps) => {
-		setToasts((prev) => [...prev, props]);
-		setTimeout(() => {
-			setToasts((prev) => prev.slice(1));
-		}, 3000);
+	React.useEffect(() => {
+		const handleToast = (event: CustomEvent) => {
+			const toastProps = event.detail as ToastProps;
+			const newToast = {
+				...toastProps,
+				id: toastProps.id ?? Date.now().toString(),
+			};
+
+			setToasts((prev) => [...prev, newToast]);
+		};
+
+		window.addEventListener(
+			"toast" as keyof WindowEventMap,
+			handleToast as EventListener,
+		);
+
+		return () => {
+			window.removeEventListener(
+				"toast" as keyof WindowEventMap,
+				handleToast as EventListener,
+			);
+		};
 	}, []);
 
+	const removeToast = (id: string) => {
+		setToasts((prev) => prev.filter((toast) => toast.id !== id));
+		toast.dismiss(id);
+	};
+
 	return (
-		<ToastContext.Provider value={{ toast }}>
+		<>
 			{children}
-			{toasts.map((toastProps, index) => (
-				<Toast key={index} {...toastProps} />
-			))}
-		</ToastContext.Provider>
+			<div className="fixed z-[100] flex flex-col space-y-2 p-4">
+				{toasts.map((toastProps) => (
+					<Toast
+						key={toastProps.id}
+						{...toastProps}
+						onClose={() => removeToast(toastProps.id!)}
+					/>
+				))}
+			</div>
+		</>
 	);
 }
 
+// eslint-disable-next-line react-refresh/only-export-components
 export const useToast = () => {
-	const context = React.useContext(ToastContext);
-	if (context === undefined) {
-		throw new Error("useToast must be used within a ToastProvider");
-	}
-	return context;
+	return { toast };
 };

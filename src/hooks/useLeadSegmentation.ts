@@ -1,7 +1,7 @@
-import { Toast } from "@/components/ui/toast";
+// src/hooks/useLeadSegmentation.ts
+import { toast } from "@/components/ui/toast";
 import type { SegmentationRule } from "@/interface";
 import { leadsApi } from "@/services/api/leads";
-// src/hooks/useLeadSegmentation.ts
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 
 export const useLeadSegmentation = () => {
@@ -11,14 +11,14 @@ export const useLeadSegmentation = () => {
 		mutationFn: (rules: SegmentationRule[]) => leadsApi.segmentLeads(rules),
 
 		onSuccess: () => {
-			Toast.success("Segmentação realizada com sucesso!");
+			toast.success("Segmentação realizada com sucesso!");
 			queryClient.invalidateQueries({ queryKey: ["leads"] });
 			queryClient.invalidateQueries({ queryKey: ["userPlan"] });
 			queryClient.invalidateQueries({ queryKey: ["segmentedLeads"] });
 			queryClient.invalidateQueries({ queryKey: ["statistics"] });
 		},
 		onError: (error: Error) => {
-			Toast.error(`Erro ao segmentar leads: ${error.message}`);
+			toast.error(`Erro ao segmentar leads: ${error.message}`); // Use toast.error
 			queryClient.invalidateQueries({ queryKey: ["leads"] });
 		},
 	});

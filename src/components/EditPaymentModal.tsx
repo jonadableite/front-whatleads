@@ -14,6 +14,11 @@ const EditPaymentModal: React.FC<EditPaymentModalProps> = ({
 
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
+		// Certifique-se de que o id existe
+		if (!payment.id) {
+			console.error("Payment ID is missing");
+			return;
+		}
 		await onSave(payment.id, { amount, dueDate, status });
 		onClose();
 	};

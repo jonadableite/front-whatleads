@@ -1,10 +1,3 @@
-import axios from "axios";
-import { differenceInDays, format } from "date-fns";
-import { ptBR } from "date-fns/locale";
-import { AnimatePresence, motion } from "framer-motion";
-import { Calendar, DollarSign, Edit2, PlusCircle, User, X } from "lucide-react";
-import { useEffect, useState } from "react";
-
 import CustomDatePicker from "@/components/CustomDatePicker";
 import EditPaymentModal from "@/components/EditPaymentModal";
 import { BarChart, LineChart } from "@/components/charts";
@@ -14,6 +7,12 @@ import { Table, Tbody, Td, Th, Thead, Tr } from "@/components/ui/table";
 import { useToast } from "@/components/ui/use-toast";
 import type { Affiliate, DashboardData, Payment } from "@/interface";
 import { authService } from "@/services/auth.service";
+import axios from "axios";
+import { differenceInDays, format } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { AnimatePresence, motion } from "framer-motion";
+import { Calendar, DollarSign, Edit2, PlusCircle, User, X } from "lucide-react";
+import { useEffect, useState } from "react";
 
 // Constants
 const API_URL = import.meta.env.VITE_API_URL || "https://api.whatlead.com.br";
@@ -89,6 +88,49 @@ export default function AdminDashboard() {
 		initializeDashboard();
 	}, []);
 
+	const fetchRevenueByDay = async () => {
+		try {
+			const token = authService.getToken();
+			if (!token) throw new Error("Token não encontrado");
+
+			const response = await axios.get(`${API_URL}/api/admin/revenue-by-day`, {
+				headers: { Authorization: `Bearer ${token}` },
+			});
+
+			// Ordena os dados por data e garante que as datas estão no formato correto
+			const sortedData = response.data
+				.map((item) => ({
+					...item,
+					date: item.date.split("T")[0], // Pega apenas a parte da data, removendo a hora se existir
+				}))
+				.sort(
+					(a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
+				);
+
+			console.log("Dados de faturamento por dia:", sortedData);
+			setRevenueByDay(sortedData);
+		} catch (error) {
+			console.error("Erro ao buscar faturamento por dia:", error);
+			toast.error("Erro ao carregar dados de faturamento.");
+		} finally {
+			setIsLoading(false);
+		}
+	};
+
+	// Atualize o useEffect para usar a função definida no componente
+	useEffect(() => {
+		const initializeDashboard = async () => {
+			await Promise.all([
+				fetchAdminData(),
+				fetchAffiliates(),
+				fetchUserSignups(),
+				fetchRevenueByDay(), // Chame a função definida no componente
+			]);
+		};
+
+		initializeDashboard();
+	}, []);
+
 	const fetchAdminData = async () => {
 		setIsLoading(true);
 		try {
@@ -106,11 +148,7 @@ export default function AdminDashboard() {
 			setData(data);
 		} catch (error: any) {
 			console.error("Erro ao buscar dados:", error);
-			toast({
-				title: "Erro",
-				description: error.response?.data?.error || "Falha ao carregar dados",
-				variant: "destructive",
-			});
+			toast.error(`Erro ao carregar dados: ${error.message}`);
 		} finally {
 			setIsLoading(false);
 		}
@@ -135,6 +173,7 @@ export default function AdminDashboard() {
 		if (!dateString) return "N/A";
 		try {
 			const date = new Date(dateString);
+			// biome-ignore lint/suspicious/noGlobalIsNan: <explanation>
 			if (isNaN(date.getTime())) {
 				throw new Error("Invalid date");
 			}
@@ -166,6 +205,7 @@ export default function AdminDashboard() {
 					...item,
 					date: new Date(item.date),
 				}))
+				// biome-ignore lint/suspicious/noGlobalIsNan: <explanation>
 				.filter((item) => !isNaN(item.date.getTime()))
 				.sort((a, b) => a.date.getTime() - b.date.getTime());
 
@@ -175,30 +215,18 @@ export default function AdminDashboard() {
 		}
 	};
 
-	const fetchRevenueByDay = async () => {
-		try {
-			const token = authService.getToken();
-			if (!token) throw new Error("Token não encontrado");
-			const response = await axios.get(`${API_URL}/api/admin/revenue-by-day`, {
-				headers: { Authorization: `Bearer ${token}` },
-			});
+	// Processamento dos dados para o gráfico
+	const processedRevenueByDay = revenueByDay.map((item) => ({
+		date: item.date,
+		count: item.amount, // Adiciona a propriedade count
+		completed: item.amount, // Se precisar de múltiplas séries
+		pending: 0,
+		overdue: 0,
+	}));
 
-			// Ordena os dados por data e garante que as datas estão no formato correto
-			const sortedData = response.data
-				.map((item) => ({
-					...item,
-					date: item.date.split("T")[0], // Pega apenas a parte da data, removendo a hora se existir
-				}))
-				.sort(
-					(a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
-				);
-
-			console.log("Dados de faturamento por dia:", sortedData);
-			setRevenueByDay(sortedData);
-		} catch (error) {
-			console.error("Erro ao buscar faturamento por dia:", error);
-		}
-	};
+	if (isLoading) {
+		return <div>Loading...</div>; // Exiba um carregando ou um esqueleto
+	}
 
 	const handleEditPayment = (payment: Payment) => {
 		setEditingPayment(payment);
@@ -214,45 +242,33 @@ export default function AdminDashboard() {
 				headers: { Authorization: `Bearer ${token}` },
 			});
 
-			toast({
-				title: "Sucesso",
-				description: "Pagamento atualizado com sucesso",
-			});
+			toast.success("Pagamento atualizado com sucesso");
 
 			fetchAdminData(); // Recarregar os dados
 		} catch (error: any) {
-			toast({
-				title: "Erro",
-				description:
-					error.response?.data?.error || "Falha ao atualizar pagamento",
-				variant: "destructive",
-			});
+			toast.error(`Erro ao atualizar pagamento: ${error.message}`);
 		}
 	};
 
 	const handleAddUser = async (formData: FormData) => {
 		try {
 			const token = authService.getToken();
-			const userData = Object.fromEntries(formData.entries());
+
+			// Solução para conversão de FormData
+			const userData: Record<string, string> = {};
+			formData.forEach((value, key) => {
+				userData[key] = value.toString();
+			});
 
 			await axios.post(`${API_URL}/api/admin/users`, userData, {
 				headers: { Authorization: `Bearer ${token}` },
 			});
 
-			toast({
-				title: "Sucesso",
-				description: "Usuário cadastrado com sucesso",
-			});
-
+			toast.success("Usuário cadastrado com sucesso");
 			setShowAddUserModal(false);
 			fetchAdminData();
 		} catch (error: any) {
-			toast({
-				title: "Erro",
-				description:
-					error.response?.data?.error || "Falha ao cadastrar usuário",
-				variant: "destructive",
-			});
+			toast.error(`Erro ao cadastrar usuário: ${error.message}`);
 		}
 	};
 
@@ -336,7 +352,7 @@ export default function AdminDashboard() {
 					</h2>
 					{revenueByDay.length > 0 ? (
 						<LineChart
-							data={revenueByDay}
+							data={processedRevenueByDay}
 							xKey="date"
 							yKeys={["completed", "pending", "overdue"]}
 							colors={["#19eb4e", "#fbbf24", "#ef4444"]}
@@ -616,6 +632,9 @@ const PaymentStatus = ({
 		: null;
 
 	const getStatusConfig = () => {
+		if (status === "pending") {
+			return { color: "text-blue-500", text: "Pendente" };
+		}
 		if (
 			!dueDate ||
 			status === "overdue" ||

@@ -12,7 +12,7 @@ import { FaClock, FaRocket, FaWhatsapp } from "react-icons/fa";
 import { FiDatabase, FiUpload } from "react-icons/fi";
 import { IoMdImage, IoMdMusicalNote, IoMdVideocam } from "react-icons/io";
 import { useNavigate } from "react-router-dom";
-import { toast } from "react-toastify";
+import { type Id, toast } from "react-toastify";
 
 interface Campaign {
 	id: string;

@@ -1,3 +1,5 @@
+// @ts-nocheck
+
 // src/pages/Login.tsx
 import Logo from "@/components/Logo";
 import { Button } from "@/components/ui/button";

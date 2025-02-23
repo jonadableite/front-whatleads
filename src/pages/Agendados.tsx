@@ -2,7 +2,7 @@ import { Button } from "@/components/ui/button";
 import { InputWithIcon } from "@/components/ui/input-with-icon";
 import { Modal } from "@/components/ui/modal";
 import { Select } from "@/components/ui/select";
-import { Toast } from "@/components/ui/toast";
+import { toast } from "@/components/ui/toast";
 import type {
 	ApiResponse,
 	LoadingStateProps,
@@ -39,6 +39,10 @@ export interface ScheduledCampaign {
 	startedAt?: string;
 	completedAt?: string;
 	totalLeads: number;
+	statistics?: {
+		sentCount: number;
+		deliveredCount: number;
+	};
 }
 
 const pageTransition = {
@@ -175,12 +179,12 @@ const Agendados = () => {
 	const cancelCampaign = useMutation({
 		mutationFn: (id: string) => api.main.post(`/campaigns/${id}/cancel`),
 		onSuccess: () => {
-			Toast.success("Campanha cancelada com sucesso!");
+			toast.success("Campanha cancelada com sucesso!");
 			refetch();
 			setIsDeleteModalOpen(false);
 		},
 		onError: (error) => {
-			Toast.error(
+			toast.error(
 				error instanceof Error ? error.message : "Erro ao cancelar campanha",
 			);
 		},
@@ -195,12 +199,12 @@ const Agendados = () => {
 			data: Partial<ScheduledCampaign>;
 		}) => api.main.patch(`/campaigns/${id}`, data),
 		onSuccess: () => {
-			Toast.success("Campanha atualizada com sucesso!");
+			toast.success("Campanha atualizada com sucesso!");
 			refetch();
 			setIsEditModalOpen(false);
 		},
 		onError: (error) => {
-			Toast.error(
+			toast.error(
 				error instanceof Error ? error.message : "Erro ao atualizar campanha",
 			);
 		},

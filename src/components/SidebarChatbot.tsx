@@ -17,6 +17,7 @@ import {
 	Video,
 	Zap,
 } from "lucide-react";
+import type React from "react";
 import { Link } from "react-router-dom";
 
 const sidebarItems = [
@@ -82,21 +83,26 @@ export function SidebarChatbot() {
 				</Link>
 			</div>
 			<div className="flex-grow overflow-y-auto">
-				{sidebarItems.map((category, index) => (
-					<div key={index} className="mb-6 px-4 mt-4">
+				{sidebarItems.map((category, categoryIndex) => (
+					<div key={`category-${categoryIndex}`} className="mb-6 px-4 mt-4">
 						<h3 className="text-white font-semibold mb-2 text-sm">
 							{category.title}
 						</h3>
 						<div className="grid grid-cols-2 gap-3">
 							{category.items.map((item, itemIndex) => (
 								<motion.div
-									key={itemIndex}
+									key={`${category.title}-${item.name}`}
 									className="cursor-move"
 									whileHover={{ scale: 1.05 }}
 									draggable
-									onDragStart={(e) =>
-										e.dataTransfer.setData("text/plain", item.name)
-									}
+									onDragStart={(e: DragEvent) => {
+										const dataTransfer = (
+											e as unknown as React.DragEvent<HTMLDivElement>
+										).dataTransfer;
+										if (dataTransfer) {
+											dataTransfer.setData("text/plain", item.name);
+										}
+									}}
 								>
 									<div className="flex flex-col items-center justify-center px-2 py-2 rounded-lg bg-[#202024] text-white h-[70px]">
 										<div

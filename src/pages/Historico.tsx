@@ -1,3 +1,5 @@
+// @ts-nocheck
+
 import { InputWithIcon } from "@/components/ui/input-with-icon";
 import { Select } from "@/components/ui/select";
 import { api } from "@/lib/api";

@@ -1,4 +1,5 @@
 // src/interface/index.ts
+
 export interface Plan {
 	name: string;
 	price: {
@@ -16,9 +17,14 @@ export interface Plan {
 }
 
 export interface Payment {
+	id?: string;
 	dueDate: string;
 	status: "pending" | "overdue" | "completed";
 	amount: number;
+}
+
+export interface UserWithPayment extends User {
+	duePayments: Payment[];
 }
 
 export interface DashboardData {
@@ -35,14 +41,20 @@ export interface TypebotConfig {
 	id?: string;
 	instanceId: string;
 	url: string;
-	typebot: string;
+	typebot:
+		| string
+		| {
+				typebotId: string;
+				name: string;
+		  };
 	description: string;
-	triggerType: "keyword" | "all" | "none";
+	triggerType: "keyword" | "all" | "none" | string;
 	triggerOperator?:
 		| "contains"
 		| "equals"
 		| "startsWith"
 		| "endsWith"
+		| string
 		| undefined;
 	triggerValue?: string | undefined;
 	enabled: boolean;
@@ -54,6 +66,7 @@ export interface TypebotConfig {
 	stopBotFromMe: boolean;
 	keepOpen: boolean;
 	debounceTime: number;
+	[key: string]: any;
 }
 
 export interface ProgressViewProps {
@@ -90,6 +103,25 @@ export interface AffiliateDashboardData {
 	}>;
 }
 
+export interface ProgressData {
+	progress: number;
+	status: string | null;
+	numbersProcessed: number;
+	totalNumbers: number;
+	error: string | null;
+	instanceName: string | null;
+}
+
+export interface ProgressModalProps {
+	isOpen: boolean;
+	onClose: () => void;
+	campaignId: string;
+	instanceName?: string;
+	onPause?: () => Promise<void>;
+	onResume?: () => Promise<void>;
+	onCancel?: () => Promise<void>;
+}
+
 export interface EditPaymentModalProps {
 	payment: Payment;
 	onClose: () => void;
@@ -102,10 +134,11 @@ export interface Affiliate {
 }
 
 export interface NodeData {
+	id: string;
 	label: string;
 	type: string;
 	text: string;
-	onChange: (id: string, newData: { text: string }) => void;
+	onChange?: (id: string, newData: { text: string }) => void;
 }
 
 export interface LeadStatsCardProps {
@@ -143,23 +176,42 @@ export interface Lead {
 	phone: string;
 	email?: string | null;
 	status: string;
+	campaignName?: string;
 	createdAt: Date;
 	updatedAt: Date;
 }
 
+export interface UserPlanResponse {
+	data: {
+		id?: string;
+		name: string;
+		price: number;
+		features: string[];
+		limits: {
+			maxLeads: number;
+			maxCampaigns: number;
+		};
+	};
+}
+
 export interface LeadsResponse {
-	leads: Lead[];
-	totalLeads: number;
-	activeLeads: number;
-	conversionRate: number;
+	data: {
+		leads: Lead[];
+		total: number;
+		activeLeads: number;
+		conversionRate: number;
+	};
 }
 
 export interface UserPlan {
-	maxLeads: number;
-	maxCampaigns: number;
-	features: string[];
+	id?: string;
 	name: string;
 	price: number;
+	features: string[];
+	limits: {
+		maxLeads: number;
+		maxCampaigns: number;
+	};
 }
 
 export interface LeadTableProps {
@@ -283,36 +335,14 @@ export interface CampaignStatistics {
 }
 
 export interface TypebotConfigFormProps {
-	instance: {
-		typebot?: TypebotConfig;
-		instanceId?: string;
+	instance?: {
+		id?: string;
 		instanceName?: string;
+		typebot?: Partial<TypebotConfig>;
 	};
 	onUpdate: (config: TypebotConfig) => Promise<void>;
-	onDelete: (instanceId: string, instanceName: string) => void;
-	isEditing: boolean;
-}
-
-export interface TypebotConfig {
-	enabled: boolean;
-	url: string;
-	typebot: {
-		typebotId: string;
-		name: string;
-	};
-	description: string;
-	triggerType: string;
-	triggerOperator: string;
-	triggerValue: string;
-	expire: number;
-	keywordFinish: string;
-	delayMessage: number;
-	unknownMessage: string;
-	listeningFromMe: boolean;
-	stopBotFromMe: boolean;
-	keepOpen: boolean;
-	debounceTime: number;
-	[key: string]: any;
+	onDelete: (instanceId: string, instanceName: string) => Promise<void>;
+	isEditing?: boolean;
 }
 
 export interface InputFieldProps {
@@ -343,6 +373,7 @@ export interface CampaignsResponse {
 }
 
 export interface Instance {
+	instanceId: any;
 	id: string;
 	instanceName: string;
 	connectionStatus: string;
@@ -385,6 +416,7 @@ export interface User {
 	email: string;
 	profile: string;
 	plan: string;
+	role: "admin" | "user" | string;
 	companyId?: string;
 	payments: Payment[];
 }

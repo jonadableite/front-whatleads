@@ -87,7 +87,7 @@ export function Sidebar() {
 	const [openSubmenu, setOpenSubmenu] = useState<string | null>(null);
 	const location = useLocation();
 	const user = authService.getUser();
-	const isAdmin = user?.role === "admin";
+	const isAdmin = user?.role === "admin" || false;
 
 	const handleLogout = () => {
 		authService.logout();

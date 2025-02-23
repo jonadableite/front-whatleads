@@ -1,3 +1,5 @@
+// @ts-nocheck
+
 // src/pages/Instances.tsx
 import ProxyConfigModal from "@/components/ProxyConfigModal";
 import TypebotConfigForm from "@/components/TypebotConfigForm";

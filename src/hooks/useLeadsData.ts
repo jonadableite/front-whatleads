@@ -1,5 +1,6 @@
-import { leadsApi } from "@/services/api/leads";
+import type { LeadsResponse, UserPlanResponse } from "@/interface";
 // src/hooks/useLeadsData.ts
+import { leadsApi } from "@/services/api/leads";
 import { useQuery } from "@tanstack/react-query";
 
 export const useLeadsData = () => {
@@ -7,7 +8,7 @@ export const useLeadsData = () => {
 		data: leadsData,
 		isLoading,
 		refetch: refetchLeads,
-	} = useQuery({
+	} = useQuery<LeadsResponse>({
 		queryKey: ["leads"],
 		queryFn: async () => {
 			try {
@@ -19,17 +20,18 @@ export const useLeadsData = () => {
 		},
 	});
 
-	const { data: userPlan } = useQuery({
-		queryKey: ["userPlan"],
-		queryFn: async () => {
-			try {
-				return await leadsApi.fetchUserPlan();
-			} catch (error) {
-				console.error("Error fetching user plan:", error);
-				throw error;
-			}
-		},
-	});
+	const { data: userPlanResponse, isLoading: isLoadingUserPlan } =
+		useQuery<UserPlanResponse>({
+			queryKey: ["userPlan"],
+			queryFn: async () => {
+				try {
+					return await leadsApi.fetchUserPlan();
+				} catch (error) {
+					console.error("Error fetching user plan:", error);
+					throw error;
+				}
+			},
+		});
 
 	const totalLeads = leadsData?.data?.total || 0;
 	const leads = leadsData?.data?.leads || [];
@@ -40,13 +42,13 @@ export const useLeadsData = () => {
 		totalLeads,
 		activeLeads,
 		conversionRate,
-		leadLimit: userPlan?.limits?.maxLeads || 0,
+		leadLimit: userPlanResponse?.data?.limits?.maxLeads || 0, // Acesso correto à propriedade
 	};
 
 	return {
 		leads,
-		isLoading,
-		userPlan,
+		isLoading: isLoading || isLoadingUserPlan,
+		userPlan: userPlanResponse?.data, // Retorna apenas a parte de dados
 		statistics,
 		refetchLeads,
 	};

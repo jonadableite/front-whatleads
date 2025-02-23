@@ -1,5 +1,5 @@
-import { ProgressModalProps, type StatsGridProps } from "@/interface";
-// src/components/ProgressModal.tsx
+//src/components/ProgressModal.tsx
+import type { ProgressModalProps, StatsGridProps } from "@/interface";
 import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useState } from "react";
 import {
@@ -11,35 +11,35 @@ import {
 	FiUsers,
 	FiX,
 } from "react-icons/fi";
+import { toast } from "react-toastify";
 import { useCampaignProgress } from "../hooks/useCampaignProgress";
 import { DialogContent, DialogTitle, Modal } from "./ui/modal";
 
-interface ProgressModalProps {
-	isOpen: boolean;
-	onClose: () => void;
-	campaignId: string;
-}
-
-// Componente principal
 export const ProgressModal: React.FC<ProgressModalProps> = ({
 	isOpen,
 	onClose,
 	campaignId,
+	instanceName: propInstanceName,
+	onPause: externalOnPause,
+	onResume: externalOnResume,
+	onCancel: externalOnCancel,
 }) => {
-	// Hook personalizado para acompanhar progresso da campanha
 	const {
 		progress,
 		status: campaignStatus,
 		numbersProcessed,
 		totalNumbers,
 		error,
-		handlePause,
-		handleResume,
-		handleCancel,
+		handlePause: internalHandlePause,
+		handleResume: internalHandleResume,
+		handleCancel: internalHandleCancel,
+		instanceName: hookInstanceName,
 	} = useCampaignProgress(campaignId);
 
-	// Estado para inicializar
 	const [isInitializing, setIsInitializing] = useState(true);
+
+	// Prioriza instanceName da prop, depois do hook
+	const instanceName = propInstanceName || hookInstanceName;
 
 	// Efeito para exibir inicialização
 	useEffect(() => {
@@ -52,7 +52,89 @@ export const ProgressModal: React.FC<ProgressModalProps> = ({
 		}
 	}, [isOpen]);
 
-	// Retornar o componente do modal
+	// Função de resumo com tratamento de erro
+	const handleResumeWithInstanceName = async () => {
+		try {
+			if (instanceName) {
+				if (externalOnResume) {
+					await externalOnResume();
+				} else if (internalHandleResume) {
+					await internalHandleResume(instanceName);
+				}
+			} else {
+				toast.error("Nome da instância não disponível");
+			}
+		} catch (err) {
+			console.error("Erro ao retomar campanha:", err);
+			toast.error("Não foi possível retomar a campanha");
+		}
+	};
+
+	// Renderização condicional de botões de ação
+	const renderActionButtons = () => {
+		return (
+			<div className="flex gap-2">
+				{campaignStatus === "running" && (
+					<motion.button
+						whileHover={{ scale: 1.05 }}
+						whileTap={{ scale: 0.95 }}
+						className="p-2 rounded-lg bg-yellow-500/20 text-yellow-400 hover:bg-yellow-500/30"
+						onClick={async (e) => {
+							e.preventDefault();
+							try {
+								if (externalOnPause) {
+									await externalOnPause();
+								} else if (internalHandlePause) {
+									await internalHandlePause();
+								}
+							} catch (err) {
+								console.error("Erro ao pausar campanha:", err);
+								toast.error("Não foi possível pausar a campanha");
+							}
+						}}
+					>
+						<FiPause />
+					</motion.button>
+				)}
+				{campaignStatus === "paused" && (
+					<motion.button
+						whileHover={{ scale: 1.05 }}
+						whileTap={{ scale: 0.95 }}
+						className="p-2 rounded-lg bg-electric/20 text-electric hover:bg-electric/30"
+						onClick={(e) => {
+							e.preventDefault();
+							handleResumeWithInstanceName();
+						}}
+					>
+						<FiPlay />
+					</motion.button>
+				)}
+				{campaignStatus !== "completed" && (
+					<motion.button
+						whileHover={{ scale: 1.05 }}
+						whileTap={{ scale: 0.95 }}
+						className="p-2 rounded-lg bg-red-500/20 text-red-400 hover:bg-red-500/30"
+						onClick={async (e) => {
+							e.preventDefault();
+							try {
+								if (externalOnCancel) {
+									await externalOnCancel();
+								} else if (internalHandleCancel) {
+									await internalHandleCancel();
+								}
+							} catch (err) {
+								console.error("Erro ao cancelar campanha:", err);
+								toast.error("Não foi possível cancelar a campanha");
+							}
+						}}
+					>
+						<FiX />
+					</motion.button>
+				)}
+			</div>
+		);
+	};
+
 	return (
 		<Modal isOpen={isOpen} onClose={onClose}>
 			<DialogTitle className="sr-only">Status do Disparo</DialogTitle>
@@ -67,39 +149,7 @@ export const ProgressModal: React.FC<ProgressModalProps> = ({
 						>
 							Status do Disparo
 						</motion.h2>
-						{/* Botões de controle */}
-						<div className="flex gap-2">
-							{campaignStatus === "running" && handlePause && (
-								<motion.button
-									whileHover={{ scale: 1.05 }}
-									whileTap={{ scale: 0.95 }}
-									className="p-2 rounded-lg bg-yellow-500/20 text-yellow-400 hover:bg-yellow-500/30"
-									onClick={handlePause}
-								>
-									<FiPause />
-								</motion.button>
-							)}
-							{campaignStatus === "paused" && handleResume && (
-								<motion.button
-									whileHover={{ scale: 1.05 }}
-									whileTap={{ scale: 0.95 }}
-									className="p-2 rounded-lg bg-electric/20 text-electric hover:bg-electric/30"
-									onClick={handleResume}
-								>
-									<FiPlay />
-								</motion.button>
-							)}
-							{handleCancel && campaignStatus !== "completed" && (
-								<motion.button
-									whileHover={{ scale: 1.05 }}
-									whileTap={{ scale: 0.95 }}
-									className="p-2 rounded-lg bg-red-500/20 text-red-400 hover:bg-red-500/30"
-									onClick={handleCancel}
-								>
-									<FiX />
-								</motion.button>
-							)}
-						</div>
+						{renderActionButtons()}
 					</div>
 
 					{/* Corpo principal */}
@@ -114,16 +164,17 @@ export const ProgressModal: React.FC<ProgressModalProps> = ({
 					) : (
 						<AnimatePresence mode="wait">
 							{isInitializing ? (
-								<InitializingView />
+								<InitializingView key="initializing" />
 							) : (
 								<ProgressView
+									key="progress"
 									progress={progress}
 									numbersProcessed={numbersProcessed}
 									totalNumbers={totalNumbers}
 									campaignStatus={campaignStatus}
-									onPause={handlePause}
-									onResume={handleResume}
-									onCancel={handleCancel}
+									onPause={externalOnPause || internalHandlePause}
+									onResume={handleResumeWithInstanceName}
+									onCancel={externalOnCancel || internalHandleCancel}
 								/>
 							)}
 						</AnimatePresence>
@@ -135,15 +186,13 @@ export const ProgressModal: React.FC<ProgressModalProps> = ({
 };
 
 // Componentes auxiliares
-const InitializingView = () => (
+const InitializingView: React.FC = () => (
 	<motion.div
-		key="initializing"
 		initial={{ scale: 0.8, opacity: 0 }}
 		animate={{ scale: 1, opacity: 1 }}
 		exit={{ scale: 0.8, opacity: 0 }}
 		className="flex flex-col items-center py-8"
 	>
-		{/* Animação de carregamento */}
 		<div className="relative w-24 h-24">
 			<motion.div
 				animate={{
@@ -186,7 +235,15 @@ const InitializingView = () => (
 	</motion.div>
 );
 
-const ProgressView = ({
+const ProgressView: React.FC<{
+	progress: number;
+	numbersProcessed: number;
+	totalNumbers: number;
+	campaignStatus: string | null;
+	onPause?: () => Promise<void>;
+	onResume?: () => Promise<void>;
+	onCancel?: () => Promise<void>;
+}> = ({
 	progress,
 	numbersProcessed,
 	totalNumbers,
@@ -196,7 +253,6 @@ const ProgressView = ({
 	onCancel,
 }) => (
 	<motion.div
-		key="progress"
 		initial={{ opacity: 0 }}
 		animate={{ opacity: 1 }}
 		className="space-y-8"
@@ -274,17 +330,12 @@ const StatsGrid: React.FC<StatsGridProps> = ({
 	</div>
 );
 
-const StatsCard = ({
-	icon,
-	label,
-	value,
-	color,
-}: {
+const StatsCard: React.FC<{
 	icon: React.ReactNode;
 	label: string;
 	value: number;
 	color: string;
-}) => (
+}> = ({ icon, label, value, color }) => (
 	<div className="bg-deep/50 p-4 rounded-lg border border-electric/20">
 		<div className={`text-2xl mb-2 ${color}`}>{icon}</div>
 		<div className="text-white/60 text-sm">{label}</div>
@@ -292,7 +343,7 @@ const StatsCard = ({
 	</div>
 );
 
-const getStatusText = (campaignStatus: string | null) => {
+const getStatusText = (campaignStatus: string | null): string => {
 	switch (campaignStatus) {
 		case "running":
 			return "Em andamento";
@@ -306,3 +357,5 @@ const getStatusText = (campaignStatus: string | null) => {
 			return "Preparando";
 	}
 };
+
+export default ProgressModal;

@@ -1,5 +1,4 @@
 import { api } from "@/lib/api";
-// src/hooks/useCampaignProgress.ts
 import { useEffect, useState } from "react";
 import { toast } from "react-toastify";
 
@@ -9,6 +8,7 @@ interface ProgressData {
 	numbersProcessed: number;
 	totalNumbers: number;
 	error: string | null;
+	instanceName: string | null;
 }
 
 export const useCampaignProgress = (campaignId: string) => {
@@ -18,6 +18,7 @@ export const useCampaignProgress = (campaignId: string) => {
 		numbersProcessed: 0,
 		totalNumbers: 0,
 		error: null,
+		instanceName: null,
 	});
 	const [isPolling, setIsPolling] = useState<boolean>(true);
 
@@ -31,18 +32,18 @@ export const useCampaignProgress = (campaignId: string) => {
 				);
 
 				if (response.data.success) {
-					const { progress, status, statistics } = response.data.data;
+					const { progress, status, statistics, instanceName } =
+						response.data.data;
 
-					// Atualizar os dados do progresso
 					setData({
 						progress,
 						status,
 						numbersProcessed: statistics.sentCount,
 						totalNumbers: statistics.totalLeads,
 						error: null,
+						instanceName,
 					});
 
-					// Parar o polling caso a campanha seja concluída ou falhe
 					if (["completed", "failed"].includes(status)) {
 						setIsPolling(false);
 					}
@@ -56,18 +57,15 @@ export const useCampaignProgress = (campaignId: string) => {
 			}
 		};
 
-		// Iniciar o polling
 		const intervalId = setInterval(fetchProgress, 2000);
-		fetchProgress(); // Primeira chamada imediata
+		fetchProgress();
 
-		// Limpar intervalo ao desmontar
 		return () => {
 			clearInterval(intervalId);
 			setIsPolling(false);
 		};
 	}, [campaignId]);
 
-	// Função para pausar a campanha
 	const handlePause = async () => {
 		try {
 			await api.main.post(`/campaigns/${campaignId}/pause`);
@@ -79,7 +77,6 @@ export const useCampaignProgress = (campaignId: string) => {
 		}
 	};
 
-	// Função para retomar a campanha
 	const handleResume = async (instanceName: string) => {
 		try {
 			await api.main.post(`/campaigns/${campaignId}/resume`, { instanceName });
@@ -91,7 +88,6 @@ export const useCampaignProgress = (campaignId: string) => {
 		}
 	};
 
-	// Função para cancelar a campanha
 	const handleCancel = async () => {
 		try {
 			await api.main.post(`/campaigns/${campaignId}/stop`);
@@ -109,6 +105,7 @@ export const useCampaignProgress = (campaignId: string) => {
 		numbersProcessed: data.numbersProcessed,
 		totalNumbers: data.totalNumbers,
 		error: data.error,
+		instanceName: data.instanceName,
 		isPolling,
 		handlePause,
 		handleResume,

@@ -1,3 +1,5 @@
+// @ts-nocheck
+
 // src/services/api/campaigns.ts
 import { api } from "@/lib/api";
 

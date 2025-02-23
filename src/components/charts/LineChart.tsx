@@ -1,3 +1,4 @@
+// src/components/charts/LineChart.tsx
 import { format, isValid, parseISO } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import {
@@ -10,14 +11,29 @@ import {
 	YAxis,
 } from "recharts";
 
-interface LineChartProps {
-	data: { date: string; [key: string]: number }[];
-	xKey: string;
-	yKeys: string[];
-	colors: string[];
+// Interface para definir a estrutura dos dados do gráfico
+interface ChartDataPoint {
+	[key: string]: number | string;
+	date: string;
+	count: number;
+	completed?: number;
+	pending?: number;
+	overdue?: number;
 }
 
-export function LineChart({ data, xKey, yKeys, colors }: LineChartProps) {
+interface LineChartProps {
+	data?: ChartDataPoint[];
+	xKey?: keyof ChartDataPoint;
+	yKeys?: (keyof ChartDataPoint)[];
+	colors?: string[];
+}
+
+export function LineChart({
+	data = [],
+	xKey = "date",
+	yKeys = ["count"],
+	colors = ["#19eb4e"],
+}: LineChartProps) {
 	const formatDate = (dateString: string) => {
 		const date = parseISO(dateString);
 		return isValid(date)
@@ -25,21 +41,24 @@ export function LineChart({ data, xKey, yKeys, colors }: LineChartProps) {
 			: dateString;
 	};
 
+	// Adicione uma verificação para dados vazios
+	if (!data || data.length === 0) {
+		return (
+			<div className="flex items-center justify-center h-full text-white/60"></div>
+		);
+	}
+
 	const formattedData = data.map((item) => ({
 		...item,
-		[xKey]: formatDate(item[xKey]),
+		[xKey]: formatDate(item[xKey] as string),
 	}));
-
-	if (!data || data.length === 0) {
-		return <div>Sem dados para exibir</div>;
-	}
 
 	return (
 		<ResponsiveContainer width="100%" height={300}>
 			<RechartsLineChart data={formattedData}>
 				<CartesianGrid strokeDasharray="3 3" stroke="#334155" />
 				<XAxis
-					dataKey={xKey}
+					dataKey={xKey as string}
 					stroke="#94a3b8"
 					tickFormatter={(value) => {
 						const date = parseISO(value);
@@ -68,12 +87,12 @@ export function LineChart({ data, xKey, yKeys, colors }: LineChartProps) {
 				/>
 				{yKeys.map((key, index) => (
 					<Line
-						key={key}
+						key={String(key)}
 						type="monotone"
-						dataKey={key}
-						stroke={colors[index]}
+						dataKey={key as string}
+						stroke={colors[index % colors.length]}
 						strokeWidth={2}
-						dot={{ fill: colors[index], strokeWidth: 2 }}
+						dot={{ fill: colors[index % colors.length], strokeWidth: 2 }}
 					/>
 				))}
 			</RechartsLineChart>

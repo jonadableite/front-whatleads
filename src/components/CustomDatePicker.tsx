@@ -1,11 +1,18 @@
-// src/components/CustomDatePicker.tsx
 import { motion } from "framer-motion";
 import { Calendar } from "lucide-react";
 import { useState } from "react";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
 
-const CustomDatePicker = ({ selectedDate, onChange }) => {
+interface CustomDatePickerProps {
+	selectedDate: Date;
+	onChange: (date: Date) => void;
+}
+
+const CustomDatePicker: React.FC<CustomDatePickerProps> = ({
+	selectedDate,
+	onChange,
+}) => {
 	const [isOpen, setIsOpen] = useState(false);
 
 	const toggleCalendar = () => setIsOpen(!isOpen);
@@ -31,35 +38,24 @@ const CustomDatePicker = ({ selectedDate, onChange }) => {
 				>
 					<DatePicker
 						selected={selectedDate}
-						onChange={(date) => {
-							onChange(date);
-							setIsOpen(false);
+						onChange={(date: Date | null) => {
+							if (date) {
+								onChange(date);
+								setIsOpen(false);
+							}
 						}}
 						inline
 						calendarClassName="bg-deep border border-electric rounded-lg shadow-lg"
 						dayClassName={(date) =>
-							`text-white hover:bg-electric/30 rounded-full transition-colors`
+							`text-white hover:bg-electric/30 rounded-full transition-colors ${
+								date.toDateString() === new Date().toDateString()
+									? "bg-electric/50 text-white"
+									: ""
+							}`
 						}
 						monthClassName={() => `text-electric font-bold`}
 						weekDayClassName={() => `text-electric/70`}
-						todayClassName="bg-electric/50 text-white rounded-full"
 						popperClassName="react-datepicker-popper"
-						popperModifiers={[
-							{
-								name: "offset",
-								options: {
-									offset: [0, 10],
-								},
-							},
-							{
-								name: "preventOverflow",
-								options: {
-									rootBoundary: "viewport",
-									tether: false,
-									altAxis: true,
-								},
-							},
-						]}
 					/>
 				</motion.div>
 			)}

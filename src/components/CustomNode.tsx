@@ -1,6 +1,5 @@
 import type { NodeData } from "@/interface";
 import { MessageCircle } from "lucide-react";
-// CustomNode.tsx
 import type React from "react";
 import { useEffect, useRef, useState } from "react";
 import { Handle, type NodeProps, Position } from "reactflow";
