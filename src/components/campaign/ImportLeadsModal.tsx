@@ -71,9 +71,9 @@ export const ImportLeadsModal: React.FC<ImportLeadsModalProps> = ({
 			// 1MB para TXT
 			setError("Arquivos TXT devem ter no máximo 1MB");
 			return;
-		} else if (file.size > 5 * 1024 * 1024) {
-			// 5MB para outros formatos
-			setError("O arquivo deve ter no máximo 5MB");
+		} else if (file.size > 50 * 1024 * 1024) {
+			// 50MB para outros formatos
+			setError("O arquivo deve ter no máximo 50MB");
 			return;
 		}
 
