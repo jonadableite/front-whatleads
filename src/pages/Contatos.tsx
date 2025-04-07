@@ -57,7 +57,7 @@ const Contatos: React.FC = () => {
 
 		if (selectedSegment) {
 			filteredLeads = filteredLeads.filter(
-				(lead) => lead.status === selectedSegment,
+				(lead) => lead.segment === selectedSegment,
 			);
 		}
 
@@ -242,9 +242,12 @@ const Contatos: React.FC = () => {
 							className="flex-grow bg-deep border-electric text-white"
 						>
 							<option value="">Todos os status</option>
-							<option value="SENT">Enviado</option>
-							<option value="READ">Lido</option>
-							<option value="DELIVERED">Entregue</option>
+							<option value="ALTAMENTE_ENGAJADO">Altamente Engajado</option>
+							<option value="MODERADAMENTE_ENGAJADO">
+								Moderadamente Engajado
+							</option>
+							<option value="LEVEMENTE_ENGAJADO">Levemente Engajado</option>
+							<option value="BAIXO_ENGAJAMENTO">Baixo Engajamento</option>
 						</Select>
 					</div>
 				</motion.div>

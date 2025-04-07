@@ -57,6 +57,29 @@ export interface MainApiResponse<T> {
 	status: number;
 }
 
+export interface StartCampaignPayload {
+	instanceName: string;
+	message: string;
+	media: any;
+	minDelay: number;
+	maxDelay: number;
+	segmentation?: { segment: string }; // Optional segmentation property
+}
+
+export type MediaPayload =
+	| { type: "image"; base64: string; fileName: string; mimetype: string }
+	| { type: "audio"; base64: string; fileName: string; mimetype: string }
+	| { type: "video"; base64: string; fileName: string; mimetype: string };
+
+export interface StartCampaignPayload {
+	instanceName: string;
+	message: string;
+	media: MediaPayload; // Updated to use MediaPayload type
+	minDelay: number;
+	maxDelay: number;
+	segmentation?: { segment: string }; // Optional segmentation property
+}
+
 export interface WarmerApiResponse<T> {
 	data: T;
 	success: boolean;

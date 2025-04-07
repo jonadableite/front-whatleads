@@ -1,4 +1,3 @@
-// src/components/campaign/CampaignForm.tsx
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select } from "@/components/ui/select";
@@ -39,8 +38,16 @@ export const CampaignForm: React.FC<CampaignFormProps> = ({
 		}
 	}, [campaign]);
 
-	const handleSubmit = (e: React.FormEvent) => {
+	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
+		const fileInput = document.getElementById("fileInput") as HTMLInputElement;
+		if (fileInput.files && fileInput.files[0]) {
+			const fileSize = fileInput.files[0].size / 1024 / 1024; // Convert to MB
+			if (fileSize > 5) {
+				alert("O arquivo é muito grande. O tamanho máximo permitido é 5MB.");
+				return;
+			}
+		}
 		onSubmit(formData);
 	};
 

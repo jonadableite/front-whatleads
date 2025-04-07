@@ -1,10 +1,3 @@
-// src/pages/Disparos.tsx
-import { GetInstancesAction } from "@/actions";
-import { ProgressModal } from "@/components/ProgressModal";
-import { api } from "@/lib/api";
-import { cn } from "@/lib/utils";
-import { authService } from "@/services/auth.service";
-import type { Empresa, Instancia } from "@/types";
 import Compressor from "compressorjs";
 import { AnimatePresence, motion } from "framer-motion";
 import { useCallback, useEffect, useState } from "react";
@@ -13,6 +6,12 @@ import { FiDatabase, FiUpload } from "react-icons/fi";
 import { IoMdImage, IoMdMusicalNote, IoMdVideocam } from "react-icons/io";
 import { useNavigate } from "react-router-dom";
 import { type Id, toast } from "react-toastify";
+import { GetInstancesAction } from "../actions";
+import { ProgressModal } from "../components/ProgressModal";
+import { api } from "../lib/api";
+import { cn } from "../lib/utils";
+import { authService } from "../services/auth.service";
+import type { Empresa, Instancia, StartCampaignPayload } from "../types"; // Correcting the import path
 
 interface Campaign {
 	id: string;
@@ -63,6 +62,68 @@ export default function Disparos() {
 	const [isLoadingCampaigns, setIsLoadingCampaigns] = useState(false);
 	const [isInitialLoading, setIsInitialLoading] = useState(true);
 	const [dispatchMode, setDispatchMode] = useState<"new" | "existing">("new");
+	const [leadCount, setLeadCount] = useState<number | null>(null);
+	const [segmentationRules, setSegmentationRules] = useState<
+		SegmentationRule[]
+	>([]);
+
+	interface SegmentationRule {
+		field: string;
+		operator: string;
+		value: string;
+	}
+
+	const [useSegmentation, setUseSegmentation] = useState(false);
+	const [selectedSegment, setSelectedSegment] = useState("");
+
+	// Função para lidar com a mudança de segmento
+	const handleSegmentChange = async (
+		e: React.ChangeEvent<HTMLSelectElement>,
+	) => {
+		const segment = e.target.value;
+		setSelectedSegment(segment);
+
+		console.log("Selected Campaign:", selectedCampaign);
+		console.log("Selected Segment:", segment);
+
+		if (segment && selectedCampaign) {
+			try {
+				const response = await fetchLeadCount(selectedCampaign, segment);
+				console.log("Lead Count Response:", response); // Adicione este log
+			} catch (error) {
+				console.error("Erro ao obter contagem de leads:", error);
+				toast.error(
+					"Não foi possível obter a contagem de leads para este segmento.",
+				);
+				setLeadCount(null);
+			}
+		} else {
+			setLeadCount(null);
+		}
+	};
+
+	// Função para contagem de leads seguimentados
+	const fetchLeadCount = useCallback(
+		async (campaignId: string, segment: string) => {
+			try {
+				const response = await api.main.get(
+					`/campaigns/${campaignId}/lead-count`,
+					{
+						params: { segmentation: segment },
+					},
+				);
+
+				console.log("Lead Count Response:", response.data);
+				setLeadCount(response.data.data.count);
+				return response.data.data.count;
+			} catch (error) {
+				console.error("Erro ao buscar contagem de leads:", error);
+				setLeadCount(null);
+				throw error;
+			}
+		},
+		[],
+	);
 
 	// Função para pausar a campanha
 	const handlePauseCampaign = async () => {
@@ -85,9 +146,18 @@ export default function Disparos() {
 				(instance) => instance.id === selectedInstance,
 			);
 
+			console.log("Instâncias disponíveis:", instances);
+			console.log("Instância selecionada:", selectedInstance);
+			console.log("Dados da instância selecionada:", selectedInstanceData);
+
 			if (!selectedInstanceData) {
 				throw new Error("Instância não encontrada.");
 			}
+
+			console.log("Tentando retomar campanha com:", {
+				campaignId: selectedCampaign,
+				instanceName: selectedInstanceData.instanceName,
+			});
 
 			await api.main.post(`/campaigns/${selectedCampaign}/resume`, {
 				instanceName: selectedInstanceData.instanceName,
@@ -95,7 +165,13 @@ export default function Disparos() {
 			toast.success("Campanha retomada com sucesso!");
 		} catch (error) {
 			console.error("Erro ao retomar campanha:", error);
-			toast.error("Erro ao retomar campanha.");
+
+			// Log mais detalhado do erro
+			if (error.response) {
+				console.error("Detalhes da resposta de erro:", error.response.data);
+			}
+
+			toast.error(`Erro ao retomar campanha: ${error.message}`);
 		}
 	};
 
@@ -349,8 +425,24 @@ export default function Disparos() {
 				};
 			}
 
+			const payload: StartCampaignPayload = {
+				instanceName: selectedInstanceData.instanceName,
+				message: message.trim(),
+				media: mediaPayload,
+				minDelay,
+				maxDelay,
+			};
+
+			if (useSegmentation && selectedSegment) {
+				payload.segmentation = { segment: selectedSegment }; // Correcting the segmentation assignment
+			}
+
+			const startResponse = await api.main.post(
+				`/campaigns/${campaignId}/start`,
+				payload,
+			);
+
 			if (dispatchMode === "new" && file) {
-				// Importar leads apenas se estiver no modo "new" e houver arquivo
 				console.log("Importando novos leads...");
 				const formData = new FormData();
 				formData.append("file", file);
@@ -386,28 +478,7 @@ export default function Disparos() {
 			}
 			console.log("Total de leads na campanha:", campaignStats.data.totalLeads);
 
-			// Iniciar a campanha
-			console.log("Iniciando campanha com:", {
-				campaignId,
-				instanceName: selectedInstanceData.instanceName,
-				message,
-				mediaPayload,
-				minDelay,
-				maxDelay,
-			});
-
-			// **Enviar requisição para iniciar campanha**
-			const response = await api.main.post(`/campaigns/${campaignId}/start`, {
-				instanceName: selectedInstanceData.instanceName,
-				message: message.trim(), // **Garante que a mensagem seja enviada**
-				media: mediaPayload, // **Pode ser null**
-				minDelay,
-				maxDelay,
-			});
-
-			console.log("Resposta do início da campanha:", response.data);
-
-			if (response.data.success) {
+			if (startResponse.data.success) {
 				startProgressMonitoring(campaignId);
 				toast.update(toastId, {
 					render: "Campanha iniciada com sucesso!",
@@ -415,7 +486,9 @@ export default function Disparos() {
 					autoClose: 5000,
 				});
 			} else {
-				throw new Error(response.data.message || "Erro ao iniciar campanha");
+				throw new Error(
+					startResponse.data.message || "Erro ao iniciar campanha",
+				);
 			}
 		} catch (error) {
 			console.error("Erro ao iniciar campanha:", error);
@@ -949,6 +1022,59 @@ export default function Disparos() {
 										</div>
 									</div>
 								</div>
+
+								{dispatchMode === "existing" && (
+									<div className="space-y-4">
+										<div className="flex items-center justify-between">
+											<label className="block text-lg font-medium text-white">
+												Segmentação de Leads
+											</label>
+											<button
+												type="button"
+												onClick={() => setUseSegmentation(!useSegmentation)}
+												className={cn(
+													"py-2 px-4 rounded-xl flex items-center gap-2 transition-all",
+													useSegmentation
+														? "bg-neon-green text-black font-bold"
+														: "bg-electric/10 text-white hover:bg-electric/20",
+												)}
+											>
+												{useSegmentation
+													? "Segmentação Ativa"
+													: "Sem Segmentação"}
+											</button>
+										</div>
+
+										{useSegmentation && (
+											<div className="bg-electric/10 p-4 rounded-xl space-y-4">
+												<select
+													value={selectedSegment}
+													onChange={handleSegmentChange}
+													className="w-full p-4 bg-deep/50 border border-electric rounded-xl text-white focus:ring-2 focus:ring-neon-green transition-all"
+												>
+													<option value="">Todos os segmentos</option>
+													<option value="ALTAMENTE_ENGAJADO">
+														Altamente Engajado
+													</option>
+													<option value="MODERADAMENTE_ENGAJADO">
+														Moderadamente Engajado
+													</option>
+													<option value="LEVEMENTE_ENGAJADO">
+														Levemente Engajado
+													</option>
+													<option value="BAIXO_ENGAJAMENTO">
+														Baixo Engajamento
+													</option>
+												</select>
+												{leadCount !== null && (
+													<p className="text-sm text-white/80">
+														Leads nesta segmentação: {leadCount}
+													</p>
+												)}
+											</div>
+										)}
+									</div>
+								)}
 
 								{dispatchMode === "new" && (
 									<div>
