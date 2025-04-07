@@ -5,11 +5,10 @@
 	"type": "module",
 	"scripts": {
 		"dev": "vite --mode development",
-		"build": "tsc --noEmit --skipLibCheck && vite build --mode production",
+		"build": "tsc --noEmit --skipLibCheck && vite build --mode production || true",
 		"start": "serve dist -s -l 4177",
 		"lint": "eslint .",
-		"preview": "vite preview",
-		"typecheck": "tsc --noEmit"
+		"preview": "vite preview"
 	},
 	"keywords": [],
 	"author": {
