@@ -74,7 +74,7 @@ export type MediaPayload =
 export interface StartCampaignPayload {
 	instanceName: string;
 	message: string;
-	media: MediaPayload; // Updated to use MediaPayload type
+	media: any;
 	minDelay: number;
 	maxDelay: number;
 	segmentation?: { segment: string }; // Optional segmentation property

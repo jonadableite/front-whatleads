@@ -1,26 +1,33 @@
-# Use uma imagem Node.js oficial como base
 FROM node:20-alpine
 
-# Define o diretório de trabalho
 WORKDIR /app
 
-# Copia os arquivos de configuração
+# Limpa cache npm
+RUN npm cache clean --force
+
+# Copia package files
 COPY package*.json ./
 
-# Instala as dependências
+# Instala dependências com cache
 RUN npm ci
 
-# Copia o código fonte
+# Copia código fonte
 COPY . .
 
-# Gera o build, ignorando erros de tipo
-RUN npm run build || true
+# Adiciona etapa de typecheck
+RUN npm run typecheck
 
-# Instala serve para servir a aplicação
+# Build do projeto
+RUN npm run build
+
+# Verifica conteúdo dist
+RUN ls -la dist
+
+# Instala serve
 RUN npm install -g serve
 
-# Expõe a porta (ajuste conforme necessário)
+# Porta
 EXPOSE 4177
 
-# Comando para iniciar o aplicativo
+# Comando
 CMD ["serve", "-s", "dist", "-l", "4177"]
