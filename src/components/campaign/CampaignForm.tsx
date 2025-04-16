@@ -40,14 +40,14 @@ export const CampaignForm: React.FC<CampaignFormProps> = ({
 
 	const handleSubmit = async (e: React.FormEvent) => {
 		e.preventDefault();
-		const fileInput = document.getElementById("fileInput") as HTMLInputElement;
-		if (fileInput.files && fileInput.files[0]) {
-			const fileSize = fileInput.files[0].size / 1024 / 1024; // Convert to MB
-			if (fileSize > 5) {
-				alert("O arquivo é muito grande. O tamanho máximo permitido é 5MB.");
-				return;
-			}
-		}
+		// const fileInput = document.getElementById("fileInput") as HTMLInputElement;
+		// if (fileInput.files && fileInput.files[0]) {
+		// 	const fileSize = fileInput.files[0].size / 1024 / 1024; // Convert to MB
+		// 	if (fileSize > 5) {
+		// 		alert("O arquivo é muito grande. O tamanho máximo permitido é 5MB.");
+		// 		return;
+		// 	}
+		// }
 		onSubmit(formData);
 	};
 

@@ -4,8 +4,9 @@ import { CampaignForm } from "@/components/campaign/CampaignForm";
 import { DeleteConfirmationDialog } from "@/components/campaign/DeleteConfirmationDialog";
 import { ImportLeadsModal } from "@/components/campaign/ImportLeadsModal";
 import { Button } from "@/components/ui/button";
+import { DialogOverlay } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
-import { Modal } from "@/components/ui/modal";
+import { DialogContent } from "@/components/ui/modal";
 import { Select } from "@/components/ui/select";
 import { toast } from "@/components/ui/toast";
 import type {
@@ -16,6 +17,7 @@ import type {
 	StatsCardProps,
 } from "@/interface";
 import { api } from "@/lib/api";
+import { Dialog, DialogTitle } from "@radix-ui/react-dialog";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useMemo, useState } from "react";
@@ -232,6 +234,12 @@ const Campanhas: React.FC = () => {
 	// Função para importar leads
 	const handleImportLeads = async (campaignId: string, file: File) => {
 		try {
+			// Verificação adicional
+			if (!file) {
+				toast.error("Nenhum arquivo selecionado");
+				return;
+			}
+
 			const formData = new FormData();
 			formData.append("file", file);
 
@@ -797,18 +805,21 @@ const Campanhas: React.FC = () => {
 		campaign: Campaign | null;
 		onSubmit: (data: Partial<Campaign>) => void;
 	}> = ({ isOpen, onClose, campaign, onSubmit }) => (
-		<Modal
-			isOpen={isOpen}
-			onClose={onClose}
-			title={campaign ? "Editar Campanha" : "Nova Campanha"}
-		>
-			<CampaignForm
-				campaign={campaign}
-				onSubmit={onSubmit}
-				onCancel={onClose}
-				isLoading={false}
-			/>
-		</Modal>
+		<Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
+			<DialogOverlay className="fixed inset-0 bg-black/50 z-50" />
+			<DialogContent className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md bg-deep border border-electric rounded-lg p-6 z-50">
+				<DialogTitle className="text-xl font-bold text-white mb-4">
+					{campaign ? "Editar Campanha" : "Nova Campanha"}
+				</DialogTitle>
+
+				<CampaignForm
+					campaign={campaign}
+					onSubmit={onSubmit}
+					onCancel={onClose}
+					isLoading={false}
+				/>
+			</DialogContent>
+		</Dialog>
 	);
 
 	return (
