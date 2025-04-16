@@ -25,7 +25,6 @@ import { FaClock } from "react-icons/fa";
 import {
 	FiBarChart2,
 	FiEdit2,
-	FiPause,
 	FiPlay,
 	FiPlus,
 	FiSquare,
@@ -600,8 +599,8 @@ const Campanhas: React.FC = () => {
 		onStart: () => void;
 		onPause: () => void;
 		onStop: () => void;
-		campaignId: string; // Adicione o campaignId como prop
-	}> = ({ status, onStart, onPause, onStop, campaignId }) => {
+		campaignId: string;
+	}> = ({ status, onStart, onStop, campaignId }) => {
 		const navigate = useNavigate();
 
 		const handlePlayClick = () => {
@@ -612,17 +611,6 @@ const Campanhas: React.FC = () => {
 				// Se não estiver pausada, redireciona para a página de disparos
 				navigate(`/disparos?campaignId=${campaignId}`);
 			}
-		};
-
-		const handleNewCampaign = () => {
-			console.log("Abrindo modal de nova campanha");
-			setIsModalOpen(true);
-			setSelectedCampaign(null);
-		};
-
-		const handleImportLeads = () => {
-			console.log("Abrindo modal de importação");
-			setIsImportModalOpen(true);
 		};
 
 		return (
@@ -637,11 +625,6 @@ const Campanhas: React.FC = () => {
 				>
 					<FiPlay />
 				</Button>
-				{status === "running" && (
-					<Button size="sm" onClick={onPause}>
-						<FiPause />
-					</Button>
-				)}
 				{(status === "running" || status === "paused") && (
 					<Button size="sm" onClick={onStop}>
 						<FiSquare />

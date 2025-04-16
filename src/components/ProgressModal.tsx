@@ -5,7 +5,6 @@ import { useEffect, useState } from "react";
 import {
 	FiCheckCircle,
 	FiClock,
-	FiPause,
 	FiPlay,
 	FiSend,
 	FiUsers,
@@ -20,7 +19,6 @@ export const ProgressModal: React.FC<ProgressModalProps> = ({
 	onClose,
 	campaignId,
 	instanceName: propInstanceName,
-	onPause: externalOnPause,
 	onResume: externalOnResume,
 	onCancel: externalOnCancel,
 }) => {
@@ -74,28 +72,6 @@ export const ProgressModal: React.FC<ProgressModalProps> = ({
 	const renderActionButtons = () => {
 		return (
 			<div className="flex gap-2">
-				{campaignStatus === "running" && (
-					<motion.button
-						whileHover={{ scale: 1.05 }}
-						whileTap={{ scale: 0.95 }}
-						className="p-2 rounded-lg bg-yellow-500/20 text-yellow-400 hover:bg-yellow-500/30"
-						onClick={async (e) => {
-							e.preventDefault();
-							try {
-								if (externalOnPause) {
-									await externalOnPause();
-								} else if (internalHandlePause) {
-									await internalHandlePause();
-								}
-							} catch (err) {
-								console.error("Erro ao pausar campanha:", err);
-								toast.error("Não foi possível pausar a campanha");
-							}
-						}}
-					>
-						<FiPause />
-					</motion.button>
-				)}
 				{campaignStatus === "paused" && (
 					<motion.button
 						whileHover={{ scale: 1.05 }}
