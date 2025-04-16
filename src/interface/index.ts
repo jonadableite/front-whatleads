@@ -1,5 +1,4 @@
 // src/interface/index.ts
-
 export interface Plan {
 	name: string;
 	price: {
@@ -293,6 +292,7 @@ export interface CampaignStatistics {
 export interface Campaign {
 	id: string;
 	name: string;
+	isAiResponder?: boolean;
 	description?: string;
 	status:
 		| "draft"

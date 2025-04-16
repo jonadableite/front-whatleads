@@ -1,8 +1,8 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import type { Node } from "@xyflow/react";
 // src/components/NodeEditor.tsx
 import type React from "react";
-import type { Node } from "reactflow";
 
 interface NodeEditorProps {
 	node: Node;

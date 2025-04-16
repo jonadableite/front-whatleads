@@ -95,6 +95,10 @@ const router = createBrowserRouter([
 			// 	path: "/chatbot",
 			// 	element: <ChatbotFlow />,
 			// },
+			// {
+			// 	path: "/bot",
+			// 	element: <Bottest />,
+			// },
 		],
 	},
 	{

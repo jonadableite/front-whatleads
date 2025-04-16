@@ -1,11 +1,11 @@
-import type { NodeData } from "@/interface";
+import { Handle, type NodeProps, Position } from "@xyflow/react";
+//src/components/CustomNode.tsx
 import { MessageCircle } from "lucide-react";
 import type React from "react";
 import { useEffect, useRef, useState } from "react";
-import { Handle, type NodeProps, Position } from "reactflow";
 import TextEditor from "./TextEditor";
 
-const CustomNode: React.FC<NodeProps<NodeData>> = ({ data, isConnectable }) => {
+const CustomNode: React.FC<NodeProps> = ({ data, isConnectable }) => {
 	const [isExpanded, setIsExpanded] = useState(false);
 	const nodeRef = useRef<HTMLDivElement>(null);
 

@@ -1,6 +1,6 @@
+import { Handle, type NodeProps, Position } from "@xyflow/react";
 // GroupNode.tsx
 import type React from "react";
-import { Handle, type NodeProps, Position } from "reactflow";
 
 const GroupNode: React.FC<NodeProps> = ({ data }) => {
 	return (

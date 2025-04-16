@@ -1,26 +1,22 @@
-// @ts-nocheck
-
 import { motion } from "framer-motion";
 import { Save } from "lucide-react";
-// ChatbotFlow.tsx
+// src/pages/ChatbotFlow.tsx
 import type React from "react";
 import { useCallback, useMemo, useRef, useState } from "react";
-import ReactFlow, {
-	addEdge,
+
+import {
 	Background,
+	type Connection,
 	Controls,
 	MiniMap,
+	type Node,
+	ReactFlow,
 	ReactFlowProvider,
+	addEdge,
 	useEdgesState,
 	useNodesState,
-	type Connection,
-	type Edge,
-	type EdgeTypes,
-	type Node,
-	type NodeTypes,
-	type ReactFlowInstance,
-} from "reactflow";
-import "reactflow/dist/style.css";
+} from "@xyflow/react";
+import "@xyflow/react/dist/style.css";
 
 import CustomNode from "@/components/CustomNode";
 import GroupNode from "@/components/GroupNode";
@@ -30,19 +26,19 @@ import { Input } from "@/components/ui/input";
 import { useToast } from "@/components/ui/use-toast";
 import type { NodeData } from "@/interface";
 
-const nodeTypes: NodeTypes = {
+const nodeTypes = {
 	custom: CustomNode,
 	group: GroupNode,
 };
 
-const CustomEdge: React.FC<Edge> = ({
-	id,
-	sourceX,
-	sourceY,
-	targetX,
-	targetY,
-	style = {},
-}) => (
+const CustomEdge: React.FC<{
+	id: string;
+	sourceX: number;
+	sourceY: number;
+	targetX: number;
+	targetY: number;
+	style?: React.CSSProperties;
+}> = ({ id, sourceX, sourceY, targetX, targetY, style = {} }) => (
 	<path
 		id={id}
 		style={{
@@ -57,7 +53,7 @@ const CustomEdge: React.FC<Edge> = ({
 	/>
 );
 
-const edgeTypes: EdgeTypes = {
+const edgeTypes = {
 	custom: CustomEdge,
 };
 
@@ -66,8 +62,7 @@ const ChatbotFlow: React.FC = () => {
 	const [edges, setEdges, onEdgesChange] = useEdgesState([]);
 	const [flowName, setFlowName] = useState<string>("");
 	const reactFlowWrapper = useRef<HTMLDivElement>(null);
-	const [reactFlowInstance, setReactFlowInstance] =
-		useState<ReactFlowInstance | null>(null);
+	const [reactFlowInstance, setReactFlowInstance] = useState<any>(null);
 	const { toast } = useToast();
 
 	const onConnect = useCallback(
@@ -107,7 +102,7 @@ const ChatbotFlow: React.FC = () => {
 				y: event.clientY - reactFlowBounds.top,
 			});
 
-			const newNode: Node<NodeData> = {
+			const newNode: Node = {
 				id: `${type.replace(/\s+/g, "-").toLowerCase()}-${Date.now()}`,
 				type: "custom",
 				position,
@@ -228,55 +223,53 @@ const ChatbotFlow: React.FC = () => {
 						</div>
 
 						<div className="flex-grow" ref={reactFlowWrapper}>
-							<ReactFlowProvider>
-								<ReactFlow
-									nodes={nodes}
-									edges={edges}
-									onNodesChange={onNodesChange}
-									onEdgesChange={onEdgesChange}
-									onConnect={onConnect}
-									onInit={setReactFlowInstance}
-									onDrop={onDrop}
-									onDragOver={onDragOver}
-									onNodeDragStop={onNodeDragStop}
-									nodeTypes={nodeTypes}
-									edgeTypes={edgeTypes}
-									defaultEdgeOptions={{ type: "custom" }}
-									fitView
-								>
-									<Controls />
-									<MiniMap
-										style={minimapStyle}
-										nodeColor={minimapNodeColor}
-										nodeStrokeWidth={3}
-										zoomable
-										pannable
-									/>
-									<Background color="#aaa" gap={16} />
-									<svg width="0" height="0">
-										<defs>
-											<filter id="glow">
-												<feGaussianBlur stdDeviation="3" result="coloredBlur" />
-												<feMerge>
-													<feMergeNode in="coloredBlur" />
-													<feMergeNode in="SourceGraphic" />
-												</feMerge>
-											</filter>
-											<marker
-												id="arrow"
-												viewBox="0 0 10 10"
-												refX="5"
-												refY="5"
-												markerWidth="5"
-												markerHeight="5"
-												orient="auto-start-reverse"
-											>
-												<path d="M 0 0 L 10 5 L 0 10 z" fill="#7c3aed" />
-											</marker>
-										</defs>
-									</svg>
-								</ReactFlow>
-							</ReactFlowProvider>
+							<ReactFlow
+								nodes={nodes}
+								edges={edges}
+								onNodesChange={onNodesChange}
+								onEdgesChange={onEdgesChange}
+								onConnect={onConnect}
+								onInit={setReactFlowInstance}
+								onDrop={onDrop}
+								onDragOver={onDragOver}
+								onNodeDragStop={onNodeDragStop}
+								nodeTypes={nodeTypes}
+								edgeTypes={edgeTypes}
+								defaultEdgeOptions={{ type: "custom" }}
+								fitView
+							>
+								<Controls />
+								<MiniMap
+									style={minimapStyle}
+									nodeColor={minimapNodeColor}
+									nodeStrokeWidth={3}
+									zoomable
+									pannable
+								/>
+								<Background color="#aaa" gap={16} />
+								<svg width="0" height="0">
+									<defs>
+										<filter id="glow">
+											<feGaussianBlur stdDeviation="3" result="coloredBlur" />
+											<feMerge>
+												<feMergeNode in="coloredBlur" />
+												<feMergeNode in="SourceGraphic" />
+											</feMerge>
+										</filter>
+										<marker
+											id="arrow"
+											viewBox="0 0 10 10"
+											refX="5"
+											refY="5"
+											markerWidth="5"
+											markerHeight="5"
+											orient="auto-start-reverse"
+										>
+											<path d="M 0 0 L 10 5 L 0 10 z" fill="#7c3aed" />
+										</marker>
+									</defs>
+								</svg>
+							</ReactFlow>
 						</div>
 					</div>
 				</div>
@@ -285,4 +278,10 @@ const ChatbotFlow: React.FC = () => {
 	);
 };
 
-export default ChatbotFlow;
+const ChatbotFlowWrapper: React.FC = () => (
+	<ReactFlowProvider>
+		<ChatbotFlow />
+	</ReactFlowProvider>
+);
+
+export default ChatbotFlowWrapper;
