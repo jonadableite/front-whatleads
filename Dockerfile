@@ -13,8 +13,8 @@ RUN npm ci
 # Copia o código fonte
 COPY . .
 
-# Gera o build, ignorando erros de tipo
-RUN npm run build || true
+# Gera o build da aplicação
+RUN npm run build
 
 # Instala serve para servir a aplicação
 RUN npm install -g serve
