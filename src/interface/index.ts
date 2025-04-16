@@ -116,7 +116,6 @@ export interface ProgressModalProps {
 	onClose: () => void;
 	campaignId: string;
 	instanceName?: string;
-	onPause?: () => Promise<void>;
 	onResume?: () => Promise<void>;
 	onCancel?: () => Promise<void>;
 }

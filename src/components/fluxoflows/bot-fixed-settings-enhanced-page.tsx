@@ -1,5 +1,5 @@
 "use client";
-
+// src/components/fluxoflows/bot-fixed-settings-enhanced-page.tsx
 // import {
 //   saveFlexBotNewSettings,
 //   saveFlexBotSettings,
@@ -331,14 +331,14 @@ const NewFlowModal = ({
 
 	return (
 		<div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-			<div className="bg-white dark:bg-[#111217] rounded-xl shadow-xl w-full max-w-2xl p-6 max-h-[90vh] overflow-y-auto">
+			<div className="bg-[##0D0D0D] rounded-xl shadow-xl w-full max-w-2xl p-6 max-h-[90vh] overflow-y-auto">
 				<div className="flex justify-between items-center mb-6">
-					<h3 className="text-xl font-semibold text-gray-800 dark:text-gray-200">
+					<h3 className="text-xl font-semibold text-gray-200">
 						Adicionar Novo Fluxo
 					</h3>
 					<button
 						onClick={onClose}
-						className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+						className="text-gray-500 hover:text-gray-400 dark:hover:text-gray-200"
 					>
 						<X className="w-6 h-6" />
 					</button>
@@ -346,7 +346,7 @@ const NewFlowModal = ({
 
 				<div className="space-y-6">
 					<div className="space-y-2">
-						<label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+						<label className="block text-sm font-medium text-gray-300">
 							Nome do Fluxo*
 						</label>
 						<input
@@ -357,18 +357,18 @@ const NewFlowModal = ({
 								setNameError("");
 							}}
 							placeholder="Ex: modelo-roupas"
-							className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-rose-500 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200"
+							className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-gray-700 text-gray-200"
 						/>
 						{nameError && (
 							<p className="text-red-500 text-sm mt-1">{nameError}</p>
 						)}
-						<p className="text-xs text-gray-500 dark:text-gray-400">
+						<p className="text-xs text-gray-400">
 							Use formato kebab-case (letras minúsculas separadas por hífen)
 						</p>
 					</div>
 
 					<div className="space-y-2">
-						<label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+						<label className="block text-sm font-medium text-gray-300">
 							Mensagem
 						</label>
 						<textarea
@@ -376,12 +376,12 @@ const NewFlowModal = ({
 							onChange={(e) => setMensagem(e.target.value)}
 							placeholder="Digite a mensagem que será exibida neste fluxo..."
 							rows={4}
-							className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-rose-500 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200"
+							className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-gray-700 text-gray-200"
 						/>
 					</div>
 
 					<div className="space-y-2">
-						<label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+						<label className="block text-sm font-medium text-gray-300">
 							Mensagem de Não Entendi
 						</label>
 						<textarea
@@ -389,7 +389,7 @@ const NewFlowModal = ({
 							onChange={(e) => setNaoentendi(e.target.value)}
 							placeholder="Mensagem quando o bot não entender a resposta..."
 							rows={3}
-							className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-rose-500 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200"
+							className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-gray-700 text-gray-200"
 						/>
 					</div>
 
@@ -399,24 +399,24 @@ const NewFlowModal = ({
 							id="inputLivre"
 							checked={inputLivre}
 							onChange={(e) => setInputLivre(e.target.checked)}
-							className="rounded border-gray-300 text-rose-600 focus:ring-rose-500"
+							className="rounded border-gray-300 text-indigo-600 focus:ring-indigo-500"
 						/>
 						<label
 							htmlFor="inputLivre"
-							className="text-sm font-medium text-gray-700 dark:text-gray-300"
+							className="text-sm font-medium text-gray-300"
 						>
 							Permitir entrada livre de texto
 						</label>
 					</div>
 
 					<div className="space-y-2">
-						<label className="block text-sm font-medium text-gray-700 dark:text-gray-300">
+						<label className="block text-sm font-medium text-gray-300">
 							Próximo Fluxo (Opcional)
 						</label>
 						<select
 							value={nextFlow}
 							onChange={(e) => setNextFlow(e.target.value)}
-							className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-rose-500 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200"
+							className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-gray-700 text-gray-200"
 						>
 							<option value="">Selecione o próximo fluxo</option>
 							{currentFlows.map((flow) => (
@@ -427,16 +427,16 @@ const NewFlowModal = ({
 						</select>
 					</div>
 
-					<div className="flex justify-end space-x-3 pt-4 border-t border-gray-200 dark:border-gray-700">
+					<div className="flex justify-end space-x-3 pt-4 border-t border-gray-700">
 						<button
 							onClick={onClose}
-							className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600 rounded-lg transition-colors"
+							className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600 rounded-lg transition-colors"
 						>
 							Cancelar
 						</button>
 						<button
 							onClick={handleSave}
-							className="px-4 py-2 text-sm font-medium text-white bg-rose-600 hover:bg-rose-700 rounded-lg transition-colors"
+							className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-colors"
 						>
 							Adicionar Fluxo
 						</button>
@@ -527,21 +527,21 @@ const ResponsesModal = ({
 
 	return (
 		<div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-			<div className="bg-white dark:bg-[#111217] rounded-xl shadow-xl w-full max-w-3xl p-6 max-h-[90vh] overflow-y-auto">
+			<div className="bg-[##0D0D0D] rounded-xl shadow-xl w-full max-w-3xl p-6 max-h-[90vh] overflow-y-auto">
 				<div className="flex justify-between items-center mb-6">
-					<h3 className="text-xl font-semibold text-gray-800 dark:text-gray-200">
+					<h3 className="text-xl font-semibold text-gray-200">
 						Editar Respostas
 					</h3>
 					<button
 						onClick={onClose}
-						className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+						className="text-gray-500 hover:text-gray-400 dark:hover:text-gray-200"
 					>
 						<X className="w-6 h-6" />
 					</button>
 				</div>
 
 				<div className="space-y-4">
-					<div className="grid grid-cols-12 gap-2 mb-2 font-medium text-sm text-gray-700 dark:text-gray-300">
+					<div className="grid grid-cols-12 gap-2 mb-2 font-medium text-sm text-gray-300">
 						<div className="col-span-3">Chave</div>
 						<div className="col-span-4">Próximo Fluxo</div>
 						<div className="col-span-4">Valor</div>
@@ -558,7 +558,7 @@ const ResponsesModal = ({
 										handleResponseChange(index, "key", e.target.value)
 									}
 									placeholder="Ex: 1, sim, opção"
-									className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-1 focus:ring-rose-500 focus:border-rose-500 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 text-sm"
+									className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 bg-gray-700 text-gray-200 text-sm"
 								/>
 							</div>
 							<div className="col-span-4">
@@ -567,7 +567,7 @@ const ResponsesModal = ({
 									onChange={(e) =>
 										handleResponseChange(index, "next", e.target.value)
 									}
-									className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-1 focus:ring-rose-500 focus:border-rose-500 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 text-sm"
+									className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 bg-gray-700 text-gray-200 text-sm"
 								>
 									<option value="">Selecione o próximo fluxo</option>
 									{currentFlows.map((flow) => (
@@ -585,7 +585,7 @@ const ResponsesModal = ({
 										handleResponseChange(index, "valor", e.target.value)
 									}
 									placeholder="Valor da resposta"
-									className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-1 focus:ring-rose-500 focus:border-rose-500 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 text-sm"
+									className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-1 focus:ring-indigo-500 focus:border-indigo-500 bg-gray-700 text-gray-200 text-sm"
 								/>
 							</div>
 							<div className="col-span-1 flex justify-center">
@@ -601,22 +601,22 @@ const ResponsesModal = ({
 
 					<button
 						onClick={handleAddResponse}
-						className="flex items-center gap-1 text-rose-600 dark:text-rose-400 text-sm font-medium mt-2"
+						className="flex items-center gap-1 text-indigo-400 text-sm font-medium mt-2"
 					>
 						<Plus className="w-4 h-4" />
 						<span>Adicionar Resposta</span>
 					</button>
 
-					<div className="flex justify-end space-x-3 pt-4 border-t border-gray-200 dark:border-gray-700 mt-6">
+					<div className="flex justify-end space-x-3 pt-4 border-t border-gray-700 mt-6">
 						<button
 							onClick={onClose}
-							className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600 rounded-lg transition-colors"
+							className="px-4 py-2 text-sm font-medium text-gray-700 bg-gray-100 bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600 rounded-lg transition-colors"
 						>
 							Cancelar
 						</button>
 						<button
 							onClick={handleSave}
-							className="px-4 py-2 text-sm font-medium text-white bg-rose-600 hover:bg-rose-700 rounded-lg transition-colors"
+							className="px-4 py-2 text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 rounded-lg transition-colors"
 						>
 							Salvar Respostas
 						</button>
@@ -866,54 +866,52 @@ const BotSettingsEnhanced = ({
 	const ssshandleSaveBotSettings = async () => {
 		try {
 			// Verificar se houve alterações comparando os dados originais com os editados
+			const isDataChanged = !_.isEqual(companyDataState, editedData); // Usando lodash para comparação profunda
 
-			// const isDataChanged =
-			// JSON.stringify(companyDataState) !== JSON.stringify(editedData);
-			const isDataChanged = !_.isEqual(companyDataState, editedData);
 			if (!isDataChanged) {
-				// Se não houve alterações, mostrar uma mensagem informativa e não fazer a requisição
-				onStatusUpdate({
-					success: false,
-					message: "Nenhuma alteração detectada para salvar",
-				});
+				// Se não houver alterações, você pode retornar ou mostrar uma notificação
+				console.log("Nenhuma alteração detectada para salvar.");
 				return;
 			}
+
 			// Atualiza o estado no componente pai através da prop onStatusUpdate
 			onStatusUpdate({ message: "Salvando..." });
 			setIsDirty(false);
 			setLoading(true);
 			setMessage("");
-			// Chama a função para salvar os dados com a implementação real
-			// const result = await saveFlexBotNewSettings(
-			// 	companyId,
-			// 	editedData as BotData,
-			// 	companyDataState as any,
-			// );
 
-			//
-			// if (result.success && result.data && result.retryAfter) {
-			// 	const updatedBotData = (result.data as { isAiResponder: BotData })
-			// 		.isAiResponder;
-			// 	console.log("Bot settings updated successfully:", updatedBotData);
-			// 	// Atualiza o estado com os novos dados da API
-			// 	setCompanyData(updatedBotData);
-			// 	setEditedData(updatedBotData); // <- isso aqui garante que os dois estão em sincronia
-			// 	// Mostra notificação de sucesso através do componente pai
-			// 	onStatusUpdate({
-			// 		success: true,
-			// 		message: result.message || "Configurações salvas com sucesso!",
-			// 	});
+			// Chama a função para salvar os dados com a implementação real
+			const result = await saveFlexBotNewSettings(
+				companyId,
+				editedData as BotData,
+				companyDataState as any,
+			);
+
+			if (result.success && result.data && result.retryAfter) {
+				const updatedBotData = (result.data as { isAiResponder: BotData })
+					.isAiResponder;
+				console.log("Bot settings updated successfully:", updatedBotData);
+
+				// Atualiza o estado com os novos dados da API
+				setCompanyData(updatedBotData);
+				setEditedData(updatedBotData); // Garante que os dois estão em sincronia
+
+				// Mostra notificação de sucesso através do componente pai
+				onStatusUpdate({
+					success: true,
+					message: result.message || "Configurações salvas com sucesso!",
+				});
 
 				// Simula a conversa novamente para refletir as mudanças
 				if (showPreview) {
 					simulateConversation();
 				}
 			} else {
+				// Se houver um erro ao salvar, atualiza o estado com a mensagem de erro
 				onStatusUpdate({
 					success: false,
 					message: result.message || "Erro ao salvar configurações",
 				});
-
 				setCooldown(result.retryAfter || 0);
 				setMessage(result.message);
 
@@ -930,7 +928,7 @@ const BotSettingsEnhanced = ({
 			}
 
 			setLoading(false);
-		} catch (error) 
+		} catch (error) {
 			console.error("Error saving bot settings:", error);
 			onStatusUpdate({
 				success: false,
@@ -940,7 +938,9 @@ const BotSettingsEnhanced = ({
 						: "Erro ao salvar configurações",
 			});
 			setLoading(false);
+		}
 	};
+
 	// Update the sectionNames to get steps keys
 	const sectionNames = Object.keys(editedData.steps || {});
 
@@ -1074,8 +1074,8 @@ const BotSettingsEnhanced = ({
 			{/* Header and controls remain the same */}
 			{/* <div className="mb-8 flex items-center justify-between">
         <div className="flex items-center gap-3">
-          <div className="bg-rose-100 dark:bg-rose-900/30 p-2 rounded-lg">
-            <Settings className="w-6 h-6 text-rose-600 dark:text-rose-600" />
+          <div className="bg-indigo-900/30 p-2 rounded-lg">
+            <Settings className="w-6 h-6 text-indigo-600" />
           </div>
           <h2 className="text-xl font-medium leading-none text-gray-900 dark:text-gray-200">
             Configuração do Bot Produção
@@ -1087,9 +1087,7 @@ const BotSettingsEnhanced = ({
 			<div className="mb-6 flex flex-wrap md:flex-nowrap items-center justify-between gap-2">
 				<div className="flex gap-2 items-center">
 					<Globe className="w-5 h-5 text-gray-500" />
-					<span className="text-sm font-medium text-gray-600 dark:text-gray-400">
-						Idioma:
-					</span>
+					<span className="text-sm font-medium text-gray-400">Idioma:</span>
 					<div className="flex gap-1 ">
 						{availableLanguages.map((lang) => (
 							<button
@@ -1097,14 +1095,14 @@ const BotSettingsEnhanced = ({
 								onClick={() => setActiveLanguage(lang.code)}
 								className={`px-3 py-1 text-sm rounded-md transition-colors ${
 									activeLanguage === lang.code
-										? "bg-rose-600 text-white"
-										: "bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-neutral-900 dark:text-gray-300 dark:hover:bg-neutral-800"
+										? "bg-indigo-600 text-white"
+										: "bg-neutral-900 dark:text-gray-300 dark:hover:bg-neutral-800"
 								}`}
 							>
 								{lang.name}
 							</button>
 						))}
-						<button className="px-2 py-1 text-sm rounded-md bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-neutral-900 dark:text-gray-300 dark:hover:bg-neutral-800 transition-colors">
+						<button className="px-2 py-1 text-sm rounded-md bg-neutral-900 dark:text-gray-300 dark:hover:bg-neutral-800 transition-colors">
 							<PlusCircle className="w-4 h-4" />
 						</button>
 					</div>
@@ -1114,8 +1112,8 @@ const BotSettingsEnhanced = ({
 						onClick={() => setShowAdvancedMode(!showAdvancedMode)}
 						className={` px-4 py-0.5 text-sm rounded-md flex items-center gap-2 transition-all duration-300 ${
 							showAdvancedMode
-								? "bg-rose-600 hover:bg-rose-700 text-white shadow-md hover:shadow-lg"
-								: "bg-gray-200 text-gray-500 dark:bg-neutral-900 dark:text-gray-300 dark:hover:bg-neutral-800 transition-color"
+								? "bg-indigo-600 hover:bg-indigo-700 text-white shadow-md hover:shadow-lg"
+								: "bg-neutral-900 dark:text-gray-300 dark:hover:bg-neutral-800 transition-color"
 						}`}
 					>
 						<Code className="w-4 h-4" />
@@ -1126,8 +1124,8 @@ const BotSettingsEnhanced = ({
 						onClick={() => setShowPreview(!showPreview)}
 						className={` px-4 py-0.5 text-sm rounded-md flex items-center gap-2 transition-all duration-300 ${
 							showPreview
-								? "bg-rose-600 hover:bg-rose-700 text-white shadow-md hover:shadow-lg"
-								: "bg-gray-200 text-gray-500 dark:bg-neutral-900 dark:text-gray-300 dark:hover:bg-neutral-800 transition-color"
+								? "bg-indigo-600 hover:bg-indigo-700 text-white shadow-md hover:shadow-lg"
+								: "bg-neutral-900 dark:text-gray-300 dark:hover:bg-neutral-800 transition-color"
 						}`}
 					>
 						<Eye className="w-4 h-4" />
@@ -1138,8 +1136,8 @@ const BotSettingsEnhanced = ({
 						disabled={loading || cooldown > 0}
 						className={` px-4 py-0.5 text-sm rounded-md flex items-center gap-2 transition-all duration-300 ${
 							loading || cooldown > 0 || isDirty
-								? "bg-rose-600 hover:bg-rose-700 text-white shadow-md hover:shadow-lg"
-								: "bg-gray-200 text-gray-500 dark:bg-neutral-900 dark:text-gray-300 dark:hover:bg-neutral-800 transition-color"
+								? "bg-indigo-600 hover:bg-indigo-700 text-white shadow-md hover:shadow-lg"
+								: "bg-neutral-900 dark:text-gray-300 dark:hover:bg-neutral-800 transition-color"
 						}`}
 					>
 						{cooldown > 0
@@ -1154,7 +1152,7 @@ const BotSettingsEnhanced = ({
 							console.log("Estado atual do bot:", editedData);
 							alert("JSON do bot exibido no console do navegador (F12)");
 						}}
-						className="px-4 py-0.5 text-sm rounded-md flex items-center gap-2 transition-all duration-300 bg-gray-200 text-gray-500 dark:bg-neutral-900 dark:text-gray-300 dark:hover:bg-neutral-800"
+						className="px-4 py-0.5 text-sm rounded-md flex items-center gap-2 transition-all duration-300 bg-neutral-900 text-gray-300 hover:bg-neutral-800"
 					>
 						<Code className="w-4 h-4" />
 						<span>Debug JSON</span>
@@ -1166,14 +1164,12 @@ const BotSettingsEnhanced = ({
 			<div className="grid grid-cols-1 md:grid-cols-4 gap-6">
 				{/* Navigation sidebar */}
 				<div className="md:col-span-1">
-					<div className="bg-white dark:bg-[#111217] rounded-xl shadow-sm border border-gray-200 dark:border-[#1B1C22] overflow-hidden">
-						<div className="p-4 border-b border-gray-200 dark:border-[#1B1C22] flex justify-between items-center">
-							<h3 className="font-medium text-gray-500 dark:text-gray-400 text-sm">
-								Seções
-							</h3>
+					<div className="bg-[##0D0D0D] rounded-xl shadow-sm border border-[#1B1C22] overflow-hidden">
+						<div className="p-4 border-b border-[#1B1C22] flex justify-between items-center">
+							<h3 className="font-medium text-gray-400 text-sm">Seções</h3>
 							<button
 								onClick={() => setShowNewFlowModal(true)}
-								className="p-1 rounded-md bg-rose-100 dark:bg-rose-900/30 text-rose-600 hover:bg-rose-200 dark:hover:bg-rose-800/30 transition-colors"
+								className="p-1 rounded-md bg-indigo-900/30 text-indigo-600 hover:bg-indigo-800/30 transition-colors"
 								title="Adicionar novo fluxo"
 							>
 								<Plus className="w-4 h-4" />
@@ -1186,8 +1182,8 @@ const BotSettingsEnhanced = ({
 									onClick={() => setActiveTab(section)}
 									className={`w-full text-left text-sm px-4 py-3 rounded-lg mb-1 flex items-center gap-3 transition-all duration-200 ${
 										activeTab === section
-											? "bg-rose-50 dark:bg-rose-700/20 text-rose-600 dark:text-rose-600 font-medium"
-											: "text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700/50"
+											? "bg-indigo-700/20 text-indigo-600 font-medium"
+											: "text-gray-300 hover:bg-gray-700/50"
 									}`}
 								>
 									{getSectionIcon(section)}
@@ -1199,36 +1195,24 @@ const BotSettingsEnhanced = ({
 						</nav>
 
 						{/* Statistics section remains the same */}
-						<div className="p-4 border-t border-gray-200 dark:border-[#1B1C22]">
-							<h3 className="font-medium text-gray-500 dark:text-gray-400 text-sm uppercase mb-3">
+						<div className="p-4 border-t border-[#1B1C22]">
+							<h3 className="font-medium text-gray-400 text-sm uppercase mb-3">
 								Estatísticas
 							</h3>
 							<div className="space-y-2">
 								<div className="flex justify-between items-center text-sm">
-									<span className="text-gray-600 dark:text-gray-400">
-										Conversas iniciadas:
-									</span>
-									<span className="font-medium text-gray-800 dark:text-gray-200">
-										1,245
-									</span>
+									<span className="text-gray-400">Conversas iniciadas:</span>
+									<span className="font-medium text-gray-200">1,245</span>
 								</div>
 								<div className="flex justify-between items-center text-sm">
-									<span className="text-gray-600 dark:text-gray-400">
-										Taxa de conclusão:
-									</span>
-									<span className="font-medium text-gray-800 dark:text-gray-200">
-										78%
-									</span>
+									<span className="text-gray-400">Taxa de conclusão:</span>
+									<span className="font-medium text-gray-200">78%</span>
 								</div>
 								<div className="flex justify-between items-center text-sm">
-									<span className="text-gray-600 dark:text-gray-400">
-										Tempo médio:
-									</span>
-									<span className="font-medium text-gray-800 dark:text-gray-200">
-										2m 34s
-									</span>
+									<span className="text-gray-400">Tempo médio:</span>
+									<span className="font-medium text-gray-200">2m 34s</span>
 								</div>
-								<button className="mt-2 text-sm text-rose-600 dark:text-rose-400 flex items-center gap-1">
+								<button className="mt-2 text-sm text-indigo-400 flex items-center gap-1">
 									<BarChart2 className="w-3 h-3" />
 									<span>Ver relatório completo</span>
 								</button>
@@ -1236,26 +1220,26 @@ const BotSettingsEnhanced = ({
 						</div>
 
 						{/* A/B Testing section remains the same */}
-						<div className="p-4 border-t border-gray-200 dark:border-[#1B1C22]">
+						<div className="p-4 border-t border-[#1B1C22]">
 							<div className="flex items-center justify-between mb-3">
-								<h3 className="font-medium text-gray-500 dark:text-gray-400 text-sm uppercase">
+								<h3 className="font-medium text-gray-400 text-sm uppercase">
 									Testes A/B
 								</h3>
-								<button className="text-rose-600 dark:text-rose-400">
+								<button className="text-indigo-400">
 									<PlusCircle className="w-4 h-4" />
 								</button>
 							</div>
 							<div className="space-y-2">
-								<div className="p-2 bg-gray-50 dark:bg-gray-700/50 rounded-lg text-sm">
+								<div className="p-2 bg-gray-700/50 rounded-lg text-sm">
 									<div className="flex items-center justify-between mb-1">
-										<span className="font-medium text-gray-700 dark:text-gray-300">
+										<span className="font-medium text-gray-300">
 											Teste de Saudação
 										</span>
 										<span className="text-xs bg-green-100 text-green-700 px-2 py-0.5 rounded-full">
 											Ativo
 										</span>
 									</div>
-									<div className="text-xs text-gray-500 dark:text-gray-400 flex items-center gap-1">
+									<div className="text-xs text-gray-400 flex items-center gap-1">
 										<TestTube className="w-3 h-3" />
 										<span>Variação A: 52% | Variação B: 48%</span>
 									</div>
@@ -1267,21 +1251,21 @@ const BotSettingsEnhanced = ({
 
 				{/* Main content - Update to handle the new structure */}
 				<div className={`${showPreview ? "md:col-span-2" : "md:col-span-3"}`}>
-					<div className="bg-white dark:bg-[#111217] rounded-xl shadow-sm border border-gray-200 dark:border-[#1B1C22] overflow-hidden">
+					<div className="bg-[##0D0D0D] rounded-xl shadow-sm border border-[#1B1C22] overflow-hidden">
 						{showAdvancedMode ? (
 							// Advanced mode (JSON)
 							<div className="p-0">
 								<div className="flex items-center justify-between mb-2">
-									<div className="p-4 border-b border-gray-200 dark:border-[#1B1C22]">
-										<h3 className="text-base font-semibold text-gray-800 dark:text-gray-200">
+									<div className="p-4 border-b border-[#1B1C22]">
+										<h3 className="text-base font-semibold text-gray-200">
 											Modo Avançado (JSON)
 										</h3>
 									</div>
 								</div>
 								<div className="py-1 px-4">
 									<textarea
-										className=" w-full h-[500px] p-4 font-mono text-sm text-neutral-700 dark:text-gray-200 bg-gray-50 dark:bg-transparent border border-transparent dark:border-transparent rounded-lg
-                    outline-none transition focus:border-primary active:border-primary disabled:cursor-default disabled:bg-whiter dark:border-form-strokedark dark:bg-form-input dark:focus:border-primary"
+										className=" w-full h-[500px] p-4 font-mono text-sm text-gray-200 bg-transparent border border-transparent dark:border-transparent rounded-lg
+                    outline-none transition focus:border-electric active:border-electric disabled:cursor-default disabled:bg-whiter dark:border-form-strokedark dark:bg-form-input dark:focus:border-electric"
 										value={JSON.stringify(editedData, null, 2)}
 										onChange={(e) => {
 											try {
@@ -1302,8 +1286,8 @@ const BotSettingsEnhanced = ({
 									className={`${activeTab === section ? "block" : "hidden"}`}
 								>
 									<div className="p-0">
-										<div className="p-4 border-b border-gray-200 dark:border-[#1B1C22] flex justify-between items-center">
-											<h3 className="text-base font-semibold text-gray-800 dark:text-gray-200">
+										<div className="p-4 border-b border-[#1B1C22] flex justify-between items-center">
+											<h3 className="text-base font-semibold text-gray-200">
 												{section.replace(/_/g, " ")}
 											</h3>
 
@@ -1311,7 +1295,7 @@ const BotSettingsEnhanced = ({
 												{/* Botão para editar respostas do fluxo atual */}
 												<button
 													onClick={() => openResponsesModal(activeTab)}
-													className="px-3 py-1 text-sm rounded-md bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600 transition-colors flex items-center gap-1"
+													className="px-3 py-1 text-sm rounded-md bg-gray-700 text-gray-300 hover:bg-gray-600 transition-colors flex items-center gap-1"
 												>
 													<Edit className="w-3 h-3" />
 													<span>Editar Respostas</span>
@@ -1320,7 +1304,7 @@ const BotSettingsEnhanced = ({
 												{/* Add New Flow button */}
 												<button
 													onClick={() => setShowNewFlowModal(true)}
-													className="px-3 py-1 text-sm rounded-md bg-rose-100 dark:bg-rose-900/30 text-rose-600 hover:bg-rose-200 dark:hover:bg-rose-800/30 transition-colors flex items-center gap-1"
+													className="px-3 py-1 text-sm rounded-md bg-indigo-900/30 text-indigo-600 hover:bg-indigo-800/30 transition-colors flex items-center gap-1"
 												>
 													<Plus className="w-4 h-4" />
 													<span>Novo Fluxo</span>
@@ -1337,11 +1321,11 @@ const BotSettingsEnhanced = ({
 													).map((key) => (
 														<div
 															key={key}
-															className="p-5 border border-gray-200 dark:border-[#1B1C22] rounded-xl bg-gray-50 dark:bg-[#111217] hover:shadow-md transition-all duration-300"
+															className="p-5 border border-[#1B1C22] rounded-xl bg-[##0D0D0D] hover:shadow-md transition-all duration-300"
 														>
 															<div className="flex items-center gap-2 mb-4">
-																<Users className="w-4 h-4 text-rose-500" />
-																<h4 className="font-medium text-md capitalize text-gray-800 dark:text-gray-200">
+																<Users className="w-4 h-4 text-indigo-500" />
+																<h4 className="font-medium text-md capitalize text-gray-200">
 																	{key}
 																</h4>
 															</div>
@@ -1350,15 +1334,15 @@ const BotSettingsEnhanced = ({
 																<div className="space-y-2">
 																	<label
 																		htmlFor={`${section}-mensagemFinal-${key}-mensagem`}
-																		className="block text-sm font-medium text-gray-700 dark:text-gray-300"
+																		className="block text-sm font-medium text-gray-300"
 																	>
 																		Mensagem:
 																	</label>
 																	<div className="relative">
 																		<textarea
 																			id={`${section}-mensagemFinal-${key}-mensagem`}
-																			className=" w-full p-4 text-neutral-700 dark:text-gray-200 bg-gray-50 dark:bg-transparent border border-transparent dark:border-transparent rounded-lg
-                                      outline-none transition focus:border-primary active:border-primary disabled:cursor-default disabled:bg-whiter dark:border-form-strokedark dark:bg-form-input dark:focus:border-primary"
+																			className=" w-full p-4 text-gray-200 bg-transparent border border-transparent dark:border-transparent rounded-lg
+                                      outline-none transition focus:border-electric active:border-electric disabled:cursor-default disabled:bg-whiter dark:border-form-strokedark dark:bg-form-input dark:focus:border-electric"
 																			value={
 																				editedData.steps[section]
 																					?.mensagemFinal?.[key]?.mensagem || ""
@@ -1382,7 +1366,7 @@ const BotSettingsEnhanced = ({
 																		/>
 																		<div className="absolute right-2 bottom-2 flex gap-1">
 																			<button
-																				className="p-1 rounded-md bg-gray-100 dark:bg-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-500"
+																				className="p-1 rounded-md bg-gray-600 text-gray-300 hover:bg-gray-500"
 																				onClick={() => {
 																					setCurrentField({
 																						section,
@@ -1397,7 +1381,7 @@ const BotSettingsEnhanced = ({
 																				<FileText className="w-4 h-4" />
 																			</button>
 																			<button
-																				className="p-1 rounded-md bg-gray-100 dark:bg-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-500"
+																				className="p-1 rounded-md bg-gray-600 text-gray-300 hover:bg-gray-500"
 																				onClick={() => {
 																					setCurrentField({
 																						section,
@@ -1418,14 +1402,14 @@ const BotSettingsEnhanced = ({
 																<div className="space-y-2">
 																	<label
 																		htmlFor={`${section}-mensagemFinal-${key}-setorId`}
-																		className="block text-sm font-medium text-gray-700 dark:text-gray-300"
+																		className="block text-sm font-medium text-gray-300"
 																	>
 																		ID do Setor:
 																	</label>
 																	<input
 																		type="text"
 																		id={`${section}-mensagemFinal-${key}-setorId`}
-																		className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-rose-500 focus:border-rose-500 bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200 transition-all duration-200"
+																		className="w-full p-3 border border-gray-300 dark:border-gray-600 rounded-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:border-indigo-500 bg-gray-700 text-gray-200 transition-all duration-200"
 																		value={
 																			editedData.steps[section]
 																				?.mensagemFinal?.[key]?.setorId || ""
@@ -1457,19 +1441,19 @@ const BotSettingsEnhanced = ({
 												Object.keys(editedData.steps[section] || {}).map(
 													(key) => (
 														<div key={key} className="space-y-2">
-															<div className="p-4 border-b border-gray-200 dark:border-[#1B1C22] flex justify-between items-center">
+															<div className="p-4 border-b border-[#1B1C22] flex justify-between items-center">
 																<label
 																	htmlFor={`${section}-${key}`}
-																	className="text-sm font-medium capitalize text-gray-700 dark:text-gray-300 flex items-center gap-2"
+																	className="text-sm font-medium capitalize text-gray-300 flex items-center gap-2"
 																>
 																	{key === "mensagem" && (
-																		<MessageSquare className="w-4 h-4 text-rose-500" />
+																		<MessageSquare className="w-4 h-4 text-indigo-500" />
 																	)}
 																	{key === "respostas" && (
-																		<ChevronRight className="w-4 h-4 text-rose-500" />
+																		<ChevronRight className="w-4 h-4 text-indigo-500" />
 																	)}
 																	{key === "naoentendi" && (
-																		<X className="w-4 h-4 text-rose-500" />
+																		<X className="w-4 h-4 text-indigo-500" />
 																	)}
 																	{key}:
 																</label>
@@ -1478,7 +1462,7 @@ const BotSettingsEnhanced = ({
 																{key === "respostas" && (
 																	<button
 																		onClick={() => openResponsesModal(section)}
-																		className="px-3 py-1 text-sm rounded-md bg-gray-100 text-gray-700 hover:bg-gray-200 dark:bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600 transition-colors flex items-center gap-1"
+																		className="px-3 py-1 text-sm rounded-md bg-gray-700 dark:text-gray-300 dark:hover:bg-gray-600 transition-colors flex items-center gap-1"
 																	>
 																		<Edit className="w-3 h-3" />
 																		<span>Editar Respostas</span>
@@ -1492,8 +1476,8 @@ const BotSettingsEnhanced = ({
 																<div className="relative">
 																	<textarea
 																		id={`${section}-${key}`}
-																		className=" w-full p-4  text-neutral-700 dark:text-gray-200 bg-gray-50 dark:bg-transparent border border-transparent dark:border-transparent rounded-lg
-                                  outline-none transition focus:border-primary active:border-primary disabled:cursor-default disabled:bg-whiter dark:border-form-strokedark dark:bg-form-input dark:focus:border-primary"
+																		className=" w-full p-4  text-gray-200 bg-transparent border border-transparent dark:border-transparent rounded-lg
+                                  outline-none transition focus:border-electric active:border-electric disabled:cursor-default disabled:bg-whiter dark:border-form-strokedark dark:bg-form-input dark:focus:border-electric"
 																		value={formatRespostas(
 																			editedData.steps[section][key],
 																		)}
@@ -1506,7 +1490,7 @@ const BotSettingsEnhanced = ({
 																		rows={10}
 																		//disabled={true}
 																	/>
-																	<div className="absolute top-3 right-3 bg-rose-100 dark:bg-rose-900/30 text-rose-600 dark:text-rose-400 text-xs px-2 py-1 rounded-md">
+																	<div className="absolute top-3 right-3 bg-indigo-900/30 text-indigo-400 text-xs px-2 py-1 rounded-md">
 																		Formato: chave: valor
 																	</div>
 																</div>
@@ -1515,8 +1499,8 @@ const BotSettingsEnhanced = ({
 																<div className="relative px-2">
 																	<textarea
 																		id={`${section}-${key}`}
-																		className=" w-full p-4  text-neutral-700 dark:text-gray-200 bg-gray-50 dark:bg-transparent border border-transparent dark:border-transparent rounded-lg
-                                  outline-none transition focus:border-primary active:border-primary disabled:cursor-default disabled:bg-whiter dark:border-form-strokedark dark:bg-form-input dark:focus:border-primary"
+																		className=" w-full p-4  text-gray-200 bg-transparent border border-transparent dark:border-transparent rounded-lg
+                                  outline-none transition focus:border-electric active:border-electric disabled:cursor-default disabled:bg-whiter dark:border-form-strokedark dark:bg-form-input dark:focus:border-electric"
 																		value={
 																			typeof editedData.steps[section][key] ===
 																			"object"
@@ -1540,7 +1524,7 @@ const BotSettingsEnhanced = ({
 																	/>
 																	<div className="absolute right-2 bottom-2 flex gap-1">
 																		<button
-																			className="p-1 rounded-md bg-gray-100 dark:bg-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-500"
+																			className="p-1 rounded-md bg-gray-600 text-gray-300 hover:bg-gray-500"
 																			onClick={() => {
 																				setCurrentField({ section, key });
 																				setShowTemplates(true);
@@ -1551,7 +1535,7 @@ const BotSettingsEnhanced = ({
 																			<FileText className="w-4 h-4" />
 																		</button>
 																		<button
-																			className="p-1 rounded-md bg-gray-100 dark:bg-gray-600 text-gray-600 dark:text-gray-300 hover:bg-gray-200 dark:hover:bg-gray-500"
+																			className="p-1 rounded-md bg-gray-600 text-gray-300 hover:bg-gray-500"
 																			onClick={() => {
 																				setCurrentField({ section, key });
 																				setShowVariables(true);
@@ -1567,8 +1551,8 @@ const BotSettingsEnhanced = ({
 																// Default rendering for other fields
 																<textarea
 																	id={`${section}-${key}`}
-																	className=" w-full p-4  text-neutral-700 dark:text-gray-200 bg-gray-50 dark:bg-transparent border border-transparent dark:border-transparent rounded-lg
-                                  outline-none transition focus:border-primary active:border-primary disabled:cursor-default disabled:bg-whiter dark:border-form-strokedark dark:bg-form-input dark:focus:border-primary"
+																	className=" w-full p-4  text-gray-200 bg-transparent border border-transparent dark:border-transparent rounded-lg
+                                  outline-none transition focus:border-electric active:border-electric disabled:cursor-default disabled:bg-whiter dark:border-form-strokedark dark:bg-form-input dark:focus:border-electric"
 																	value={
 																		typeof editedData.steps[section][key] ===
 																		"object"
@@ -1603,13 +1587,13 @@ const BotSettingsEnhanced = ({
 
 					{/* Templates and Variables sections remain the same */}
 					{showTemplates && (
-						<div className="mt-4 p-4 bg-white dark:bg-neutral-800 rounded-xl shadow-sm border border-gray-200 dark:border-[#1B1C22]">
+						<div className="mt-4 p-4 bg-neutral-800 rounded-xl shadow-sm border border-[#1B1C22]">
 							<div className="flex items-center justify-between mb-3">
-								<h3 className="font-medium text-gray-800 dark:text-gray-200">
+								<h3 className="font-medium text-gray-200">
 									Templates de Mensagens
 								</h3>
 								<button
-									className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+									className="text-gray-500 hover:text-gray-400 dark:hover:text-gray-200"
 									onClick={() => setShowTemplates(false)}
 								>
 									<X className="w-4 h-4" />
@@ -1619,13 +1603,13 @@ const BotSettingsEnhanced = ({
 								{messageTemplates.map((template, index) => (
 									<button
 										key={index}
-										className="p-3 text-left border border-gray-200 dark:border-[#1B1C22] rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+										className="p-3 text-left border border-[#1B1C22] rounded-lg hover:hover:bg-gray-700 transition-colors"
 										onClick={() => insertTemplate(template.text)}
 									>
-										<div className="font-medium text-sm text-gray-800 dark:text-gray-200 mb-1">
+										<div className="font-medium text-sm text-gray-200 mb-1">
 											{template.name}
 										</div>
-										<div className="text-xs text-gray-600 dark:text-gray-400 line-clamp-2">
+										<div className="text-xs text-gray-400 line-clamp-2">
 											{template.text}
 										</div>
 									</button>
@@ -1635,13 +1619,13 @@ const BotSettingsEnhanced = ({
 					)}
 
 					{showVariables && (
-						<div className="mt-4 p-4 bg-white dark:bg-neutral-800 rounded-xl shadow-sm border border-gray-200 dark:border-[#1B1C22]">
+						<div className="mt-4 p-4 bg-neutral-800 rounded-xl shadow-sm border border-[#1B1C22]">
 							<div className="flex items-center justify-between mb-3">
-								<h3 className="font-medium text-gray-800 dark:text-gray-200">
+								<h3 className="font-medium text-gray-200">
 									Variáveis de Personalização
 								</h3>
 								<button
-									className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+									className="text-gray-500 hover:text-gray-400 dark:hover:text-gray-200"
 									onClick={() => setShowVariables(false)}
 								>
 									<X className="w-4 h-4" />
@@ -1651,11 +1635,11 @@ const BotSettingsEnhanced = ({
 								{personalizationVariables.map((variable, index) => (
 									<button
 										key={index}
-										className="p-2 text-left border border-gray-200 dark:border-[#1B1C22] rounded-lg hover:bg-gray-50 dark:hover:bg-gray-700 transition-colors"
+										className="p-2 text-left border border-[#1B1C22] rounded-lg hover:hover:bg-gray-700 transition-colors"
 										onClick={() => insertVariable(variable.name)}
 									>
-										<div className="font-medium text-sm text-gray-800 dark:text-gray-200">{`{{${variable.name}}}`}</div>
-										<div className="text-xs text-gray-600 dark:text-gray-400">
+										<div className="font-medium text-sm text-gray-200">{`{{${variable.name}}}`}</div>
+										<div className="text-xs text-gray-400">
 											{variable.description}
 										</div>
 									</button>
@@ -1668,14 +1652,14 @@ const BotSettingsEnhanced = ({
 				{/* Preview section - Update to work with the new structure */}
 				{showPreview && (
 					<div className="md:col-span-1">
-						<div className="bg-gray-50 dark:bg-[#111217] rounded-xl shadow-sm border border-gray-200 dark:border-[#1B1C22] overflow-hidden sticky top-4">
-							<div className="p-4 border-b border-gray-200 dark:border-[#1B1C22] flex items-center justify-between">
-								<h3 className="font-medium text-gray-800 dark:text-gray-200 flex items-center gap-2">
-									<Eye className="w-4 h-4 text-rose-500" />
+						<div className="bg-[##0D0D0D] rounded-xl shadow-sm border border-[#1B1C22] overflow-hidden sticky top-4">
+							<div className="p-4 border-b border-[#1B1C22] flex items-center justify-between">
+								<h3 className="font-medium text-gray-200 flex items-center gap-2">
+									<Eye className="w-4 h-4 text-indigo-500" />
 									<span>Visualização</span>
 								</h3>
 								<button
-									className="text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+									className="text-gray-500 hover:text-gray-400 dark:hover:text-gray-200"
 									onClick={() => simulateConversation()}
 									title="Atualizar visualização"
 								>
@@ -1708,8 +1692,8 @@ const BotSettingsEnhanced = ({
 											<div
 												className={`p-3 rounded-lg max-w-[85%] ${
 													message.isBot
-														? "bg-white  dark:bg-[#16171d]  text-gray-800 dark:text-gray-200 shadow-sm border border-gray-200 dark:border-[#1B1C22]"
-														: "bg-rose-100 dark:bg-rose-900/30 text-rose-800 dark:text-rose-300"
+														? "bg-white  dark:bg-[#16171d]  text-gray-200 shadow-sm border border-[#1B1C22]"
+														: "bg-indigo-900/30 text-indigo-800 dark:text-indigo-300"
 												}`}
 											>
 												{message.text}
@@ -1718,14 +1702,14 @@ const BotSettingsEnhanced = ({
 									))}
 								</div>
 							</div>
-							<div className="p-3 border-t border-gray-200 dark:border-[#1B1C22] bg-white dark:bg-gray-800 flex items-center gap-2">
+							<div className="p-3 border-t border-[#1B1C22] bg-gray-800 flex items-center gap-2">
 								<input
 									type="text"
-									className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-700 text-gray-800 dark:text-gray-200"
+									className="w-full p-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-gray-700 text-gray-200"
 									placeholder="Digite uma mensagem..."
 									disabled
 								/>
-								<button className="p-2 rounded-lg bg-rose-600 text-white">
+								<button className="p-2 rounded-lg bg-indigo-600 text-white">
 									<svg
 										xmlns="http://www.w3.org/2000/svg"
 										className="w-5 h-5"
@@ -1800,7 +1784,7 @@ const BotFixedSettingsEnhancedPage = ({
 	return (
 		<div className="relative">
 			<div className="flex justify-center items-center z-50 transition-opacity duration-300">
-				<div className="bg-white dark:bg-[#0d0e12] shadow-xl w-full overflow-hidden relative transition-all duration-300">
+				<div className="bg-[#0d0e12] shadow-xl w-full overflow-hidden relative transition-all duration-300">
 					<div className="p-6">
 						<BotSettingsEnhanced
 							botData={botData}
@@ -1850,7 +1834,7 @@ const BotFixedSettingsEnhancedPage = ({
 							</div>
 							<button
 								onClick={() => setSaveStatus({})}
-								className="absolute top-2 right-2 text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+								className="absolute top-2 right-2 text-gray-500 hover:text-gray-400 dark:hover:text-gray-200"
 							>
 								<X className="w-4 h-4" />
 							</button>

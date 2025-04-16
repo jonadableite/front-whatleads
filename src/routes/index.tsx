@@ -4,6 +4,7 @@ import { ProtectedLayout } from "@/components/layout/ProtectedLayout";
 import { PublicLayout } from "@/components/layout/PublicLayout";
 import AdminDashboard from "@/pages/AdminDashboard";
 import Campanhas from "@/pages/Campanhas";
+import ChatbotFlow from "@/pages/ChatbotFlow";
 import CheckoutPage from "@/pages/CheckoutPage";
 import Dashboard from "@/pages/Dashboard";
 import Disparos from "@/pages/Disparos";
@@ -13,6 +14,7 @@ import PaymentSuccess from "@/pages/PaymentSuccess";
 import PricingPage from "@/pages/Pricing";
 import Register from "@/pages/Register";
 import Return from "@/pages/Return";
+import Bottest from "@/pages/bottest";
 import { RouterProvider, createBrowserRouter } from "react-router-dom";
 import Agendados from "../pages/Agendados";
 import Contatos from "../pages/Contatos";
@@ -89,16 +91,16 @@ const router = createBrowserRouter([
 						path: "/configuracoes",
 						element: <div>Configurações</div>,
 					},
+					{
+						path: "/bot",
+						element: <Bottest />,
+					},
 				],
 			},
-			// {
-			// 	path: "/chatbot",
-			// 	element: <ChatbotFlow />,
-			// },
-			// {
-			// 	path: "/bot",
-			// 	element: <Bottest />,
-			// },
+			{
+				path: "/chatbot",
+				element: <ChatbotFlow />,
+			},
 		],
 	},
 	{

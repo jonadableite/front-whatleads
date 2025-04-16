@@ -28,7 +28,6 @@ export const ProgressModal: React.FC<ProgressModalProps> = ({
 		numbersProcessed,
 		totalNumbers,
 		error,
-		handlePause: internalHandlePause,
 		handleResume: internalHandleResume,
 		handleCancel: internalHandleCancel,
 		instanceName: hookInstanceName,
@@ -148,7 +147,6 @@ export const ProgressModal: React.FC<ProgressModalProps> = ({
 									numbersProcessed={numbersProcessed}
 									totalNumbers={totalNumbers}
 									campaignStatus={campaignStatus}
-									onPause={externalOnPause || internalHandlePause}
 									onResume={handleResumeWithInstanceName}
 									onCancel={externalOnCancel || internalHandleCancel}
 								/>
@@ -216,7 +214,6 @@ const ProgressView: React.FC<{
 	numbersProcessed: number;
 	totalNumbers: number;
 	campaignStatus: string | null;
-	onPause?: () => Promise<void>;
 	onResume?: () => Promise<void>;
 	onCancel?: () => Promise<void>;
 }> = ({
@@ -224,7 +221,6 @@ const ProgressView: React.FC<{
 	numbersProcessed,
 	totalNumbers,
 	campaignStatus,
-	onPause,
 	onResume,
 	onCancel,
 }) => (

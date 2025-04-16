@@ -193,7 +193,7 @@ const Bottest: React.FC = () => {
 		<div>
 			<BotSettingsWithWorkflow
 				botData={exampleBotData}
-				companyId={"asdasnasd"}
+				companyId={"547ec678-e2fe-4649-94b2-1d1f0de3ad0a"}
 			/>
 		</div>
 	);

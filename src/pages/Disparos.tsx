@@ -126,18 +126,18 @@ export default function Disparos() {
 	);
 
 	// Função para pausar a campanha
-	const handlePauseCampaign = async () => {
-		console.log(
-			"Chamando handlePauseCampaign() - Enviando requisição para pausar campanha",
-		);
-		try {
-			await api.main.post(`/campaigns/${selectedCampaign}/pause`);
-			toast.success("Campanha pausada com sucesso!");
-		} catch (error) {
-			console.error("Erro ao pausar campanha:", error);
-			toast.error("Erro ao pausar campanha.");
-		}
-	};
+	// const handlePauseCampaign = async () => {
+	// 	console.log(
+	// 		"Chamando handlePauseCampaign() - Enviando requisição para pausar campanha",
+	// 	);
+	// 	try {
+	// 		await api.main.post(`/campaigns/${selectedCampaign}/pause`);
+	// 		toast.success("Campanha pausada com sucesso!");
+	// 	} catch (error) {
+	// 		console.error("Erro ao pausar campanha:", error);
+	// 		toast.error("Erro ao pausar campanha.");
+	// 	}
+	// };
 
 	// Função para retomar a campanha
 	const handleResumeCampaign = async () => {
@@ -1246,7 +1246,7 @@ export default function Disparos() {
 							isOpen={isModalOpen}
 							onClose={() => setIsModalOpen(false)}
 							campaignId={selectedCampaign}
-							onPause={handlePauseCampaign}
+							// onPause={handlePauseCampaign}
 							onResume={handleResumeCampaign}
 							onCancel={handleCancelCampaign}
 						/>
