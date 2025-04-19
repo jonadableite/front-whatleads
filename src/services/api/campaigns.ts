@@ -66,6 +66,22 @@ export const campaignsApi = {
 		}
 	},
 
+	updateBot: async ({
+		id,
+		data,
+	}: {
+		id: string;
+		data: Partial<Campaign>;
+	}): Promise<Campaign> => {
+		try {
+			const response = await api.main.put<Campaign>(`/campaigns/${id}`, data);
+			return response.data;
+		} catch (error) {
+			console.error("Erro ao atualizar bot:", error);
+			throw error;
+		}
+	},
+
 	deleteCampaign: async (id: string): Promise<void> => {
 		try {
 			await api.main.delete(`/campaigns/${id}`);

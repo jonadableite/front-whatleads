@@ -1,8 +1,8 @@
+import { Toaster } from "@/components/ui/toaster";
 import { SidebarProvider } from "@/contexts/SidebarContext";
+import { UserProvider } from "@/contexts/UserContext";
 // src/App.tsx
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { ToastContainer } from "react-toastify";
-import "react-toastify/dist/ReactToastify.css";
 import { Routes } from "./routes";
 
 // Criar uma instância do QueryClient
@@ -18,21 +18,14 @@ const queryClient = new QueryClient({
 function App() {
 	return (
 		<QueryClientProvider client={queryClient}>
-			<SidebarProvider>
-				<Routes />
-				<ToastContainer
-					position="top-right"
-					autoClose={3000}
-					hideProgressBar={false}
-					newestOnTop
-					closeOnClick
-					rtl={false}
-					pauseOnFocusLoss
-					draggable
-					pauseOnHover
-					theme="dark"
-				/>
-			</SidebarProvider>
+			{/* <ThemeProvider defaultTheme="dark" storageKey="vite-ui-theme"> */}
+			<UserProvider>
+				<SidebarProvider>
+					<Routes />
+					<Toaster />
+				</SidebarProvider>
+			</UserProvider>
+			{/* </ThemeProvider> */}
 		</QueryClientProvider>
 	);
 }

@@ -1,11 +1,4 @@
 "use client";
-// src/components/fluxoflows/bot-fixed-settings-enhanced-page.tsx
-// import {
-//   saveFlexBotNewSettings,
-//   saveFlexBotSettings,
-// } from "@/actions/companies/companyUnit/patch-IsResponderBot-company-unit.action";
-//import { saveBotSettings } from "@/actions/companies/companyUnit/patch-IsResponderBot-company-unit.action";
-// Update the BotData type to match the new structure
 import type { BotData } from "@/types/bot";
 import _ from "lodash";
 import {
@@ -26,6 +19,14 @@ import {
 	X,
 } from "lucide-react";
 import { useEffect, useState } from "react";
+// src/components/fluxoflows/bot-fixed-settings-enhanced-page.tsx
+// import {
+//   saveFlexBotNewSettings,
+//   saveFlexBotSettings,
+// } from "@/actions/companies/companyUnit/patch-IsResponderBot-company-unit.action";
+//import { saveBotSettings } from "@/actions/companies/companyUnit/patch-IsResponderBot-company-unit.action";
+// Update the BotData type to match the new structure
+import updateBot from "../../services/api/campaigns";
 
 // Replace the exampleBotData with the new structure format
 const exampleBotData: any = {
@@ -630,14 +631,14 @@ const ResponsesModal = ({
 interface BotSettingsEnhancedProps {
 	botData: BotData;
 	onStatusUpdate: (status: { success?: boolean; message?: string }) => void;
-	companyId: string;
+	campaignId: string;
 }
 
 // Update the BotSettingsEnhanced component to handle the new structure
 const BotSettingsEnhanced = ({
 	botData = exampleBotData,
 	onStatusUpdate,
-	companyId,
+	campaignId,
 }: BotSettingsEnhancedProps) => {
 	const [companyDataState, setCompanyData] = useState<BotData>(botData);
 	const [editedData, setEditedData] = useState<any>(botData);
@@ -881,8 +882,8 @@ const BotSettingsEnhanced = ({
 			setMessage("");
 
 			// Chama a função para salvar os dados com a implementação real
-			const result = await saveFlexBotNewSettings(
-				companyId,
+			const result = await updateBot(
+				campaignId,
 				editedData as BotData,
 				companyDataState as any,
 			);
@@ -1752,27 +1753,23 @@ const BotSettingsEnhanced = ({
 
 // Modificar o componente BotFixedSettingsEnhancedPage para mostrar a notificação de forma mais visível
 const BotFixedSettingsEnhancedPage = ({
-	companyId = "",
-	botData = exampleBotData,
+	campaignId = "",
+	botData,
 }: {
-	companyId?: string;
-	botData?: BotData;
+	campaignId?: string;
+	botData: BotData;
 }) => {
-	const [isOpen, setIsOpen] = useState(false);
-	const [isClosing, setIsClosing] = useState(false);
 	const [saveStatus, setSaveStatus] = useState<{
 		success?: boolean;
 		message?: string;
 	}>({});
-	console.log(companyId, "Id id");
+
 	// Função para atualizar o estado de status
 	const handleStatusUpdate = (status: {
 		success?: boolean;
 		message?: string;
 	}) => {
-		console.log("Status update:", status); // Depuração
 		setSaveStatus(status);
-
 		// Limpa a notificação após 5 segundos apenas se for uma mensagem de sucesso
 		if (status.success || status.message) {
 			setTimeout(() => {
@@ -1781,16 +1778,44 @@ const BotFixedSettingsEnhancedPage = ({
 		}
 	};
 
+	// Função para salvar as configurações do bot
+	const handleSaveBotSettings = async () => {
+		try {
+			const updatedBotData = await updateBot({
+				id: campaignId,
+				data: botData,
+			});
+			handleStatusUpdate({
+				success: true,
+				message: "Bot atualizado com sucesso!",
+			});
+		} catch (error) {
+			console.error("Erro ao atualizar o bot:", error);
+			handleStatusUpdate({
+				success: false,
+				message: "Erro ao atualizar o bot.",
+			});
+		}
+	};
+
 	return (
 		<div className="relative">
 			<div className="flex justify-center items-center z-50 transition-opacity duration-300">
 				<div className="bg-[#0d0e12] shadow-xl w-full overflow-hidden relative transition-all duration-300">
 					<div className="p-6">
+						{/* Componente para configurações do bot */}
 						<BotSettingsEnhanced
 							botData={botData}
 							onStatusUpdate={handleStatusUpdate}
-							companyId={companyId}
+							campaignId={campaignId}
 						/>
+						{/* Botão para salvar as configurações do bot */}
+						<button
+							onClick={handleSaveBotSettings}
+							className="mt-4 bg-blue-500 text-white p-2 rounded"
+						>
+							Salvar Configurações do Bot
+						</button>
 					</div>
 
 					{/* Notificação de status flutuante - mais visível e persistente */}

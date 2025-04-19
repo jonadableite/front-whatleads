@@ -1,4 +1,25 @@
 // src/interface/index.ts
+export interface BotData {
+	inicio: {
+		pergunta: string;
+		respostas: Record<string, string>;
+		naoentendi: string;
+	};
+	pergunta_horario: {
+		pergunta: string;
+		respostas: Record<string, string>;
+		naoentendi: string;
+	};
+	finished: Record<
+		string,
+		{
+			mensagem: string;
+			setorId: string;
+		}
+	>;
+	[key: string]: any;
+}
+
 export interface Plan {
 	name: string;
 	price: {

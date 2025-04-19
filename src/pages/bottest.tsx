@@ -1,8 +1,10 @@
 // src/pages/Bottest.tsx
 
+import { getBotData } from "@/lib/bot";
+import { authService } from "@/services/auth.service";
 import type React from "react";
+import { useEffect, useState } from "react";
 import BotSettingsWithWorkflow from "../components/fluxoflows/bot-workflow-integration";
-// import { api } from "@/lib/api";
 
 const exampleBotData: any = {
 	steps: {
@@ -189,12 +191,62 @@ const exampleBotData: any = {
 };
 
 const Bottest: React.FC = () => {
+	const [botData, setBotData] = useState<any>(null);
+	const [error, setError] = useState<string | null>(null);
+	const campaignId = "547ec678-e2fe-4649-94b2-1d1f0de3ad0a";
+
+	useEffect(() => {
+		const fetchBotData = async () => {
+			const token = authService.getToken();
+			if (!token) {
+				console.error(
+					"Token não encontrado. Verifique se você está autenticado.",
+				);
+				setError("Token não encontrado. Verifique se você está autenticado.");
+				return;
+			}
+
+			try {
+				const data = await getBotData(campaignId, token);
+				setBotData(data);
+			} catch (error) {
+				if (error.response && error.response.status === 401) {
+					// Tente renovar o token
+					const isTokenRenewed = await authService.refreshTokenIfNeeded();
+					if (isTokenRenewed) {
+						// Tente novamente a requisição
+						const newToken = authService.getToken(); // Obtenha o novo token
+						const data = await getBotData(campaignId, newToken);
+						setBotData(data);
+					} else {
+						console.error("Erro ao renovar o token.");
+						setError("Erro ao renovar o token. Faça login novamente.");
+					}
+				} else {
+					console.error("Erro ao buscar dados do bot:", error);
+					setError("Erro ao buscar dados do bot. Tente novamente.");
+				}
+			}
+		};
+
+		fetchBotData();
+	}, [campaignId]);
+
 	return (
 		<div>
-			<BotSettingsWithWorkflow
-				botData={exampleBotData}
-				companyId={"547ec678-e2fe-4649-94b2-1d1f0de3ad0a"}
-			/>
+			{error && (
+				<div className="error-message">
+					<p>{error}</p>
+				</div>
+			)}
+			{botData ? (
+				<BotSettingsWithWorkflow botData={botData} campaignId={campaignId} />
+			) : (
+				<BotSettingsWithWorkflow
+					botData={exampleBotData}
+					campaignId={campaignId}
+				/>
+			)}
 		</div>
 	);
 };

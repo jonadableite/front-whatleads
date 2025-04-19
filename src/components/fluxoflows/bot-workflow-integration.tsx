@@ -5,7 +5,7 @@ import BotFixedSettingsEnhancedPage from "./bot-fixed-settings-enhanced-page";
 // Carregue o WorkflowBuilderPage dinamicamente apenas no cliente
 const WorkflowBuilderPage = React.lazy(() => import("./workflow-builder"));
 
-const BotSettingsWithWorkflow = ({ companyId = "", botData = null }) => {
+const BotSettingsWithWorkflow = ({ campaignId = "", botData = null }) => {
 	const [activeView, setActiveView] = useState("form");
 	const [mounted, setMounted] = useState(false);
 
@@ -18,7 +18,7 @@ const BotSettingsWithWorkflow = ({ companyId = "", botData = null }) => {
 			<div className="w-full">
 				<div className="mt-0">
 					<BotFixedSettingsEnhancedPage
-						companyId={companyId}
+						campaignId={campaignId}
 						botData={botData ?? undefined}
 					/>
 				</div>
@@ -69,7 +69,7 @@ const BotSettingsWithWorkflow = ({ companyId = "", botData = null }) => {
 			<div className="mt-0">
 				{activeView === "form" ? (
 					<BotFixedSettingsEnhancedPage
-						companyId={companyId}
+						campaignId={campaignId}
 						botData={botData ?? undefined}
 					/>
 				) : (
@@ -85,7 +85,7 @@ const BotSettingsWithWorkflow = ({ companyId = "", botData = null }) => {
 					>
 						<WorkflowBuilderPage
 							botData={botData ?? undefined}
-							companyId={companyId}
+							campaignId={campaignId}
 						/>
 					</Suspense>
 				)}

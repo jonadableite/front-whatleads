@@ -3,6 +3,7 @@ import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { ProtectedLayout } from "@/components/layout/ProtectedLayout";
 import { PublicLayout } from "@/components/layout/PublicLayout";
 import AdminDashboard from "@/pages/AdminDashboard";
+import CRM from "@/pages/CRM";
 import Campanhas from "@/pages/Campanhas";
 import ChatbotFlow from "@/pages/ChatbotFlow";
 import CheckoutPage from "@/pages/CheckoutPage";
@@ -94,6 +95,10 @@ const router = createBrowserRouter([
 					{
 						path: "/bot",
 						element: <Bottest />,
+					},
+					{
+						path: "/crm",
+						element: <CRM />,
 					},
 				],
 			},

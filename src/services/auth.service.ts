@@ -109,28 +109,21 @@ class AuthService {
 
 	// Refresh token com melhor tratamento de erro
 	async refreshTokenIfNeeded(): Promise<boolean> {
+		const refreshToken = localStorage.getItem(this.REFRESH_TOKEN_KEY);
+		if (!refreshToken) {
+			return false; // Não há refresh token disponível
+		}
+
 		try {
-			const token = this.getToken();
-			if (!token) return false;
-
-			if (this.isTokenExpired(token)) {
-				const response = await axios.post(
-					`${API_URL}/api/auth/refresh-token`,
-					{ token },
-					{ headers: this.getAuthHeaders() },
-				);
-
-				if (response.data.access_token) {
-					this.setToken(response.data.access_token);
-					return true;
-				}
-			}
-
-			return !this.isTokenExpired(token);
+			const response = await axios.post(`${API_URL}/api/refresh-token`, {
+				token: refreshToken,
+			});
+			const { token } = response.data;
+			this.setToken(token); // Armazena o novo token
+			return true; // Token renovado com sucesso
 		} catch (error) {
-			console.error("Erro ao renovar token:", error);
-			this.logout();
-			return false;
+			console.error("Erro ao renovar o token:", error);
+			return false; // Falha na renovação do token
 		}
 	}
 

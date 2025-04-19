@@ -44,7 +44,7 @@ import {
 import { useCallback, useEffect, useRef, useState } from "react";
 import ReactFlowWrapper from "./react-flow-wrapper";
 
-// import { saveFlexBotNewSettings } from "@/actions/companies/companyUnit/patch-IsResponderBot-company-unit.action";
+// import { saveFlexBotNewSettings } from "@/actions/companies/campaignUnit/patch-IsResponderBot-campaign-unit.action";
 
 interface NodeResponse {
 	key: string;
@@ -1012,14 +1012,14 @@ interface BotData {
 
 interface WorkflowBuilderProps {
 	initialData: BotData | null;
-	companyId: string;
-	companyDataState?: BotData;
+	campaignId: string;
+	campaignDataState?: BotData;
 }
 
 const WorkflowBuilder = ({
 	initialData = null,
-	companyId,
-	companyDataState,
+	campaignId,
+	campaignDataState,
 }: WorkflowBuilderProps) => {
 	const nodeTypes = {
 		message: MessageNode,
@@ -1842,9 +1842,9 @@ const WorkflowBuilder = ({
 
 	const handleSaveFlow = async () => {
 		try {
-			console.log(companyId, "companyId fluxo...");
+			console.log(campaignId, "campaignId fluxo...");
 
-			const effectiveCompanyId = companyId;
+			const effectiveCompanyId = campaignId;
 
 			if (effectiveCompanyId === undefined) {
 				alert("ID da empresa não encontrado. Não é possível salvar o fluxo.");
@@ -1893,8 +1893,8 @@ const WorkflowBuilder = ({
 
 			try {
 				console.log(
-					companyId,
-					"companyId fluxo...",
+					campaignId,
+					"campaignId fluxo...",
 					effectiveCompanyId,
 					"effectiveCompanyIdeffectiveCompanyIdeffectiveCompanyId",
 				);
@@ -1902,7 +1902,7 @@ const WorkflowBuilder = ({
 				const result = await saveFlexBotNewSettings(
 					effectiveCompanyId,
 					updatedData,
-					companyDataState,
+					campaignDataState,
 				);
 
 				console.log("Action response:", result);
@@ -2166,22 +2166,22 @@ const WorkflowBuilder = ({
 
 interface WorkflowBuilderPageProps {
 	botData?: BotData | null;
-	companyId: string;
-	companyDataState?: BotData;
+	campaignId: string;
+	campaignDataState?: BotData;
 }
 
 const WorkflowBuilderPage = ({
 	botData = null,
-	companyId,
-	companyDataState,
+	campaignId,
+	campaignDataState,
 }: WorkflowBuilderPageProps) => {
 	return (
 		<ReactFlowWrapper>
 			<div className="p-1">
 				<WorkflowBuilder
 					initialData={botData}
-					companyId={companyId}
-					companyDataState={companyDataState}
+					campaignId={campaignId}
+					campaignDataState={campaignDataState}
 				/>
 			</div>
 		</ReactFlowWrapper>

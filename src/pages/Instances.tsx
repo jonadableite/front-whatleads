@@ -134,7 +134,9 @@ const InstanceCard: React.FC<{
 	onEditTypebotFlow,
 	onDeleteTypebotFlow,
 }) => {
-	const isConnected = instance.connectionStatus === "open";
+	const isConnected =
+		instance.connectionStatus === "OPEN" ||
+		instance.connectionStatus === "CONNECTED";
 	const [showTypebotModal, setShowTypebotModal] = useState(false);
 	const [selectedTypebotFlow, setSelectedTypebotFlow] =
 		useState<TypebotConfig | null>(null);
@@ -791,8 +793,11 @@ const Instances: React.FC = () => {
 					response.data?.instance?.connectionStatus ||
 					response.data?.instance?.state;
 
-				if (currentStatus === "open") {
-					updateInstanceStatus(instanceId, "open");
+				if (
+					currentStatus?.toUpperCase() === "OPEN" ||
+					currentStatus?.toUpperCase() === "CONNECTED"
+				) {
+					updateInstanceStatus(instanceId, currentStatus.toUpperCase());
 					clearInterval(pollInterval);
 				}
 			} catch (error) {
@@ -896,7 +901,7 @@ const Instances: React.FC = () => {
 
 							console.log("Current status:", currentStatus);
 
-							if (currentStatus === "open") {
+							if (currentStatus === "OPEN") {
 								const token = localStorage.getItem("token");
 								const instanceToUpdate = instances.find(
 									(instance) => instance.instanceName === instanceName,
@@ -907,7 +912,7 @@ const Instances: React.FC = () => {
 										const updateResponse = await axios.put(
 											`${API_BASE_URL}/api/instances/instance/${instanceToUpdate.instanceId}/connection-status`,
 											{
-												connectionStatus: "open",
+												connectionStatus: "OPEN",
 											},
 											{
 												headers: {
