@@ -108,13 +108,12 @@ const InstanceCard = ({ instance }) => (
 			</div>
 			<div className="flex flex-col items-end">
 				<span
-					className={`text-xs px-2 py-1 rounded-full ${
-						instance.connectionStatus === "open"
+					className={`text-xs px-2 py-1 rounded-full ${instance.connectionStatus === "OPEN"
 							? "bg-neon-green/20 text-neon-green"
 							: "bg-red-500/20 text-red-500"
-					}`}
+						}`}
 				>
-					{instance.connectionStatus === "open" ? "Conectado" : "Desconectado"}
+					{instance.connectionStatus === "OPEN" ? "Conectado" : "Desconectado"}
 				</span>
 			</div>
 		</div>
@@ -155,15 +154,14 @@ const MessageLogItem = ({ log }) => (
 		</div>
 		<div className="text-right">
 			<span
-				className={`px-3 py-1 text-sm rounded-full ${
-					log.status === "SERVER_ACK"
+				className={`px-3 py-1 text-sm rounded-full ${log.status === "SERVER_ACK"
 						? "bg-yellow-500/20 text-yellow-500"
 						: log.status === "DELIVERY_ACK"
 							? "bg-green-500/20 text-green-500"
 							: log.status === "READ"
 								? "bg-blue-500/20 text-blue-500"
 								: "bg-gray-500/20 text-gray-500"
-				}`}
+					}`}
 			>
 				{log.status === "SERVER_ACK"
 					? "Enviado"
@@ -182,11 +180,10 @@ const PaginationButton = ({ onClick, disabled, children }) => (
 	<button
 		onClick={onClick}
 		disabled={disabled}
-		className={`px-3 py-2 rounded-md ${
-			disabled
+		className={`px-3 py-2 rounded-md ${disabled
 				? "bg-deep/40 text-white/40 cursor-not-allowed"
 				: "bg-electric/20 text-electric hover:bg-electric/30 transition-colors"
-		}`}
+			}`}
 	>
 		{children}
 	</button>
@@ -443,11 +440,10 @@ export default function Dashboard() {
 								variant={chartType === "bar" ? "default" : "ghost"}
 								className={`
         rounded-full transition-all duration-300
-        ${
-					chartType === "bar"
-						? "bg-electric text-white shadow-lg shadow-electric/30"
-						: "text-white/60 hover:text-white hover:bg-electric/10"
-				}
+        ${chartType === "bar"
+										? "bg-electric text-white shadow-lg shadow-electric/30"
+										: "text-white/60 hover:text-white hover:bg-electric/10"
+									}
       `}
 							>
 								<BarChart3 className="w-5 h-5 mr-2" />
@@ -458,11 +454,10 @@ export default function Dashboard() {
 								variant={chartType === "line" ? "default" : "ghost"}
 								className={`
         rounded-full transition-all duration-300
-        ${
-					chartType === "line"
-						? "bg-neon-green text-white shadow-lg shadow-neon-green/30"
-						: "text-white/60 hover:text-white hover:bg-neon-green/10"
-				}
+        ${chartType === "line"
+										? "bg-neon-green text-white shadow-lg shadow-neon-green/30"
+										: "text-white/60 hover:text-white hover:bg-neon-green/10"
+									}
       `}
 							>
 								<LineChart className="w-5 h-5 mr-2" />

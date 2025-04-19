@@ -37,7 +37,7 @@ const Return: React.FC = () => {
 		navigate("/");
 	};
 
-	if (status === "open") {
+	if (status === "OPEN") {
 		navigate("/checkout");
 		return null;
 	}
