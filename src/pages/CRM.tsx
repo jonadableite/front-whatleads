@@ -1,3 +1,4 @@
+// src/pages/CRM.tsx
 import { motion } from "framer-motion";
 import {
 	BarChart2,
@@ -6,8 +7,8 @@ import {
 	Plus,
 	RefreshCw,
 } from "lucide-react";
-// src/pages/CRM.tsx
 import { useState } from "react";
+import { toast } from "sonner";
 
 // Hooks e Serviços
 import { useProtectedRoute } from "@/hooks/useProtectedRoute";
@@ -27,198 +28,35 @@ import DocumentManager from "@/components/CRM/DocumentManager";
 import PerformanceAnalytics from "@/components/CRM/PerformanceAnalytics";
 import WhatsAppCRM from "@/components/CRM/WhatsAppCRM";
 
-// Tipos
-type ChatStatus = "fila" | "atendimento" | "resolvido";
-
-// Interfaces
-interface SocialMedia {
-	platform: string;
-	username: string;
-}
-
-interface ClientProfile {
-	id: string;
-	name: string;
-	phone: string;
-	email: string;
-	avatar?: string;
-	tags?: string[];
-	segment?: string;
-	address?: string;
-	company?: string;
-	socialMedia?: SocialMedia[];
-	interactions?: Array<{
-		type: "message" | "call" | "email";
-		date: Date;
-		content: string;
-	}>;
-}
-
-interface ChatItem {
-	id: string;
-	clientName: string;
-	phone: string;
-	status: ChatStatus;
-	lastMessage: string;
-	timestamp: Date;
-	avatar?: string;
-	clientProfile?: ClientProfile;
-}
+// Import hooks de API
+import { useCrmConversations, Conversation } from "@/hooks/useCrmConversations";
 
 export default function CRMPage() {
 	// Autenticação e Rota Protegida
-	const isAuthenticated = useProtectedRoute();
+	useProtectedRoute();
+
 	const [activeTab, setActiveTab] = useState("whatsapp");
-	const [selectedClientProfile, setSelectedClientProfile] =
-		useState<ClientProfile | null>(null);
-	const [isClientProfileSidebarOpen, setIsClientProfileSidebarOpen] =
-		useState(false);
+	const [isClientProfileSidebarOpen, setIsClientProfileSidebarOpen] = useState(false);
+	const [selectedClientProfile, setSelectedClientProfile] = useState<any | null>(null);
 
-	// Estado de chats simulados com perfis de cliente expandidos
-	const [chats, setChats] = useState<ChatItem[]>([
-		{
-			id: "1",
-			clientName: "João Silva",
-			phone: "+55 (11) 99999-9999",
-			status: "fila",
-			lastMessage: "Preciso de um orçamento",
-			timestamp: new Date(),
-			avatar: "https://exemplo.com/avatar1.jpg",
-			clientProfile: {
-				id: "1",
-				name: "João Silva",
-				phone: "+55 (11) 99999-9999",
-				email: "joao.silva@email.com",
-				tags: ["Prospect", "Pequena Empresa"],
-				segment: "Tecnologia",
-				company: "Startup Tech",
-				socialMedia: [{ platform: "LinkedIn", username: "joaosilva" }],
-				interactions: [
-					{
-						type: "message",
-						date: new Date(),
-						content: "Primeiro contato sobre orçamento",
-					},
-				],
-			},
-		},
-		{
-			id: "2",
-			clientName: "Paulo Silva",
-			phone: "+55 (11) 95599-2299",
-			status: "fila",
-			lastMessage: "Preciso de um orçamento",
-			timestamp: new Date(),
-			avatar: "https://exemplo.com/avatar1.jpg",
-			clientProfile: {
-				id: "2",
-				name: "Paulo Silva",
-				phone: "+55 (11) 95599-2299",
-				email: "paulo.silva@email.com",
-				tags: ["Prospect", "Pequena Empresa"],
-				segment: "Tecnologia",
-				company: "Startup Tech",
-				socialMedia: [{ platform: "LinkedIn", username: "joaosilva" }],
-				interactions: [
-					{
-						type: "message",
-						date: new Date(),
-						content: "Primeiro contato sobre orçamento",
-					},
-				],
-			},
-		},
-		{
-			id: "3",
-			clientName: "Brayan Leite",
-			phone: "+55 (11) 98888-9223",
-			status: "fila",
-			lastMessage: "Preciso de um orçamento",
-			timestamp: new Date(),
-			avatar: "https://exemplo.com/avatar1.jpg",
-			clientProfile: {
-				id: "3",
-				name: "Brayan Silva",
-				phone: "+55 (11) 98888-9223",
-				email: "brayan.silva@email.com",
-				tags: ["Prospect", "Pequena Empresa"],
-				segment: "Tecnologia",
-				company: "Startup Tech",
-				socialMedia: [{ platform: "LinkedIn", username: "joaosilva" }],
-				interactions: [
-					{
-						type: "message",
-						date: new Date(),
-						content: "Primeiro contato sobre orçamento",
-					},
-				],
-			},
-		},
-		{
-			id: "4",
-			clientName: "Fernando Silva",
-			phone: "+55 (11) 94499-9329",
-			status: "fila",
-			lastMessage: "Preciso de um orçamento",
-			timestamp: new Date(),
-			avatar: "https://exemplo.com/avatar1.jpg",
-			clientProfile: {
-				id: "4",
-				name: "Fernando Silva",
-				phone: "+55 (11) 94499-9329",
-				email: "fernando.silva@email.com",
-				tags: ["Prospect", "Pequena Empresa"],
-				segment: "Tecnologia",
-				company: "Startup Tech",
-				socialMedia: [{ platform: "LinkedIn", username: "joaosilva" }],
-				interactions: [
-					{
-						type: "message",
-						date: new Date(),
-						content: "Primeiro contato sobre orçamento",
-					},
-				],
-			},
-		},
-		{
-			id: "5",
-			clientName: "Neymar Silva",
-			phone: "+55 (11) 98979-9799",
-			status: "fila",
-			lastMessage: "Preciso de um orçamento",
-			timestamp: new Date(),
-			avatar: "https://exemplo.com/avatar1.jpg",
-			clientProfile: {
-				id: "5",
-				name: "Neymar Silva",
-				phone: "+55 (11) 98979-9799",
-				email: "neymar.silva@email.com",
-				tags: ["Prospect", "Pequena Empresa"],
-				segment: "Tecnologia",
-				company: "Startup Tech",
-				socialMedia: [{ platform: "LinkedIn", username: "joaosilva" }],
-				interactions: [
-					{
-						type: "message",
-						date: new Date(),
-						content: "Primeiro contato sobre orçamento",
-					},
-				],
-			},
-		},
-	]);
+	// Usando o hook para gerenciar conversas
+	const {
+		conversations,
+		loading,
+		fetchConversations,
+		updateConversationStatus,
+		updateConversationTags
+	} = useCrmConversations();
 
-	// Funções de gerenciamento
-	const updateChatStatus = (chatId: string, newStatus: ChatStatus) => {
-		setChats(
-			chats.map((chat) =>
-				chat.id === chatId ? { ...chat, status: newStatus } : chat,
-			),
-		);
-	};
-
-	const handleOpenClientProfile = (client: ClientProfile) => {
-		setSelectedClientProfile(client);
+	// Handlers
+	const handleOpenClientProfile = (conversation: Conversation) => {
+		setSelectedClientProfile({
+			id: conversation.id,
+			name: conversation.contactName,
+			phone: conversation.contactPhone,
+			tags: conversation.tags || []
+			// Outros dados seriam carregados de uma API específica de cliente/contato
+		});
 		setIsClientProfileSidebarOpen(true);
 	};
 
@@ -227,16 +65,17 @@ export default function CRMPage() {
 		setSelectedClientProfile(null);
 	};
 
-	const handleUpdateClientProfile = (updatedClient: ClientProfile) => {
-		// Atualizar perfil do cliente
-		setChats(
-			chats.map((chat) =>
-				chat.clientProfile?.id === updatedClient.id
-					? { ...chat, clientProfile: updatedClient }
-					: chat,
-			),
-		);
+	const handleUpdateClientProfile = (updatedClient: any) => {
+		// Atualizar tags da conversa no backend
+		if (updatedClient.tags) {
+			updateConversationTags(updatedClient.id, updatedClient.tags);
+		}
 		setSelectedClientProfile(updatedClient);
+	};
+
+	const handleRefresh = () => {
+		fetchConversations();
+		toast.success("Atualizando conversas...");
 	};
 
 	// Tabs disponíveis
@@ -247,9 +86,10 @@ export default function CRMPage() {
 			label: "WhatsApp",
 			component: (
 				<WhatsAppCRM
-					chats={chats}
-					onUpdateStatus={updateChatStatus}
+					conversations={conversations}
+					onUpdateStatus={updateConversationStatus}
 					onOpenClientProfile={handleOpenClientProfile}
+					loading={loading}
 				/>
 			),
 		},
@@ -269,9 +109,9 @@ export default function CRMPage() {
 
 	// Contadores de status
 	const statusCounts = {
-		fila: chats.filter((chat) => chat.status === "fila").length,
-		atendimento: chats.filter((chat) => chat.status === "atendimento").length,
-		resolvido: chats.filter((chat) => chat.status === "resolvido").length,
+		OPEN: conversations.filter((conv) => conv.status === "OPEN").length,
+		pending: conversations.filter((conv) => conv.status === "pending").length,
+		closed: conversations.filter((conv) => conv.status === "closed").length,
 	};
 
 	return (
@@ -310,12 +150,11 @@ export default function CRMPage() {
 												variant="ghost"
 												className={`
                           rounded-full
-                          ${
-														status === "fila"
+                          ${status === "OPEN"
+														? "bg-blue-500/20 text-blue-500"
+														: status === "pending"
 															? "bg-yellow-500/20 text-yellow-500"
-															: status === "atendimento"
-																? "bg-blue-500/20 text-blue-500"
-																: "bg-green-500/20 text-green-500"
+															: "bg-green-500/20 text-green-500"
 													}
                         `}
 											>
@@ -324,7 +163,7 @@ export default function CRMPage() {
 											</Button>
 										</TooltipTrigger>
 										<TooltipContent>
-											{count} chats em {status}
+											{count} conversas com status {status.toLowerCase()}
 										</TooltipContent>
 									</Tooltip>
 								))}
@@ -340,8 +179,13 @@ export default function CRMPage() {
 							</Tooltip>
 							<Tooltip>
 								<TooltipTrigger asChild>
-									<Button variant="outline" className="rounded-full">
-										<RefreshCw className="w-4 h-4" />
+									<Button
+										variant="outline"
+										className="rounded-full"
+										onClick={handleRefresh}
+										disabled={loading}
+									>
+										<RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
 									</Button>
 								</TooltipTrigger>
 								<TooltipContent>Atualizar Lista</TooltipContent>
@@ -361,10 +205,9 @@ export default function CRMPage() {
 								className={`
                   flex items-center space-x-2 px-4 py-2 rounded-full
                   transition-all duration-300 relative
-                  ${
-										activeTab === tab.name
-											? "text-white bg-electric shadow-lg"
-											: "text-white/60 hover:text-white"
+                  ${activeTab === tab.name
+										? "text-white bg-electric shadow-lg"
+										: "text-white/60 hover:text-white"
 									}
                 `}
 							>
@@ -383,7 +226,6 @@ export default function CRMPage() {
 						{tabs.find((tab) => tab.name === activeTab)?.component}
 					</motion.div>
 				</motion.div>
-
 				{/* Sidebar de Perfil do Cliente */}
 				{isClientProfileSidebarOpen && selectedClientProfile && (
 					<ClientProfileSidebar

@@ -1,40 +1,22 @@
+// src/components/CRM/ClientProfileSidebar.tsx
+import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import {
-	Briefcase,
-	Edit2,
-	Mail,
-	MapPin,
-	Phone,
-	Plus,
-	Save,
-	Tag,
-	X,
-} from "lucide-react";
-import type React from "react";
-import { useState } from "react";
-
-// Interfaces (se não estiverem em outro arquivo, mantenha-as aqui)
-interface SocialMedia {
-	platform: string;
-	username: string;
-}
+import { X, Edit, Save, Phone, Mail, Tag, Star, Navigation, Building } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { toast } from "sonner";
 
 interface ClientProfile {
 	id: string;
 	name: string;
 	phone: string;
-	email: string;
-	avatar?: string;
+	email?: string;
 	tags?: string[];
 	segment?: string;
 	address?: string;
 	company?: string;
-	socialMedia?: SocialMedia[];
-	interactions?: Array<{
-		type: "message" | "call" | "email";
-		date: Date;
-		content: string;
-	}>;
+	notes?: string;
 }
 
 interface ClientProfileSidebarProps {
@@ -48,247 +30,253 @@ const ClientProfileSidebar: React.FC<ClientProfileSidebarProps> = ({
 	onClose,
 	onUpdateClient,
 }) => {
-	const [editMode, setEditMode] = useState(false);
-	const [editedClient, setEditedClient] = useState<ClientProfile>({
-		...client,
-	});
+	const [isEditing, setIsEditing] = useState(false);
+	const [editedClient, setEditedClient] = useState<ClientProfile>(client);
 	const [newTag, setNewTag] = useState("");
 
-	const addTag = () => {
-		if (newTag.trim() && !editedClient.tags?.includes(newTag.trim())) {
-			setEditedClient((prev) => ({
-				...prev,
-				tags: [...(prev.tags || []), newTag.trim()],
-			}));
+	// Atualizar dados locais quando o cliente mudar
+	useEffect(() => {
+		setEditedClient(client);
+	}, [client]);
+
+	const handleChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+		setEditedClient({
+			...editedClient,
+			[e.target.name]: e.target.value,
+		});
+	};
+
+	const handleAddTag = () => {
+		if (newTag && (!editedClient.tags?.includes(newTag))) {
+			setEditedClient({
+				...editedClient,
+				tags: [...(editedClient.tags || []), newTag],
+			});
 			setNewTag("");
 		}
 	};
 
-	const removeTag = (tagToRemove: string) => {
-		setEditedClient((prev) => ({
-			...prev,
-			tags: prev.tags?.filter((tag) => tag !== tagToRemove),
-		}));
+	const handleRemoveTag = (tagToRemove: string) => {
+		setEditedClient({
+			...editedClient,
+			tags: editedClient.tags?.filter(tag => tag !== tagToRemove) || [],
+		});
 	};
 
 	const handleSave = () => {
 		onUpdateClient(editedClient);
-		setEditMode(false);
+		setIsEditing(false);
+		toast.success("Perfil do cliente atualizado");
 	};
 
-	const renderEditableField = (
-		label: string,
-		value: string,
-		onChangeHandler: (newValue: string) => void,
-		icon: React.ReactNode,
-	) => (
-		<div className="flex items-center space-x-3 mb-3">
-			{icon}
-			{editMode ? (
-				<input
-					type="text"
-					value={value}
-					onChange={(e) => onChangeHandler(e.target.value)}
-					className="flex-1 bg-deep/30 rounded-full px-3 py-2 text-white"
-				/>
-			) : (
-				<span className="text-white/80">{value || "Não informado"}</span>
-			)}
-		</div>
-	);
+	const handleCancel = () => {
+		setEditedClient(client);
+		setIsEditing(false);
+	};
 
 	return (
 		<motion.div
 			initial={{ x: "100%" }}
 			animate={{ x: 0 }}
 			exit={{ x: "100%" }}
-			transition={{ type: "tween" }}
-			className="fixed top-0 right-0 w-96 h-full bg-deep/90 backdrop-blur-lg shadow-2xl z-50 overflow-y-auto"
+			transition={{ type: "spring", stiffness: 300, damping: 30 }}
+			className="w-80 bg-deep/60 border-l border-electric/20 h-screen overflow-y-auto fixed right-0 top-0 p-6 shadow-2xl backdrop-blur-md"
 		>
-			<div className="p-6 relative">
-				{/* Botões de Ação */}
-				<div className="absolute top-4 right-4 flex space-x-2">
-					<motion.button
-						whileHover={{ scale: 1.1 }}
-						onClick={() => setEditMode(!editMode)}
-						className="text-white/70 hover:text-white"
-					>
-						{editMode ? (
-							<Save className="text-green-500" />
-						) : (
-							<Edit2 className="w-5 h-5" />
-						)}
-					</motion.button>
-					<motion.button
-						whileHover={{ scale: 1.1 }}
-						onClick={onClose}
-						className="text-white/70 hover:text-white"
-					>
-						<X className="w-5 h-5" />
-					</motion.button>
+			{/* Header */}
+			<div className="flex justify-between items-center mb-6">
+				<h2 className="text-xl font-bold text-white">Perfil do Cliente</h2>
+				<button onClick={onClose} className="text-white/70 hover:text-white">
+					<X size={20} />
+				</button>
+			</div>
+
+			{/* Avatar & Main Info */}
+			<div className="flex flex-col items-center mb-6">
+				<div className="w-24 h-24 rounded-full bg-electric/30 flex items-center justify-center text-3xl font-bold text-white mb-4">
+					{client.name.charAt(0).toUpperCase()}
 				</div>
 
-				{/* Cabeçalho com Avatar */}
-				<motion.div
-					initial={{ y: -20 }}
-					animate={{ y: 0 }}
-					className="flex items-center space-x-4 mb-6 border-b border-electric/20 pb-4"
-				>
-					<div className="relative">
-						<img
-							src={editedClient.avatar || "/default-avatar.png"}
-							alt={editedClient.name}
-							className="w-24 h-24 rounded-full object-cover border-4 border-electric/50"
-						/>
-						{editMode && (
-							<motion.button
-								initial={{ scale: 0.8 }}
-								animate={{ scale: 1 }}
-								className="absolute bottom-0 right-0 bg-electric rounded-full p-2"
-							>
-								<Edit2 className="w-4 h-4 text-white" />
-							</motion.button>
-						)}
-					</div>
-					<div>
-						{editMode ? (
-							<input
-								value={editedClient.name}
-								onChange={(e) =>
-									setEditedClient((prev) => ({ ...prev, name: e.target.value }))
-								}
-								className="text-2xl font-bold text-white bg-transparent border-b border-electric/50 mb-2"
-							/>
-						) : (
-							<h2 className="text-2xl font-bold text-white">
-								{editedClient.name}
-							</h2>
-						)}
-						<p className="text-white/70">{editedClient.phone}</p>
-					</div>
-				</motion.div>
+				{!isEditing ? (
+					<h3 className="text-xl font-semibold text-white">{client.name}</h3>
+				) : (
+					<Input
+						name="name"
+						value={editedClient.name}
+						onChange={handleChange}
+						className="bg-deep/30 border-electric/30 text-white text-lg text-center font-semibold"
+					/>
+				)}
+			</div>
 
-				{/* Seções de Informações */}
-				<div className="space-y-6">
-					{/* Informações de Contato */}
-					<div>
-						<h3 className="text-lg font-semibold text-white mb-3 flex items-center">
-							<Mail className="mr-2 text-electric" /> Informações de Contato
-						</h3>
-						{renderEditableField(
-							"E-mail",
-							editedClient.email,
-							(val) => setEditedClient((prev) => ({ ...prev, email: val })),
-							<Mail className="text-electric w-5 h-5" />,
-						)}
-						{renderEditableField(
-							"Telefone",
-							editedClient.phone,
-							(val) => setEditedClient((prev) => ({ ...prev, phone: val })),
-							<Phone className="text-electric w-5 h-5" />,
-						)}
-					</div>
-
-					{/* Informações Profissionais */}
-					<div>
-						<h3 className="text-lg font-semibold text-white mb-3 flex items-center">
-							<Briefcase className="mr-2 text-electric" /> Informações
-							Profissionais
-						</h3>
-						{renderEditableField(
-							"Empresa",
-							editedClient.company || "",
-							(val) => setEditedClient((prev) => ({ ...prev, company: val })),
-							<Briefcase className="text-electric w-5 h-5" />,
-						)}
-						{renderEditableField(
-							"Segmento",
-							editedClient.segment || "",
-							(val) => setEditedClient((prev) => ({ ...prev, segment: val })),
-							<Tag className="text-electric w-5 h-5" />,
-						)}
-					</div>
-
-					{/* Endereço */}
-					<div>
-						<h3 className="text-lg font-semibold text-white mb-3 flex items-center">
-							<MapPin className="mr-2 text-electric" /> Endereço
-						</h3>
-						{renderEditableField(
-							"Endereço",
-							editedClient.address || "",
-							(val) => setEditedClient((prev) => ({ ...prev, address: val })),
-							<MapPin className="text-electric w-5 h-5" />,
-						)}
-					</div>
-
-					{/* Tags */}
-					<div>
-						<h3 className="text-lg font-semibold text-white mb-3 flex items-center">
-							<Tag className="mr-2 text-electric" /> Tags
-						</h3>
-						<div className="flex flex-wrap gap-2 mb-3">
-							{editedClient.tags?.map((tag) => (
-								<motion.div
-									key={tag}
-									initial={{ scale: 0.9 }}
-									animate={{ scale: 1 }}
-									className="bg-electric/20 text-electric px-3 py-1 rounded-full text-sm flex items-center space-x-2"
-								>
-									<span>{tag}</span>
-									{editMode && (
-										<motion.button
-											whileHover={{ scale: 1.1 }}
-											onClick={() => removeTag(tag)}
-											className="text-white/70 hover:text-white"
-										>
-											<X size={16} />
-										</motion.button>
-									)}
-								</motion.div>
-							))}
-						</div>
-						{editMode && (
-							<motion.div
-								initial={{ opacity: 0 }}
-								animate={{ opacity: 1 }}
-								className="flex items-center space-x-2"
-							>
-								<input
-									type="text"
-									value={newTag}
-									onChange={(e) => setNewTag(e.target.value)}
-									onKeyPress={(e) => e.key === "Enter" && addTag()}
-									placeholder="Nova tag"
-									className="flex-1 bg-deep/30 rounded-full px-3 py-2 text-white"
-								/>
-								<motion.button
-									whileHover={{ scale: 1.1 }}
-									onClick={addTag}
-									className="bg-electric text-white p-2 rounded-full"
-								>
-									<Plus size={16} />
-								</motion.button>
-							</motion.div>
-						)}
-					</div>
-
-					{/* Botão de Salvar em Modo de Edição */}
-					{editMode && (
-						<motion.div
-							initial={{ opacity: 0, y: 20 }}
-							animate={{ opacity: 1, y: 0 }}
-							className="mt-6"
+			{/* Actions */}
+			<div className="flex justify-center space-x-2 mb-6">
+				{isEditing ? (
+					<>
+						<Button
+							onClick={handleSave}
+							className="bg-electric hover:bg-electric/80"
+							size="sm"
 						>
-							<button
-								onClick={handleSave}
-								className="w-full bg-electric text-white py-3 rounded-full hover:bg-electric/80 transition-all"
-							>
-								Salvar Alterações
-							</button>
-						</motion.div>
+							<Save size={16} className="mr-1" /> Salvar
+						</Button>
+						<Button
+							onClick={handleCancel}
+							variant="outline"
+							size="sm"
+						>
+							Cancelar
+						</Button>
+					</>
+				) : (
+					<Button
+						onClick={() => setIsEditing(true)}
+						variant="outline"
+						size="sm"
+					>
+						<Edit size={16} className="mr-1" /> Editar Perfil
+					</Button>
+				)}
+			</div>
+
+			{/* Contact Information */}
+			<div className="space-y-4 mb-6">
+				<h3 className="text-lg font-semibold text-white">Informações de Contato</h3>
+
+				<div className="flex items-center space-x-2">
+					<Phone size={16} className="text-electric" />
+					{isEditing ? (
+						<Input
+							name="phone"
+							value={editedClient.phone}
+							onChange={handleChange}
+							className="bg-deep/30 border-electric/30 text-white"
+							placeholder="Telefone"
+						/>
+					) : (
+						<span className="text-white">{client.phone}</span>
 					)}
 				</div>
+
+				<div className="flex items-center space-x-2">
+					<Mail size={16} className="text-electric" />
+					{isEditing ? (
+						<Input
+							name="email"
+							value={editedClient.email || ""}
+							onChange={handleChange}
+							className="bg-deep/30 border-electric/30 text-white"
+							placeholder="Email"
+						/>
+					) : (
+						<span className="text-white">{client.email || "Não informado"}</span>
+					)}
+				</div>
+
+				<div className="flex items-center space-x-2">
+					<Building size={16} className="text-electric" />
+					{isEditing ? (
+						<Input
+							name="company"
+							value={editedClient.company || ""}
+							onChange={handleChange}
+							className="bg-deep/30 border-electric/30 text-white"
+							placeholder="Empresa"
+						/>
+					) : (
+						<span className="text-white">{client.company || "Não informado"}</span>
+					)}
+				</div>
+
+				<div className="flex items-center space-x-2">
+					<Navigation size={16} className="text-electric" />
+					{isEditing ? (
+						<Input
+							name="address"
+							value={editedClient.address || ""}
+							onChange={handleChange}
+							className="bg-deep/30 border-electric/30 text-white"
+							placeholder="Endereço"
+						/>
+					) : (
+						<span className="text-white">{client.address || "Não informado"}</span>
+					)}
+				</div>
+			</div>
+
+			{/* Segment */}
+			<div className="mb-6">
+				<h3 className="text-lg font-semibold text-white mb-2">Segmento</h3>
+				{isEditing ? (
+					<Input
+						name="segment"
+						value={editedClient.segment || ""}
+						onChange={handleChange}
+						className="bg-deep/30 border-electric/30 text-white"
+						placeholder="Segmento"
+					/>
+				) : (
+					<div className="bg-deep/30 py-1 px-3 rounded inline-block text-white">
+						<Star size={16} className="inline mr-1 text-yellow-500" />
+						{client.segment || "Não categorizado"}
+					</div>
+				)}
+			</div>
+
+			{/* Tags */}
+			<div className="mb-6">
+				<h3 className="text-lg font-semibold text-white mb-2">Tags</h3>
+				<div className="flex flex-wrap gap-2 mb-2">
+					{(editedClient.tags || []).map((tag) => (
+						<div key={tag} className="bg-electric/20 text-electric px-2 py-1 rounded-full text-sm flex items-center">
+							<Tag size={12} className="mr-1" />
+							{tag}
+							{isEditing && (
+								<button
+									onClick={() => handleRemoveTag(tag)}
+									className="ml-1 text-white/70 hover:text-white"
+								>
+									<X size={12} />
+								</button>
+							)}
+						</div>
+					))}
+				</div>
+				{isEditing && (
+					<div className="flex space-x-2">
+						<Input
+							value={newTag}
+							onChange={(e) => setNewTag(e.target.value)}
+							className="bg-deep/30 border-electric/30 text-white"
+							placeholder="Nova tag"
+						/>
+						<Button
+							onClick={handleAddTag}
+							size="sm"
+							variant="outline"
+						>
+							Adicionar
+						</Button>
+					</div>
+				)}
+			</div>
+
+			{/* Notes */}
+			<div className="mb-6">
+				<h3 className="text-lg font-semibold text-white mb-2">Anotações</h3>
+				{isEditing ? (
+					<Textarea
+						name="notes"
+						value={editedClient.notes || ""}
+						onChange={handleChange}
+						className="bg-deep/30 border-electric/30 text-white"
+						placeholder="Adicione notas sobre este cliente"
+						rows={4}
+					/>
+				) : (
+					<p className="text-white/80 bg-deep/30 p-3 rounded">
+						{client.notes || "Nenhuma anotação ainda."}
+					</p>
+				)}
 			</div>
 		</motion.div>
 	);

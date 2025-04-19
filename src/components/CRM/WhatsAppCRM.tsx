@@ -1,3 +1,4 @@
+// src/components/CRM/WhatsAppCRM.tsx
 import { motion } from "framer-motion";
 import {
 	Filter,
@@ -8,89 +9,98 @@ import {
 	Smile,
 } from "lucide-react";
 import type React from "react";
-import { useState } from "react";
-
-// Tipos e Interfaces (manter as mesmas do código anterior)
-type ChatStatus = "fila" | "atendimento" | "resolvido";
-
-interface SocialMedia {
-	platform: string;
-	username: string;
-}
-
-interface ClientProfile {
-	id: string;
-	name: string;
-	phone: string;
-	email: string;
-	avatar?: string;
-	tags?: string[];
-	segment?: string;
-	company?: string;
-	socialMedia?: SocialMedia[];
-	interactions?: Array<{
-		type: "message" | "call" | "email";
-		date: Date;
-		content: string;
-	}>;
-}
-
-interface ChatItem {
-	id: string;
-	clientName: string;
-	phone: string;
-	status: ChatStatus;
-	lastMessage: string;
-	timestamp: Date;
-	avatar?: string;
-	clientProfile?: ClientProfile;
-}
+import { useState, useEffect } from "react";
+import { useCrmMessages } from "@/hooks/useCrmMessages";
+import { Conversation } from "@/hooks/useCrmConversations";
+import { toast } from "sonner";
+import { formatDistanceToNow } from "date-fns";
+import { ptBR } from "date-fns/locale";
+import { Skeleton } from "@/components/ui/Skeleton";
 
 interface WhatsAppCRMProps {
-	chats: ChatItem[];
-	onUpdateStatus: (chatId: string, newStatus: ChatStatus) => void;
-	onOpenClientProfile: (client: ClientProfile) => void;
+	conversations: Conversation[];
+	onUpdateStatus: (conversationId: string, newStatus: string) => Promise<boolean>;
+	onOpenClientProfile: (conversation: Conversation) => void;
+	loading: boolean;
 }
 
 const WhatsAppCRM: React.FC<WhatsAppCRMProps> = ({
-	chats,
+	conversations,
 	onUpdateStatus,
 	onOpenClientProfile,
+	loading,
 }) => {
-	const [selectedChat, setSelectedChat] = useState<ChatItem | null>(null);
+	const [selectedChat, setSelectedChat] = useState<Conversation | null>(null);
 	const [messageInput, setMessageInput] = useState("");
 	const [searchTerm, setSearchTerm] = useState("");
 
-	const filteredChats = chats.filter((chat) =>
-		chat.clientName.toLowerCase().includes(searchTerm.toLowerCase()),
+	// Hook para gerenciar mensagens da conversa selecionada
+	const {
+		messages,
+		loading: loadingMessages,
+		sendMessage
+	} = useCrmMessages(selectedChat?.id || null);
+
+	// Filtrar conversas baseado no termo de busca
+	const filteredConversations = conversations.filter((conv) =>
+		conv.contactName.toLowerCase().includes(searchTerm.toLowerCase())
 	);
 
-	const renderStatusBadge = (status: ChatStatus) => {
-		const statusColors = {
-			fila: "bg-yellow-500/20 text-yellow-500",
-			atendimento: "bg-blue-500/20 text-blue-500",
-			resolvido: "bg-green-500/20 text-green-500",
+	// Se a conversa selecionada mudou na lista, atualize o estado local
+	useEffect(() => {
+		if (selectedChat) {
+			const updatedChat = conversations.find(c => c.id === selectedChat.id);
+			if (updatedChat) {
+				setSelectedChat(updatedChat);
+			}
+		}
+	}, [conversations, selectedChat]);
+
+	const renderStatusBadge = (status: string) => {
+		const statusColors: Record<string, string> = {
+			OPEN: "bg-blue-500/20 text-blue-500",
+			pending: "bg-yellow-500/20 text-yellow-500",
+			closed: "bg-green-500/20 text-green-500",
+			resolved: "bg-green-500/20 text-green-500",
 		};
 
 		return (
 			<span
-				className={`px-2 py-1 rounded-full text-xs ${statusColors[status]}`}
+				className={`px-2 py-1 rounded-full text-xs ${statusColors[status] || "bg-gray-500/20 text-gray-500"}`}
 			>
-				{status.charAt(0).toUpperCase() + status.slice(1)}
+				{status.charAt(0).toUpperCase() + status.slice(1).toLowerCase()}
 			</span>
 		);
 	};
 
-	const handleSendMessage = () => {
+	const handleSendMessage = async () => {
 		if (messageInput.trim() && selectedChat) {
-			// Implementar lógica de envio de mensagem
-			setMessageInput("");
+			try {
+				await sendMessage(messageInput);
+				setMessageInput("");
+			} catch (error) {
+				toast.error("Erro ao enviar mensagem");
+			}
 		}
 	};
 
-	const handleStatusChange = (newStatus: ChatStatus) => {
+	const handleStatusChange = async (newStatus: string) => {
 		if (selectedChat) {
-			onUpdateStatus(selectedChat.id, newStatus);
+			const success = await onUpdateStatus(selectedChat.id, newStatus);
+			if (success) {
+				toast.success(`Status alterado para ${newStatus}`);
+			}
+		}
+	};
+
+	const formatMessageTime = (timestamp: string) => {
+		try {
+			return formatDistanceToNow(new Date(timestamp), {
+				addSuffix: true,
+				locale: ptBR,
+			});
+		} catch (e) {
+			return "Data inválida";
 		}
 	};
 
@@ -123,54 +133,73 @@ const WhatsAppCRM: React.FC<WhatsAppCRMProps> = ({
 
 				{/* Lista de Conversas */}
 				<div className="flex-grow overflow-y-auto">
-					{filteredChats.map((chat) => (
-						<motion.div
-							key={chat.id}
-							onClick={() => setSelectedChat(chat)}
-							className={`
-                flex items-center p-4 cursor-pointer transition-colors duration-200
-                ${
-									selectedChat?.id === chat.id
-										? "bg-electric/20"
-										: "hover:bg-electric/10"
-								}
-              `}
-							whileHover={{ scale: 1.02 }}
-							whileTap={{ scale: 0.98 }}
-						>
-							<img
-								src={chat.avatar}
-								alt={chat.clientName}
-								className="w-12 h-12 rounded-full mr-4 object-cover"
-							/>
-							<div className="flex-1">
-								<div className="flex justify-between items-center">
-									<h3
-										className="font-semibold text-white cursor-pointer"
-										onClick={() => {
-											if (chat.clientProfile) {
-												onOpenClientProfile(chat.clientProfile);
-											}
-										}}
-									>
-										{chat.clientName}
-									</h3>
-									<span className="text-xs text-white/50">
-										{chat.timestamp.toLocaleTimeString([], {
-											hour: "2-digit",
-											minute: "2-digit",
-										})}
-									</span>
-								</div>
-								<div className="flex justify-between items-center">
-									<p className="text-sm text-white/60 truncate">
-										{chat.lastMessage}
-									</p>
-									{renderStatusBadge(chat.status)}
+					{loading && filteredConversations.length === 0 ? (
+						// Esqueletos para carregamento
+						Array(5).fill(0).map((_, index) => (
+							<div key={index} className="p-4 border-b border-electric/10">
+								<div className="flex items-center">
+									<Skeleton className="w-12 h-12 rounded-full mr-4" />
+									<div className="flex-1">
+										<Skeleton className="h-5 w-32 mb-2" />
+										<Skeleton className="h-4 w-40" />
+									</div>
 								</div>
 							</div>
-						</motion.div>
-					))}
+						))
+					) : filteredConversations.length === 0 ? (
+						<div className="p-8 text-center text-white/50">
+							Nenhuma conversa encontrada
+						</div>
+					) : (
+						filteredConversations.map((conv) => (
+							<motion.div
+								key={conv.id}
+								onClick={() => setSelectedChat(conv)}
+								className={`
+                  flex items-center p-4 cursor-pointer transition-colors duration-200 border-b border-electric/10
+                  ${selectedChat?.id === conv.id
+										? "bg-electric/20"
+										: "hover:bg-electric/10"
+									}
+                `}
+								whileHover={{ scale: 1.01 }}
+								whileTap={{ scale: 0.99 }}
+							>
+								<div className="w-12 h-12 rounded-full bg-electric/30 flex items-center justify-center mr-4 text-xl font-bold text-white">
+									{conv.contactName.charAt(0).toUpperCase()}
+								</div>
+								<div className="flex-1">
+									<div className="flex justify-between items-center">
+										<h3
+											className="font-semibold text-white cursor-pointer"
+											onClick={(e) => {
+												e.stopPropagation();
+												onOpenClientProfile(conv);
+											}}
+										>
+											{conv.contactName}
+										</h3>
+										<span className="text-xs text-white/50">
+											{formatMessageTime(conv.lastMessageAt)}
+										</span>
+									</div>
+									<div className="flex justify-between items-center mt-1">
+										<p className="text-sm text-white/60 truncate max-w-[180px]">
+											{conv.lastMessage?.content || "Sem mensagens"}
+										</p>
+										<div className="flex items-center gap-2">
+											{conv.unreadCount > 0 && (
+												<span className="bg-electric rounded-full px-2 py-0.5 text-xs">
+													{conv.unreadCount}
+												</span>
+											)}
+											{renderStatusBadge(conv.status)}
+										</div>
+									</div>
+								</div>
+							</motion.div>
+						))
+					)}
 				</div>
 			</div>
 
@@ -180,46 +209,38 @@ const WhatsAppCRM: React.FC<WhatsAppCRMProps> = ({
 					{/* Cabeçalho do Chat */}
 					<div className="flex justify-between items-center p-4 border-b border-electric/10">
 						<div className="flex items-center">
-							<img
-								src={selectedChat.avatar}
-								alt={selectedChat.clientName}
-								className="w-12 h-12 rounded-full mr-4 object-cover"
-							/>
+							<div className="w-12 h-12 rounded-full bg-electric/30 flex items-center justify-center mr-4 text-xl font-bold text-white">
+								{selectedChat.contactName.charAt(0).toUpperCase()}
+							</div>
 							<div>
 								<h3 className="font-semibold text-white">
-									{selectedChat.clientName}
+									{selectedChat.contactName}
 								</h3>
 								<div className="flex items-center space-x-2">
-									<p className="text-sm text-white/60">{selectedChat.phone}</p>
+									<p className="text-sm text-white/60">{selectedChat.contactPhone}</p>
 									<div className="flex space-x-2">
-										{["fila", "atendimento", "resolvido"].map((status) => (
+										{["OPEN", "pending", "closed"].map((status) => (
 											<button
 												key={status}
-												onClick={() => handleStatusChange(status as ChatStatus)}
+												onClick={() => handleStatusChange(status)}
 												className={`
                           px-2 py-1 rounded-full text-xs font-medium transition-all
-                          ${
-														selectedChat.status === status
-															? "bg-electric text-white"
-															: "bg-deep/30 text-white/60 hover:bg-electric/20"
+                          ${selectedChat.status === status
+														? "bg-electric text-white"
+														: "bg-deep/30 text-white/60 hover:bg-electric/20"
 													}
                         `}
 											>
-												{status.charAt(0).toUpperCase() + status.slice(1)}
+												{status.charAt(0).toUpperCase() + status.slice(1).toLowerCase()}
 											</button>
 										))}
 									</div>
 								</div>
 							</div>
 						</div>
-
 						<motion.button
 							whileHover={{ scale: 1.1 }}
-							onClick={() => {
-								if (selectedChat.clientProfile) {
-									onOpenClientProfile(selectedChat.clientProfile);
-								}
-							}}
+							onClick={() => onOpenClientProfile(selectedChat)}
 							className="text-white/70 hover:text-white"
 						>
 							<MoreVertical size={20} />
@@ -228,9 +249,52 @@ const WhatsAppCRM: React.FC<WhatsAppCRMProps> = ({
 
 					{/* Área de Mensagens */}
 					<div className="flex-1 overflow-y-auto p-4 space-y-4 bg-deep/10">
-						<div className="text-center text-white/50">
-							Nenhuma mensagem ainda
-						</div>
+						{loadingMessages ? (
+							<div className="space-y-4">
+								{Array(3).fill(0).map((_, index) => (
+									<div
+										key={index}
+										className={`flex ${index % 2 === 0 ? 'justify-end' : ''}`}
+									>
+										<Skeleton
+											className={`rounded-2xl p-4 max-w-[80%] h-20 ${index % 2 === 0 ? 'bg-electric/20' : 'bg-deep/20'
+												}`}
+										/>
+									</div>
+								))}
+							</div>
+						) : messages.length === 0 ? (
+							<div className="text-center text-white/50">
+								Nenhuma mensagem ainda
+							</div>
+						) : (
+							<div className="flex flex-col-reverse">
+								{messages.map((message) => (
+									<div
+										key={message.id}
+										className={`my-2 flex ${message.sender === "me" ? "justify-end" : "justify-start"
+											}`}
+									>
+										<div
+											className={`rounded-2xl p-4 max-w-[80%] ${message.sender === "me"
+												? "bg-electric/80 text-white"
+												: "bg-deep/40 text-white"
+												}`}
+										>
+											<p>{message.content}</p>
+											<div className="text-xs mt-1 opacity-70 text-right">
+												{formatMessageTime(message.timestamp)}
+												{message.sender === "me" && (
+													<span className="ml-1">
+														{message.status === "READ" ? "✓✓" : "✓"}
+													</span>
+												)}
+											</div>
+										</div>
+									</div>
+								))}
+							</div>
+						)}
 					</div>
 
 					{/* Input de Mensagem */}
