@@ -733,9 +733,12 @@ export default function Disparos() {
 														className={cn(
 															"bg-deep text-white",
 															instance.warmupStatus?.isRecommended &&
+																"text-neon-green",
+															instance.connectionStatus === "OPEN" &&
+																"font-medium",
 															"text-neon-green",
 															instance.connectionStatus === "OPEN" &&
-															"font-medium",
+																"font-medium",
 														)}
 													>
 														{instance.instanceName}
@@ -750,30 +753,30 @@ export default function Disparos() {
 													{/* Informações do Perfil */}
 													{instances.find((i) => i.id === selectedInstance)
 														?.profileName && (
-															<div className="text-sm text-white/80 flex items-center gap-2">
-																<div className="w-2 h-2 bg-white/50 rounded-full" />
-																<span>
-																	Nome do Perfil:{" "}
-																	{
-																		instances.find(
-																			(i) => i.id === selectedInstance,
-																		)?.profileName
-																	}
-																</span>
-															</div>
-														)}
+														<div className="text-sm text-white/80 flex items-center gap-2">
+															<div className="w-2 h-2 bg-white/50 rounded-full" />
+															<span>
+																Nome do Perfil:{" "}
+																{
+																	instances.find(
+																		(i) => i.id === selectedInstance,
+																	)?.profileName
+																}
+															</span>
+														</div>
+													)}
 
 													{/* Status de Aquecimento */}
 													{instances.find((i) => i.id === selectedInstance)
 														?.warmupStatus?.isRecommended && (
-															<div className="text-sm text-green-400 flex items-center gap-2">
-																<div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
-																<span>
-																	Esta instância já possui mais de 300 horas de
-																	aquecimento
-																</span>
-															</div>
-														)}
+														<div className="text-sm text-green-400 flex items-center gap-2">
+															<div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
+															<span>
+																Esta instância já possui mais de 300 horas de
+																aquecimento
+															</span>
+														</div>
+													)}
 
 													{/* Status de Conexão */}
 													<div
@@ -846,7 +849,7 @@ export default function Disparos() {
 														className={cn(
 															"bg-deep text-white",
 															campaign.status === "running" &&
-															"text-neon-green",
+																"text-neon-green",
 														)}
 													>
 														{campaign.name}
@@ -867,15 +870,15 @@ export default function Disparos() {
 													</div>
 													{campaigns.find((c) => c.id === selectedCampaign)
 														?.statistics && (
-															<div className="text-sm text-white/80">
-																<span>
-																	Envios:{" "}
-																	{campaigns.find(
-																		(c) => c.id === selectedCampaign,
-																	)?.statistics?.totalLeads || 0}
-																</span>
-															</div>
-														)}
+														<div className="text-sm text-white/80">
+															<span>
+																Envios:{" "}
+																{campaigns.find(
+																	(c) => c.id === selectedCampaign,
+																)?.statistics?.totalLeads || 0}
+															</span>
+														</div>
+													)}
 												</div>
 											)}
 										</div>

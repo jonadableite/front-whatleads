@@ -1,221 +1,324 @@
 // src/components/leads/ImportLeadsModal.tsx
 import { Button } from "@/components/ui/button";
-import {
-	Dialog,
-	DialogContent,
-	DialogDescription,
-	DialogHeader,
-	DialogTitle,
-} from "@/components/ui/dialog";
+import { Modal } from "@/components/ui/modal";
 import { Select } from "@/components/ui/select";
-import { campaignsApi } from "@/services/api/campaigns";
-import { useQuery } from "@tanstack/react-query";
+import type { Campaign } from "@/interface";
 import { AnimatePresence, motion } from "framer-motion";
-import { useEffect, useRef, useState } from "react";
-import { FiCheck, FiPlus, FiUpload, FiX } from "react-icons/fi";
-import { useNavigate } from "react-router-dom";
+import { useCallback, useRef, useState } from "react";
+import { FiFile, FiUpload, FiX } from "react-icons/fi";
 
 interface ImportLeadsModalProps {
 	isOpen: boolean;
 	onClose: () => void;
 	onImport: (campaignId: string, file: File) => Promise<void>;
+	campaigns: Campaign[];
+	disableImport: boolean;
+	totalLeads: number;
+	maxLeads: number;
 }
 
-export function ImportLeadsModal({
+export const ImportLeadsModal: React.FC<ImportLeadsModalProps> = ({
 	isOpen,
 	onClose,
 	onImport,
-}: ImportLeadsModalProps) {
+	campaigns,
+	disableImport,
+	totalLeads,
+	maxLeads,
+}) => {
+	// Estados
+	const [selectedCampaign, setSelectedCampaign] = useState("");
 	const [selectedFile, setSelectedFile] = useState<File | null>(null);
-	const [selectedCampaignId, setSelectedCampaignId] = useState<string>("");
-	const [isUploading, setIsUploading] = useState(false);
+	const [isLoading, setIsLoading] = useState(false);
+	const [error, setError] = useState<string | null>(null);
 	const [isDragging, setIsDragging] = useState(false);
 	const fileInputRef = useRef<HTMLInputElement>(null);
-	const navigate = useNavigate();
 
-	// Buscar campanhas do usuário
-	const { data: campaigns, isLoading: isLoadingCampaigns } = useQuery({
-		queryKey: ["campaigns"],
-		queryFn: campaignsApi.fetchCampaigns,
-		enabled: isOpen,
-		staleTime: 1000 * 60, // Cache por 1 minuto
-	});
-
-	const hasCampaigns = Array.isArray(campaigns) && campaigns.length > 0;
-
-	// Reset do estado quando o modal fecha
-	useEffect(() => {
-		if (!isOpen) {
-			setSelectedFile(null);
-			setSelectedCampaignId("");
-			setIsDragging(false);
-		}
-	}, [isOpen]);
-
-	const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>) => {
-		const file = event.target.files?.[0];
-		if (file) {
-			setSelectedFile(file);
-		}
-	};
-
-	const handleDragEnter = (e: React.DragEvent<HTMLDivElement>) => {
+	// Handlers de Drag and Drop
+	const handleDragEnter = useCallback((e: React.DragEvent) => {
 		e.preventDefault();
+		e.stopPropagation();
 		setIsDragging(true);
-	};
+	}, []);
 
-	const handleDragLeave = (e: React.DragEvent<HTMLDivElement>) => {
+	const handleDragLeave = useCallback((e: React.DragEvent) => {
 		e.preventDefault();
+		e.stopPropagation();
 		setIsDragging(false);
-	};
+	}, []);
 
-	const handleDrop = (e: React.DragEvent<HTMLDivElement>) => {
+	const handleDrop = useCallback((e: React.DragEvent) => {
 		e.preventDefault();
+		e.stopPropagation();
 		setIsDragging(false);
-		const file = e.dataTransfer.files?.[0];
-		if (file) {
-			setSelectedFile(file);
+
+		const file = e.dataTransfer.files[0];
+		validateAndSetFile(file);
+	}, []);
+
+	// Validação de arquivo
+	const validateAndSetFile = useCallback((file: File) => {
+		setError(null);
+
+		if (!file) return;
+
+		const extension = file.name.split(".").pop()?.toLowerCase();
+		const allowedExtensions = ["csv", "xlsx", "txt"];
+
+		if (!extension || !allowedExtensions.includes(extension)) {
+			setError("Por favor, selecione um arquivo CSV, Excel ou TXT");
+			return;
 		}
-	};
 
-	const handleImport = async () => {
-		if (!selectedFile || !selectedCampaignId) return;
-
-		try {
-			setIsUploading(true);
-			await onImport(selectedCampaignId, selectedFile);
-			onClose();
-		} catch (error) {
-			console.error("Erro ao importar leads:", error);
-		} finally {
-			setIsUploading(false);
+		// Validação de tamanho
+		const maxSize = extension === "txt" ? 1 * 1024 * 1024 : 50 * 1024 * 1024;
+		if (file.size > maxSize) {
+			setError(
+				extension === "txt"
+					? "Arquivos TXT devem ter no máximo 1MB"
+					: "O arquivo deve ter no máximo 50MB",
+			);
+			return;
 		}
-	};
 
-	const navigateToCampaigns = () => {
+		setSelectedFile(file);
+	}, []);
+
+	// Manipulador de mudança de arquivo
+	const handleFileChange = useCallback(
+		(event: React.ChangeEvent<HTMLInputElement>) => {
+			const file = event.target.files?.[0];
+			if (file) {
+				validateAndSetFile(file);
+			}
+		},
+		[validateAndSetFile],
+	);
+
+	// Submissão do formulário
+	const handleSubmit = useCallback(
+		async (e: React.FormEvent) => {
+			e.preventDefault();
+			setError(null);
+
+			if (!selectedCampaign || !selectedFile) {
+				setError("Selecione uma campanha e um arquivo válido");
+				return;
+			}
+
+			setIsLoading(true);
+			try {
+				await onImport(selectedCampaign, selectedFile);
+				handleClose();
+			} catch (error) {
+				console.error("Erro detalhado ao importar leads:", {
+					message: error instanceof Error ? error.message : "Erro desconhecido",
+					campaignId: selectedCampaign,
+					fileInfo: selectedFile
+						? {
+								name: selectedFile.name,
+								size: selectedFile.size,
+								type: selectedFile.type,
+							}
+						: null,
+				});
+				setError(
+					error instanceof Error
+						? error.message
+						: "Erro ao importar leads. Tente novamente.",
+				);
+			} finally {
+				setIsLoading(false);
+			}
+		},
+		[selectedCampaign, selectedFile, onImport],
+	);
+
+	// Fechamento do modal e reset
+	const handleClose = useCallback(() => {
+		setSelectedCampaign("");
+		setSelectedFile(null);
+		setError(null);
+		if (fileInputRef.current) {
+			fileInputRef.current.value = "";
+		}
 		onClose();
-		navigate("/campanhas");
-	};
+	}, [onClose]);
+
+	// Status de limite de leads
+	const getLimitStatus = useCallback(() => {
+		const percentage = (totalLeads / maxLeads) * 100;
+
+		if (percentage >= 100) return "text-red-500";
+		if (percentage >= 90) return "text-yellow-500";
+		return "text-green-500";
+	}, [totalLeads, maxLeads]);
 
 	return (
-		<Dialog open={isOpen} onOpenChange={onClose}>
-			<DialogContent
-				className="bg-deep border border-electric text-white"
-				aria-describedby="modal-description"
-			>
-				<div id="modal-description" className="sr-only">
-					Modal para importação de leads com seleção de campanha
-				</div>
-				<DialogHeader>
-					<DialogTitle className="text-2xl font-bold text-white">
-						Importar Leads
-					</DialogTitle>
-					<DialogDescription className="text-white/70">
-						Selecione uma campanha e importe seus leads através de um arquivo
-						CSV.
-					</DialogDescription>
-				</DialogHeader>
+		<Modal
+			isOpen={isOpen}
+			onClose={onClose}
+			title="Importar Leads"
+			description="Selecione um arquivo CSV, Excel ou TXT com as colunas 'phone' e 'name' para importar seus leads."
+			className="max-w-xl"
+		>
+			<form onSubmit={handleSubmit} className="space-y-6">
+				<div className="space-y-4">
+					{/* Seleção de Campanha */}
+					<div>
+						<label
+							htmlFor="campaign"
+							className="block text-sm font-medium text-white/70 mb-2"
+						>
+							Selecione a Campanha
+						</label>
+						<Select
+							id="campaign"
+							value={selectedCampaign}
+							onChange={(e) => setSelectedCampaign(e.target.value)}
+							className="w-full bg-deep/50 border-electric/30 text-white focus:ring-2 focus:ring-electric focus:border-transparent"
+							required
+						>
+							<option value="">Selecione uma campanha</option>
+							{campaigns.map((campaign) => (
+								<option key={campaign.id} value={campaign.id}>
+									{campaign.name}
+								</option>
+							))}
+						</Select>
+					</div>
 
-				<div className="space-y-6">
-					{isLoadingCampaigns ? (
-						<div className="text-center py-4">Carregando campanhas...</div>
-					) : !hasCampaigns ? (
-						<div className="text-center py-4">
-							<p className="text-white/70 mb-4">
-								Você precisa criar uma campanha antes de importar leads.
-							</p>
-							<Button
-								onClick={navigateToCampaigns}
-								className="bg-neon-green text-deep hover:bg-neon-green/80"
-							>
-								<FiPlus className="mr-2" />
-								Criar Campanha
-							</Button>
-						</div>
-					) : (
-						<>
-							<div className="space-y-2">
-								<label className="text-sm font-medium text-white">
-									Selecione a Campanha
-								</label>
-								<Select
-									value={selectedCampaignId}
-									onChange={(e) => setSelectedCampaignId(e.target.value)}
-									className="w-full bg-deep/50 border-electric text-white"
-								>
-									<option value="">Selecione uma campanha</option>
-									{campaigns?.map((campaign) => (
-										<option key={campaign.id} value={campaign.id}>
-											{campaign.name}
-										</option>
-									))}
-								</Select>
-							</div>
+					{/* Upload de Arquivo */}
+					<div>
+						<label className="block text-sm font-medium text-white/70 mb-2">
+							Arquivo de Leads
+						</label>
+						<div
+							className={`relative mt-1 flex justify-center px-6 pt-5 pb-6 border-2 ${
+								isDragging ? "border-electric" : "border-electric/30"
+							} border-dashed rounded-lg transition-colors cursor-pointer
+                            ${isDragging ? "bg-electric/10" : "hover:border-electric/50"}`}
+							onDragEnter={handleDragEnter}
+							onDragOver={handleDragEnter}
+							onDragLeave={handleDragLeave}
+							onDrop={handleDrop}
+							onClick={() => fileInputRef.current?.click()}
+						>
+							<input
+								ref={fileInputRef}
+								type="file"
+								accept=".csv,.xlsx,.txt"
+								onChange={handleFileChange}
+								className="sr-only"
+								aria-label="Selecione um arquivo"
+							/>
 
-							<motion.div
-								className={`relative border-2 border-dashed rounded-lg p-8 text-center cursor-pointer transition-colors ${
-									isDragging ? "border-neon-green" : "border-electric"
-								}`}
-								onDragEnter={handleDragEnter}
-								onDragLeave={handleDragLeave}
-								onDragOver={(e) => e.preventDefault()}
-								onDrop={handleDrop}
-								onClick={() => fileInputRef.current?.click()}
-								whileHover={{ scale: 1.02 }}
-								whileTap={{ scale: 0.98 }}
-							>
-								<input
-									type="file"
-									accept=".csv"
-									onChange={handleFileChange}
-									className="hidden"
-									ref={fileInputRef}
-								/>
-								<FiUpload className="mx-auto text-4xl text-electric mb-4" />
-								<p className="text-white text-lg">
-									{selectedFile
-										? selectedFile.name
-										: "Arraste e solte seu arquivo aqui ou clique para selecionar"}
-								</p>
-								<p className="text-white/60 text-sm mt-2">
-									Formatos aceitos: CSV
-								</p>
-							</motion.div>
-
-							<AnimatePresence>
-								{selectedFile && (
-									<motion.div
-										initial={{ opacity: 0, y: 20 }}
-										animate={{ opacity: 1, y: 0 }}
-										exit={{ opacity: 0, y: -20 }}
-										className="mt-4 p-3 bg-electric/20 rounded-lg flex items-center justify-between"
-									>
-										<span className="text-white">{selectedFile.name}</span>
-										<FiCheck className="text-neon-green text-xl" />
-									</motion.div>
+							<div className="space-y-1 text-center">
+								{selectedFile ? (
+									<div className="flex items-center space-x-2">
+										<FiFile className="w-8 h-8 text-electric" />
+										<div className="flex flex-col items-start">
+											<span className="text-sm font-medium text-white">
+												{selectedFile.name}
+											</span>
+											<span className="text-xs text-white/50">
+												{(selectedFile.size / 1024).toFixed(2)} KB
+											</span>
+										</div>
+										<button
+											type="button"
+											onClick={(e) => {
+												e.stopPropagation();
+												setSelectedFile(null);
+												if (fileInputRef.current) {
+													fileInputRef.current.value = "";
+												}
+											}}
+											className="p-1 hover:bg-electric/20 rounded-full"
+										>
+											<FiX className="w-4 h-4 text-white/70" />
+										</button>
+									</div>
+								) : (
+									<>
+										<FiUpload className="mx-auto h-12 w-12 text-electric" />
+										<div className="flex flex-col items-center">
+											<span className="text-sm text-white">
+												Arraste e solte seu arquivo aqui ou
+											</span>
+											<span className="text-sm text-electric font-medium">
+												clique para selecionar
+											</span>
+										</div>
+										<p className="text-xs text-white/50">
+											CSV, Excel ou TXT até 5MB
+										</p>
+									</>
 								)}
-							</AnimatePresence>
-
-							<div className="flex justify-end space-x-2">
-								<Button
-									onClick={onClose}
-									variant="outline"
-									className="border-electric text-white hover:bg-electric/20"
-								>
-									<FiX className="mr-2" /> Cancelar
-								</Button>
-								<Button
-									onClick={handleImport}
-									disabled={!selectedFile || !selectedCampaignId || isUploading}
-									className="bg-neon-green text-deep hover:bg-neon-green/80"
-								>
-									{isUploading ? "Importando..." : "Importar"}
-								</Button>
 							</div>
-						</>
-					)}
+						</div>
+					</div>
 				</div>
-			</DialogContent>
-		</Dialog>
+
+				{/* Tratamento de Erros */}
+				<AnimatePresence>
+					{error && (
+						<motion.div
+							initial={{ opacity: 0, y: -10 }}
+							animate={{ opacity: 1, y: 0 }}
+							exit={{ opacity: 0, y: -10 }}
+							className="p-3 rounded bg-red-500/10 border border-red-500/20 text-red-500"
+						>
+							{error}
+						</motion.div>
+					)}
+				</AnimatePresence>
+
+				{/* Rodapé do Formulário */}
+				<div className="flex flex-col items-end gap-3">
+					<div className={`text-sm ${getLimitStatus()}`}>
+						Limite de Leads: {totalLeads}/{maxLeads}
+					</div>
+					<div className="flex justify-end gap-3">
+						<Button
+							type="button"
+							variant="outline"
+							onClick={handleClose}
+							disabled={isLoading}
+							className="border-electric/30 text-white hover:bg-electric/20"
+						>
+							Cancelar
+						</Button>
+						<Button
+							type="submit"
+							disabled={
+								!selectedCampaign || !selectedFile || isLoading || disableImport
+							}
+							className={`${
+								disableImport
+									? "bg-gray-400"
+									: "bg-neon-green hover:bg-neon-green/80"
+							} text-white`}
+						>
+							{isLoading ? (
+								<div className="flex items-center">
+									<div className="animate-spin mr-2 h-4 w-4 border-2 border-white/20 border-t-white rounded-full" />
+									Importando...
+								</div>
+							) : disableImport ? (
+								"Limite Atingido"
+							) : (
+								<>
+									<FiUpload className="mr-2" />
+									Importar Leads
+								</>
+							)}
+						</Button>
+					</div>
+				</div>
+			</form>
+		</Modal>
 	);
-}
+};
+
+export default ImportLeadsModal;

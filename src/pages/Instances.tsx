@@ -1,24 +1,15 @@
 // @ts-nocheck
 
 // src/pages/Instances.tsx
-import ProxyConfigModal from "@/components/ProxyConfigModal";
-import TypebotConfigForm from "@/components/TypebotConfigForm";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Modal } from "@/components/ui/modal";
 import type { Instance } from "@/interface";
+import { api } from "@/lib/api";
 import { authService } from "@/services/auth.service";
 import axios from "axios";
 import { motion } from "framer-motion";
-import {
-	AlertCircle,
-	MessageSquareMore,
-	Plus,
-	Power,
-	Trash2,
-	Wifi,
-	X,
-} from "lucide-react";
+import { AlertCircle, Plus, Power, Trash2, Wifi, X } from "lucide-react";
 import type React from "react";
 import { useEffect, useState } from "react";
 import { Toaster, toast } from "react-hot-toast";
@@ -41,26 +32,6 @@ const containerVariants = {
 		},
 	},
 };
-
-interface TypebotConfig {
-	id?: string;
-	instanceId: string;
-	url: string;
-	typebot: string;
-	description: string;
-	triggerType: "keyword" | "all" | "none";
-	triggerOperator?: "contains" | "equals" | "startsWith" | "endsWith";
-	triggerValue?: string;
-	enabled: boolean;
-	expire: number;
-	keywordFinish: string;
-	delayMessage: number;
-	unknownMessage: string;
-	listeningFromMe: boolean;
-	stopBotFromMe: boolean;
-	keepOpen: boolean;
-	debounceTime: number;
-}
 
 const itemVariants = {
 	hidden: { y: 20, opacity: 0 },
@@ -115,51 +86,10 @@ const InstanceCard: React.FC<{
 	onLogout: (name: string) => void;
 	onDelete: (id: string, name: string) => void;
 	deletingInstance: string | null;
-	typebotFlows: TypebotConfig[];
-	onAddTypebotFlow: (instanceId: string, flowData: TypebotConfig) => void;
-	onEditTypebotFlow: (
-		instanceId: string,
-		flowId: string,
-		flowData: TypebotConfig,
-	) => void;
-	onDeleteTypebotFlow: (instanceId: string, flowId: string) => void;
-}> = ({
-	instance,
-	onReconnect,
-	onLogout,
-	onDelete,
-	deletingInstance,
-	typebotFlows,
-	onAddTypebotFlow,
-	onEditTypebotFlow,
-	onDeleteTypebotFlow,
-}) => {
+}> = ({ instance, onReconnect, onLogout, onDelete, deletingInstance }) => {
 	const isConnected =
 		instance.connectionStatus === "OPEN" ||
 		instance.connectionStatus === "CONNECTED";
-	const [showTypebotModal, setShowTypebotModal] = useState(false);
-	const [selectedTypebotFlow, setSelectedTypebotFlow] =
-		useState<TypebotConfig | null>(null);
-
-	const instanceTypebotFlows = typebotFlows.filter(
-		(flow) => flow.instanceId === instance.id,
-	);
-
-	const handleAddTypebot = () => {
-		setSelectedTypebotFlow(null);
-		setShowTypebotModal(true);
-	};
-
-	const handleEditTypebot = (flow: TypebotConfig) => {
-		setSelectedTypebotFlow(flow);
-		setShowTypebotModal(true);
-	};
-
-	const handleDeleteTypebot = (flowId: string) => {
-		if (window.confirm("Tem certeza que deseja remover este Typebot?")) {
-			onDeleteTypebotFlow(instance.id, flowId);
-		}
-	};
 
 	const handleDeleteInstance = () => {
 		if (
@@ -238,18 +168,6 @@ const InstanceCard: React.FC<{
 						>
 							<Power className="w-5 h-5 mr-2" /> Logout
 						</Button>
-
-						<Button
-							variant="outline"
-							size="lg"
-							onClick={handleAddTypebot}
-							className="bg-blue-500/10 text-blue-500 border-blue-500/20 hover:bg-blue-500/20 hover:border-blue-500/30 w-full"
-						>
-							<MessageSquareMore className="w-5 h-5 mr-2" />
-							{instanceTypebotFlows.length > 0
-								? "Typebots"
-								: "Adicionar Typebot"}
-						</Button>
 					</div>
 
 					{/* Botão de Excluir Instância */}
@@ -276,88 +194,6 @@ const InstanceCard: React.FC<{
 						Excluir Instância
 					</Button>
 				</div>
-
-				{/* Lista de Typebots */}
-				{instanceTypebotFlows.length > 0 && (
-					<div className="mt-4 bg-electric/5 p-4 rounded-lg">
-						<h4 className="text-lg font-semibold text-white mb-3">Typebots</h4>
-						<div className="space-y-2">
-							{instanceTypebotFlows.map((flow) => (
-								<div
-									key={flow.id || `${instance.id}-${flow.typebot}`}
-									className="flex justify-between items-center bg-deep/20 p-3 rounded-lg"
-								>
-									<div>
-										<p className="text-white font-medium">
-											{flow.typebot || "Typebot sem nome"}
-										</p>
-										<p className="text-white/70 text-sm">
-											{flow.triggerType === "all"
-												? "Ativado para todas mensagens"
-												: flow.triggerType === "keyword"
-													? `Ativado por palavra-chave: ${flow.triggerValue}`
-													: "Desativado"}
-										</p>
-									</div>
-									<div className="flex space-x-2">
-										<Button
-											variant="outline"
-											size="sm"
-											onClick={() => handleEditTypebot(flow)}
-											className="text-blue-500 border-blue-500/20 hover:bg-blue-500/10"
-										>
-											Editar
-										</Button>
-										<Button
-											variant="outline"
-											size="sm"
-											onClick={() => handleDeleteTypebot(flow.id || "")}
-											className="text-red-500 border-red-500/20 hover:bg-red-500/10"
-										>
-											Excluir
-										</Button>
-									</div>
-								</div>
-							))}
-						</div>
-					</div>
-				)}
-
-				{/* Modal de Configuração do Typebot */}
-				{showTypebotModal && (
-					<Modal
-						isOpen={showTypebotModal}
-						onClose={() => {
-							setShowTypebotModal(false);
-							setSelectedTypebotFlow(null);
-						}}
-						title={
-							selectedTypebotFlow ? "Editar Typebot" : "Adicionar Novo Typebot"
-						}
-					>
-						<TypebotConfigForm
-							instance={instance}
-							initialData={selectedTypebotFlow || undefined}
-							onUpdate={(flowData) => {
-								selectedTypebotFlow
-									? onEditTypebotFlow(
-											instance.id,
-											selectedTypebotFlow.id || "",
-											flowData,
-										)
-									: onAddTypebotFlow(instance.id, flowData);
-								setShowTypebotModal(false);
-								setSelectedTypebotFlow(null);
-							}}
-							onDelete={
-								selectedTypebotFlow
-									? () => handleDeleteTypebot(selectedTypebotFlow.id || "")
-									: undefined
-							}
-							isEditing={!!selectedTypebotFlow}
-						/>
-					</Modal>
-				)}
 			</div>
 		</motion.div>
 	);
@@ -369,8 +205,6 @@ const Instances: React.FC = () => {
 	const navigate = useNavigate();
 	const [instances, setInstances] = useState<Instance[]>([]);
 	const [loading, setLoading] = useState(true);
-	const [showTypebotConfig, setShowTypebotConfig] = useState(false);
-	const [showProxyConfig, setShowProxyConfig] = useState(false);
 	const [selectedInstance, setSelectedInstance] = useState<Instance | null>(
 		null,
 	);
@@ -378,19 +212,12 @@ const Instances: React.FC = () => {
 	const [qrCodeError, setQrCodeError] = useState(false);
 	const [isModalOpen, setIsModalOpen] = useState(false);
 	const [isCreatingInstance, setIsCreatingInstance] = useState(false);
-	const [currentPlan, setCurrentPlan] = useState("Gratuito");
+	const [currentPlan, setCurrentPlan] = useState("");
 	const [instanceLimit, setInstanceLimit] = useState(1);
 	const [remainingSlots, setRemainingSlots] = useState(0);
-	const [typebotFlows, setTypebotFlows] = useState<TypebotConfig[]>([]);
-	const [showTypebotModal, setShowTypebotModal] = useState(false);
-	const [selectedTypebotFlow, setSelectedTypebotFlow] =
-		useState<TypebotConfig | null>(null);
 	const [pollingIntervals, setPollingIntervals] = useState<{
 		[key: string]: any;
 	}>({});
-
-	const [selectedInstanceForProxy, setSelectedInstanceForProxy] =
-		useState<Instance | null>(null);
 
 	const [qrCode, setQrCode] = useState<{
 		base64: string;
@@ -433,195 +260,41 @@ const Instances: React.FC = () => {
 		}
 	};
 
-	const fetchTypebotFlows = async () => {
-		try {
-			// Busca os fluxos para cada instância
-			const flowPromises = instances.map(async (instance) => {
-				const token = authService.getToken();
-				const url = `${API_BASE_URL}/api/instances/instance/${instance.id}/typebot/flows`;
-
-				try {
-					const response = await axios.get(url, {
-						headers: { Authorization: `Bearer ${token}` },
-					});
-
-					// Verifica se a resposta tem a estrutura esperada
-					const flows = response.data?.flows || response.data || [];
-
-					// Adiciona o instanceId aos fluxos
-					return flows.map((flow) => ({
-						...flow,
-						instanceId: instance.id,
-					}));
-				} catch (error) {
-					console.error(
-						`Erro ao buscar fluxos para instância ${instance.id}:`,
-						error,
-					);
-					return [];
-				}
-			});
-
-			// Aguarda todas as promises de busca de fluxos
-			const allFlows = await Promise.all(flowPromises);
-
-			// Achata o array de fluxos
-			const flattenedFlows = allFlows.flat();
-
-			setTypebotFlows(flattenedFlows);
-		} catch (error) {
-			console.error("Erro ao buscar fluxos do Typebot:", error);
-			toast.error("Erro ao carregar fluxos do Typebot");
-			setTypebotFlows([]);
-		}
-	};
-
-	// Modifique o useEffect para depender de instances
-	useEffect(() => {
-		if (instances.length > 0) {
-			fetchTypebotFlows();
-		}
-	}, [instances]);
-
-	const handleAddTypebotFlow = async (
-		instanceId: string,
-		flowData: TypebotConfig,
-	) => {
-		try {
-			const token = authService.getToken();
-			const response = await axios.post(
-				`${API_BASE_URL}/api/instances/instance/${instanceId}/typebot`,
-				{
-					typebot: {
-						...flowData,
-						instanceId: instanceId,
-					},
-				},
-				{
-					headers: {
-						Authorization: `Bearer ${token}`,
-						"Content-Type": "application/json",
-					},
-				},
-			);
-
-			// Atualiza a lista de instâncias para refletir a mudança
-			await fetchInstances();
-
-			toast.success("Typebot adicionado com sucesso!");
-			setShowTypebotConfig(false);
-		} catch (error) {
-			console.error("Erro ao adicionar Typebot:", error);
-
-			// Log mais detalhado do erro
-			if (axios.isAxiosError(error)) {
-				console.error("Detalhes do erro:", error.response?.data);
-				console.error("Status:", error.response?.status);
-			}
-
-			toast.error("Erro ao adicionar Typebot");
-		}
-	};
-
-	const handleEditTypebotFlow = async (
-		instanceId: string,
-		flowId: string,
-		flowData: TypebotConfig,
-	) => {
-		try {
-			const token = authService.getToken();
-			const response = await axios.put(
-				`${API_BASE_URL}/api/instance/${instanceId}/typebot/${flowId}`,
-				{
-					typebot: {
-						...flowData,
-						instanceId: instanceId,
-						id: flowId,
-					},
-				},
-				{
-					headers: { Authorization: `Bearer ${token}` },
-				},
-			);
-
-			// Atualiza a lista de instâncias para refletir a mudança
-			await fetchInstances();
-
-			// Atualiza os fluxos do Typebot
-			await fetchTypebotFlows();
-
-			toast.success("Typebot atualizado com sucesso!");
-			setShowTypebotConfig(false);
-		} catch (error) {
-			console.error("Erro ao editar Typebot:", error);
-			toast.error("Erro ao editar Typebot");
-		}
-	};
-
-	const handleDeleteTypebotFlow = async (
-		instanceId: string,
-		flowId: string,
-	) => {
-		if (!window.confirm("Tem certeza que deseja remover este Typebot?")) return;
-
-		try {
-			const token = authService.getToken();
-			await axios.delete(
-				`${API_BASE_URL}/api/instances/instance/${instanceId}/typebot/${flowId}`,
-				{
-					headers: { Authorization: `Bearer ${token}` },
-				},
-			);
-
-			// Atualiza a lista de instâncias para refletir a mudança
-			await fetchInstances();
-
-			// Atualiza os fluxos do Typebot
-			await fetchTypebotFlows();
-
-			toast.success("Typebot removido com sucesso!");
-			setShowTypebotConfig(false);
-		} catch (error) {
-			console.error("Erro ao remover Typebot:", error);
-			toast.error("Erro ao remover Typebot");
-		}
-	};
-
 	const fetchUserPlan = async () => {
 		try {
-			const token = authService.getToken();
-			const response = await axios.get(`${API_BASE_URL}/api/users/plan`, {
-				headers: { Authorization: `Bearer ${token}` },
+			const response = await api.main.get("/instances/plan");
+
+			// Log para depuração
+			console.log("Dados do plano recebidos:", response.data);
+
+			// Defina os estados de plano com os dados recebidos
+			setCurrentPlan(
+				response.data.plan || response.data.currentPlan || "Plano Básico",
+			);
+			setInstanceLimit(
+				response.data.maxInstances || response.data.instanceLimit || 5,
+			);
+			setRemainingSlots(
+				response.data.remainingSlots !== undefined
+					? response.data.remainingSlots
+					: (response.data.maxInstances || 5) -
+							(response.data.instances?.length || 0),
+			);
+
+			// Detalhes adicionais do plano
+			setPlanDetails({
+				type: response.data.plan || response.data.currentPlan,
+				isInTrial: response.data.isInTrial || false,
+				trialEndDate: response.data.trialEndDate,
+				leadsLimit: response.data.leadsLimit,
+				currentLeads: response.data.currentLeads,
+				leadsPercentage: response.data.leadsPercentage,
 			});
-
-			if (response.data) {
-				const { currentPlan, limits } = response.data;
-
-				// Atualiza o nome do plano
-				setCurrentPlan(currentPlan.name);
-
-				// Define o limite de instâncias (usando maxCampaigns como limite de instâncias)
-				const maxInstances = limits.maxCampaigns || 3;
-				setInstanceLimit(maxInstances);
-
-				// Calcula slots restantes
-				const usedInstances = instances.length;
-				const remaining = maxInstances - usedInstances;
-				setRemainingSlots(Math.max(0, remaining));
-
-				// Atualiza detalhes do plano
-				setPlanDetails({
-					type: currentPlan.type,
-					isInTrial: currentPlan.isInTrial,
-					trialEndDate: currentPlan.trialEndDate,
-				});
-			}
 		} catch (error) {
 			console.error("Erro ao carregar dados do plano:", error);
-			// Valores padrão em caso de erro
-			setCurrentPlan("Gratuito");
-			setInstanceLimit(1);
-			setRemainingSlots(Math.max(0, 1 - instances.length));
+
+			// Tratamento de erro com toast
+			toast.error("Não foi possível carregar os detalhes do plano");
 		}
 	};
 
@@ -640,6 +313,7 @@ const Instances: React.FC = () => {
 		}
 	};
 
+	// biome-ignore lint/correctness/useExhaustiveDependencies: <explanation>
 	useEffect(() => {
 		const loadData = async () => {
 			await fetchInstances();
@@ -702,7 +376,6 @@ const Instances: React.FC = () => {
 
 			console.log("Dados recebidos do backend:", response.data);
 
-			// Aqui é onde a nova parte se encaixa
 			// biome-ignore lint/complexity/useOptionalChain: <explanation>
 			if (response.data && response.data.instance) {
 				const newInstance = response.data.instance;
@@ -1009,53 +682,6 @@ const Instances: React.FC = () => {
 		}
 	};
 
-	function handleConfigureTypebot(instance: Instance): void {
-		setSelectedInstance(instance);
-		setShowTypebotConfig(true);
-	}
-
-	const handleConfigureProxy = (instance: Instance) => {
-		setSelectedInstanceForProxy(instance);
-		setShowProxyConfig(true);
-	};
-
-	const handleSaveProxyConfig = async (config: ProxyConfig) => {
-		if (!selectedInstanceForProxy) return;
-
-		try {
-			const token = authService.getToken();
-			if (!token) {
-				toast.error("Sessão expirada. Faça login novamente.");
-				navigate("/login");
-				return;
-			}
-
-			const response = await axios.put(
-				`${API_BASE_URL}/api/instances/instance/${selectedInstanceForProxy.id}/proxy`,
-				config,
-				{ headers: { Authorization: `Bearer ${token}` } },
-			);
-
-			if (response.data) {
-				toast.success("Configurações de proxy atualizadas com sucesso!");
-				setInstances((prevInstances) =>
-					prevInstances.map((instance) =>
-						instance.id === selectedInstanceForProxy.id
-							? { ...instance, proxyConfig: config }
-							: instance,
-					),
-				);
-				setShowProxyConfig(false);
-				setSelectedInstanceForProxy(null);
-			} else {
-				throw new Error("Falha ao atualizar configurações de proxy");
-			}
-		} catch (error) {
-			console.error("Erro ao atualizar configurações de proxy:", error);
-			toast.error("Erro ao atualizar configurações de proxy");
-		}
-	};
-
 	return (
 		<motion.div
 			initial="hidden"
@@ -1129,37 +755,6 @@ const Instances: React.FC = () => {
 					{remainingSlots <= 0 && " (Limite atingido)"}
 				</Button>
 			</div>
-			{/* Modal de Configuração do Proxy */}
-			{showProxyConfig && selectedInstanceForProxy && (
-				<ProxyConfigModal
-					instanceName={selectedInstanceForProxy.instanceName}
-					onClose={() => setShowProxyConfig(false)}
-					onSave={handleSaveProxyConfig}
-				/>
-			)}
-
-			{/* Modal de Configuração do Typebot */}
-			{showTypebotConfig && selectedInstance && (
-				<Modal
-					isOpen={showTypebotConfig}
-					onClose={() => {
-						setShowTypebotConfig(false);
-						setSelectedInstance(null);
-					}}
-					title={
-						selectedInstance.typebot ? "Editar Typebot" : "Adicionar Typebot"
-					}
-				>
-					<TypebotConfigForm
-						instance={selectedInstance}
-						onUpdate={(config) =>
-							handleUpdateTypebotConfig(config, selectedInstance.id)
-						}
-						onDelete={handleDeleteTypebotConfig}
-						isEditing={!!selectedInstance.typebot}
-					/>
-				</Modal>
-			)}
 
 			{/* Grid de Instâncias */}
 			{loading ? (
@@ -1188,10 +783,6 @@ const Instances: React.FC = () => {
 							onLogout={handleLogoutInstance}
 							onDelete={handleDeleteInstance}
 							deletingInstance={deletingInstance}
-							typebotFlows={typebotFlows}
-							onAddTypebotFlow={handleAddTypebotFlow}
-							onEditTypebotFlow={handleEditTypebotFlow}
-							onDeleteTypebotFlow={handleDeleteTypebotFlow}
 						/>
 					))}
 				</motion.div>
@@ -1293,6 +884,7 @@ const Instances: React.FC = () => {
 						className="bg-deep/90 backdrop-blur-xl p-8 rounded-2xl shadow-2xl border border-electric/20 w-full max-w-md relative"
 					>
 						{/* Botão Fechar */}
+						{/* biome-ignore lint/a11y/useButtonType: <explanation> */}
 						<button
 							onClick={closeQrCodeModal}
 							className="absolute top-4 right-4 p-2 rounded-full bg-white/10 hover:bg-white/20 transition-colors"
