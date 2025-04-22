@@ -7,7 +7,17 @@ import { ptBR } from 'date-fns/locale';
 import { Send, ArrowLeft, Paperclip, Smile } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { motion } from 'framer-motion';
-import { Message } from '@/hooks/useCrmMessages';
+// Define the Message interface locally if it is not exported from '@/hooks/useCrmMessages'
+interface Message {
+  id: string;
+  messageId: string;
+  conversationId: string;
+  content: string;
+  type: string;
+  sender: string;
+  status: string;
+  timestamp: string;
+}
 
 interface ConversationProps {
   conversationId: string;
@@ -127,8 +137,8 @@ export default function Conversation({ conversationId, contactName, contactPhone
               >
                 <div
                   className={`rounded-2xl p-4 max-w-[80%] ${msg.sender === "me"
-                      ? "bg-electric/80 text-white"
-                      : "bg-deep/40 text-white"
+                    ? "bg-electric/80 text-white"
+                    : "bg-deep/40 text-white"
                     }`}
                 >
                   <p>{msg.content}</p>
@@ -174,8 +184,8 @@ export default function Conversation({ conversationId, contactName, contactPhone
           disabled={sending || !messageText.trim()}
           whileHover={{ scale: 1.1 }}
           className={`p-2 rounded-full ${sending || !messageText.trim()
-              ? "bg-electric/50 text-white/50"
-              : "bg-electric text-white hover:bg-electric/80"
+            ? "bg-electric/50 text-white/50"
+            : "bg-electric text-white hover:bg-electric/80"
             } transition-colors`}
         >
           <Send size={20} />
