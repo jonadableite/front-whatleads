@@ -2,7 +2,6 @@
 
 // src/pages/Instances.tsx
 import ProxyConfigModal from "@/components/ProxyConfigModal";
-import TypebotConfigForm from "@/components/TypebotConfigForm";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Modal } from "@/components/ui/modal";
@@ -42,26 +41,6 @@ const containerVariants = {
 	},
 };
 
-interface TypebotConfig {
-	id?: string;
-	instanceId: string;
-	url: string;
-	typebot: string;
-	description: string;
-	triggerType: "keyword" | "all" | "none";
-	triggerOperator?: "contains" | "equals" | "startsWith" | "endsWith";
-	triggerValue?: string;
-	enabled: boolean;
-	expire: number;
-	keywordFinish: string;
-	delayMessage: number;
-	unknownMessage: string;
-	listeningFromMe: boolean;
-	stopBotFromMe: boolean;
-	keepOpen: boolean;
-	debounceTime: number;
-}
-
 const itemVariants = {
 	hidden: { y: 20, opacity: 0 },
 	visible: {
@@ -90,17 +69,15 @@ const ConnectionStatus: React.FC<{ connected: boolean }> = ({ connected }) => (
 		initial={{ opacity: 0, scale: 0.8 }}
 		animate={{ opacity: 1, scale: 1 }}
 		className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-full backdrop-blur-xl border
-      ${
-				connected
-					? "bg-neon-green/10 text-neon-green border-neon-green/20"
-					: "bg-red-500/10 text-red-500 border-red-500/20"
+      ${connected
+				? "bg-neon-green/10 text-neon-green border-neon-green/20"
+				: "bg-red-500/10 text-red-500 border-red-500/20"
 			}`}
 	>
 		<motion.div
 			animate={connected ? pulseAnimation : {}}
-			className={`w-2 h-2 rounded-full ${
-				connected ? "bg-neon-green" : "bg-red-500"
-			}`}
+			className={`w-2 h-2 rounded-full ${connected ? "bg-neon-green" : "bg-red-500"
+				}`}
 		/>
 		<span className="text-xs font-medium">
 			{connected ? "Online" : "Offline"}
@@ -115,253 +92,122 @@ const InstanceCard: React.FC<{
 	onLogout: (name: string) => void;
 	onDelete: (id: string, name: string) => void;
 	deletingInstance: string | null;
-	typebotFlows: TypebotConfig[];
-	onAddTypebotFlow: (instanceId: string, flowData: TypebotConfig) => void;
-	onEditTypebotFlow: (
-		instanceId: string,
-		flowId: string,
-		flowData: TypebotConfig,
-	) => void;
-	onDeleteTypebotFlow: (instanceId: string, flowId: string) => void;
 }> = ({
 	instance,
 	onReconnect,
 	onLogout,
 	onDelete,
 	deletingInstance,
-	typebotFlows,
-	onAddTypebotFlow,
-	onEditTypebotFlow,
-	onDeleteTypebotFlow,
 }) => {
-	const isConnected =
-		instance.connectionStatus === "OPEN" ||
-		instance.connectionStatus === "CONNECTED";
-	const [showTypebotModal, setShowTypebotModal] = useState(false);
-	const [selectedTypebotFlow, setSelectedTypebotFlow] =
-		useState<TypebotConfig | null>(null);
+		const isConnected =
+			instance.connectionStatus === "OPEN" ||
+			instance.connectionStatus === "CONNECTED";
 
-	const instanceTypebotFlows = typebotFlows.filter(
-		(flow) => flow.instanceId === instance.id,
-	);
+		const handleDeleteInstance = () => {
+			if (
+				window.confirm(
+					`Tem certeza que deseja excluir a instância ${instance.instanceName}?`,
+				)
+			) {
+				onDelete(instance.id, instance.instanceName);
+			}
+		};
 
-	const handleAddTypebot = () => {
-		setSelectedTypebotFlow(null);
-		setShowTypebotModal(true);
-	};
+		return (
+			<motion.div
+				variants={itemVariants}
+				whileHover={{ scale: 1.02 }}
+				className="relative bg-deep/80 backdrop-blur-xl p-6 rounded-xl border border-electric shadow-lg hover:shadow-electric transition-all duration-300"
+			>
+				<div className="absolute inset-0 bg-gradient-to-tr from-electric/5 to-neon-purple/5 opacity-50" />
 
-	const handleEditTypebot = (flow: TypebotConfig) => {
-		setSelectedTypebotFlow(flow);
-		setShowTypebotModal(true);
-	};
-
-	const handleDeleteTypebot = (flowId: string) => {
-		if (window.confirm("Tem certeza que deseja remover este Typebot?")) {
-			onDeleteTypebotFlow(instance.id, flowId);
-		}
-	};
-
-	const handleDeleteInstance = () => {
-		if (
-			window.confirm(
-				`Tem certeza que deseja excluir a instância ${instance.instanceName}?`,
-			)
-		) {
-			onDelete(instance.id, instance.instanceName);
-		}
-	};
-
-	return (
-		<motion.div
-			variants={itemVariants}
-			whileHover={{ scale: 1.02 }}
-			className="relative bg-deep/80 backdrop-blur-xl p-6 rounded-xl border border-electric shadow-lg hover:shadow-electric transition-all duration-300"
-		>
-			<div className="absolute inset-0 bg-gradient-to-tr from-electric/5 to-neon-purple/5 opacity-50" />
-
-			<div className="relative z-10 space-y-6">
-				{/* Header da Instância */}
-				<div className="flex justify-between items-center">
-					<div className="flex items-center space-x-4">
-						<div className="relative">
-							{instance.profilePicUrl ? (
-								<img
-									src={instance.profilePicUrl}
-									alt="Profile"
-									className={`w-12 h-12 rounded-full object-cover border-2 ${
-										isConnected ? "border-neon-green" : "border-red-500"
-									}`}
-								/>
-							) : (
-								<div
-									className={`w-12 h-12 rounded-full flex items-center justify-center ${
-										isConnected
+				<div className="relative z-10 space-y-6">
+					{/* Header da Instância */}
+					<div className="flex justify-between items-center">
+						<div className="flex items-center space-x-4">
+							<div className="relative">
+								{instance.profilePicUrl ? (
+									<img
+										src={instance.profilePicUrl}
+										alt="Profile"
+										className={`w-12 h-12 rounded-full object-cover border-2 ${isConnected ? "border-neon-green" : "border-red-500"
+											}`}
+									/>
+								) : (
+									<div
+										className={`w-12 h-12 rounded-full flex items-center justify-center ${isConnected
 											? "bg-neon-green/10 text-neon-green"
 											: "bg-red-500/20 text-red-500"
-									}`}
-								>
-									<FaWhatsapp className="w-6 h-6" />
-								</div>
-							)}
+											}`}
+									>
+										<FaWhatsapp className="w-6 h-6" />
+									</div>
+								)}
+							</div>
+							<div>
+								<h3 className="text-lg font-bold text-white">
+									{instance.instanceName}
+								</h3>
+								<p className="text-sm text-white/70">
+									{instance.phoneNumber || "Sem número"}
+								</p>
+							</div>
 						</div>
-						<div>
-							<h3 className="text-lg font-bold text-white">
-								{instance.instanceName}
-							</h3>
-							<p className="text-sm text-white/70">
-								{instance.phoneNumber || "Sem número"}
-							</p>
-						</div>
-					</div>
-					<ConnectionStatus connected={isConnected} />
-				</div>
-
-				{/* Ações Principais */}
-				<div className="space-y-4">
-					{!isConnected && (
-						<Button
-							variant="outline"
-							size="lg"
-							onClick={() => onReconnect(instance.instanceName)}
-							className="w-full bg-neon-green/10 text-white border-neon-green/20 hover:bg-neon-green/20 hover:border-neon-green/30"
-						>
-							<Wifi className="w-5 h-5 mr-2" /> Reconectar
-						</Button>
-					)}
-
-					<div className="grid grid-cols-2 gap-3">
-						<Button
-							variant="outline"
-							size="lg"
-							onClick={() => onLogout(instance.instanceName)}
-							className="bg-neon-yellow/10 text-neon-yellow border-neon-yellow/20 hover:bg-neon-yellow/20 hover:border-neon-yellow/30"
-						>
-							<Power className="w-5 h-5 mr-2" /> Logout
-						</Button>
-
-						<Button
-							variant="outline"
-							size="lg"
-							onClick={handleAddTypebot}
-							className="bg-blue-500/10 text-blue-500 border-blue-500/20 hover:bg-blue-500/20 hover:border-blue-500/30 w-full"
-						>
-							<MessageSquareMore className="w-5 h-5 mr-2" />
-							{instanceTypebotFlows.length > 0
-								? "Typebots"
-								: "Adicionar Typebot"}
-						</Button>
+						<ConnectionStatus connected={isConnected} />
 					</div>
 
-					{/* Botão de Excluir Instância */}
-					<Button
-						variant="outline"
-						size="lg"
-						onClick={handleDeleteInstance}
-						disabled={deletingInstance === instance.id}
-						className="w-full bg-red-500/10 text-red-500 border-red-500/20 hover:bg-red-500/20 hover:border-red-500/30"
-					>
-						{deletingInstance === instance.id ? (
-							<motion.div
-								animate={{ rotate: 360 }}
-								transition={{
-									duration: 1,
-									repeat: Number.POSITIVE_INFINITY,
-									ease: "linear",
-								}}
-								className="w-5 h-5 border-2 border-red-500 border-t-transparent rounded-full mr-2"
-							/>
-						) : (
-							<Trash2 className="w-5 h-5 mr-2" />
+					{/* Ações Principais */}
+					<div className="space-y-4">
+						{!isConnected && (
+							<Button
+								variant="outline"
+								size="lg"
+								onClick={() => onReconnect(instance.instanceName)}
+								className="w-full bg-neon-green/10 text-white border-neon-green/20 hover:bg-neon-green/20 hover:border-neon-green/30"
+							>
+								<Wifi className="w-5 h-5 mr-2" /> Reconectar
+							</Button>
 						)}
-						Excluir Instância
-					</Button>
-				</div>
 
-				{/* Lista de Typebots */}
-				{instanceTypebotFlows.length > 0 && (
-					<div className="mt-4 bg-electric/5 p-4 rounded-lg">
-						<h4 className="text-lg font-semibold text-white mb-3">Typebots</h4>
-						<div className="space-y-2">
-							{instanceTypebotFlows.map((flow) => (
-								<div
-									key={flow.id || `${instance.id}-${flow.typebot}`}
-									className="flex justify-between items-center bg-deep/20 p-3 rounded-lg"
-								>
-									<div>
-										<p className="text-white font-medium">
-											{flow.typebot || "Typebot sem nome"}
-										</p>
-										<p className="text-white/70 text-sm">
-											{flow.triggerType === "all"
-												? "Ativado para todas mensagens"
-												: flow.triggerType === "keyword"
-													? `Ativado por palavra-chave: ${flow.triggerValue}`
-													: "Desativado"}
-										</p>
-									</div>
-									<div className="flex space-x-2">
-										<Button
-											variant="outline"
-											size="sm"
-											onClick={() => handleEditTypebot(flow)}
-											className="text-blue-500 border-blue-500/20 hover:bg-blue-500/10"
-										>
-											Editar
-										</Button>
-										<Button
-											variant="outline"
-											size="sm"
-											onClick={() => handleDeleteTypebot(flow.id || "")}
-											className="text-red-500 border-red-500/20 hover:bg-red-500/10"
-										>
-											Excluir
-										</Button>
-									</div>
-								</div>
-							))}
+						<div className="grid grid-cols-2 gap-3">
+							<Button
+								variant="outline"
+								size="lg"
+								onClick={() => onLogout(instance.instanceName)}
+								className="bg-neon-yellow/10 text-neon-yellow border-neon-yellow/20 hover:bg-neon-yellow/20 hover:border-neon-yellow/30"
+							>
+								<Power className="w-5 h-5 mr-2" /> Logout
+							</Button>
 						</div>
-					</div>
-				)}
 
-				{/* Modal de Configuração do Typebot */}
-				{showTypebotModal && (
-					<Modal
-						isOpen={showTypebotModal}
-						onClose={() => {
-							setShowTypebotModal(false);
-							setSelectedTypebotFlow(null);
-						}}
-						title={
-							selectedTypebotFlow ? "Editar Typebot" : "Adicionar Novo Typebot"
-						}
-					>
-						<TypebotConfigForm
-							instance={instance}
-							initialData={selectedTypebotFlow || undefined}
-							onUpdate={(flowData) => {
-								selectedTypebotFlow
-									? onEditTypebotFlow(
-											instance.id,
-											selectedTypebotFlow.id || "",
-											flowData,
-										)
-									: onAddTypebotFlow(instance.id, flowData);
-								setShowTypebotModal(false);
-								setSelectedTypebotFlow(null);
-							}}
-							onDelete={
-								selectedTypebotFlow
-									? () => handleDeleteTypebot(selectedTypebotFlow.id || "")
-									: undefined
-							}
-							isEditing={!!selectedTypebotFlow}
-						/>
-					</Modal>
-				)}
-			</div>
-		</motion.div>
-	);
-};
+						{/* Botão de Excluir Instância */}
+						<Button
+							variant="outline"
+							size="lg"
+							onClick={handleDeleteInstance}
+							disabled={deletingInstance === instance.id}
+							className="w-full bg-red-500/10 text-red-500 border-red-500/20 hover:bg-red-500/20 hover:border-red-500/30"
+						>
+							{deletingInstance === instance.id ? (
+								<motion.div
+									animate={{ rotate: 360 }}
+									transition={{
+										duration: 1,
+										repeat: Number.POSITIVE_INFINITY,
+										ease: "linear",
+									}}
+									className="w-5 h-5 border-2 border-red-500 border-t-transparent rounded-full mr-2"
+								/>
+							) : (
+								<Trash2 className="w-5 h-5 mr-2" />
+							)}
+							Excluir Instância
+						</Button>
+					</div>
+				</div>
+			</motion.div>
+		);
+	};
 
 // Componente principal: Instances
 const Instances: React.FC = () => {
@@ -369,7 +215,6 @@ const Instances: React.FC = () => {
 	const navigate = useNavigate();
 	const [instances, setInstances] = useState<Instance[]>([]);
 	const [loading, setLoading] = useState(true);
-	const [showTypebotConfig, setShowTypebotConfig] = useState(false);
 	const [showProxyConfig, setShowProxyConfig] = useState(false);
 	const [selectedInstance, setSelectedInstance] = useState<Instance | null>(
 		null,
@@ -381,10 +226,6 @@ const Instances: React.FC = () => {
 	const [currentPlan, setCurrentPlan] = useState("Gratuito");
 	const [instanceLimit, setInstanceLimit] = useState(1);
 	const [remainingSlots, setRemainingSlots] = useState(0);
-	const [typebotFlows, setTypebotFlows] = useState<TypebotConfig[]>([]);
-	const [showTypebotModal, setShowTypebotModal] = useState(false);
-	const [selectedTypebotFlow, setSelectedTypebotFlow] =
-		useState<TypebotConfig | null>(null);
 	const [pollingIntervals, setPollingIntervals] = useState<{
 		[key: string]: any;
 	}>({});
@@ -433,160 +274,6 @@ const Instances: React.FC = () => {
 		}
 	};
 
-	const fetchTypebotFlows = async () => {
-		try {
-			// Busca os fluxos para cada instância
-			const flowPromises = instances.map(async (instance) => {
-				const token = authService.getToken();
-				const url = `${API_BASE_URL}/api/instances/instance/${instance.id}/typebot/flows`;
-
-				try {
-					const response = await axios.get(url, {
-						headers: { Authorization: `Bearer ${token}` },
-					});
-
-					// Verifica se a resposta tem a estrutura esperada
-					const flows = response.data?.flows || response.data || [];
-
-					// Adiciona o instanceId aos fluxos
-					return flows.map((flow) => ({
-						...flow,
-						instanceId: instance.id,
-					}));
-				} catch (error) {
-					console.error(
-						`Erro ao buscar fluxos para instância ${instance.id}:`,
-						error,
-					);
-					return [];
-				}
-			});
-
-			// Aguarda todas as promises de busca de fluxos
-			const allFlows = await Promise.all(flowPromises);
-
-			// Achata o array de fluxos
-			const flattenedFlows = allFlows.flat();
-
-			setTypebotFlows(flattenedFlows);
-		} catch (error) {
-			console.error("Erro ao buscar fluxos do Typebot:", error);
-			toast.error("Erro ao carregar fluxos do Typebot");
-			setTypebotFlows([]);
-		}
-	};
-
-	// Modifique o useEffect para depender de instances
-	useEffect(() => {
-		if (instances.length > 0) {
-			fetchTypebotFlows();
-		}
-	}, [instances]);
-
-	const handleAddTypebotFlow = async (
-		instanceId: string,
-		flowData: TypebotConfig,
-	) => {
-		try {
-			const token = authService.getToken();
-			const response = await axios.post(
-				`${API_BASE_URL}/api/instances/instance/${instanceId}/typebot`,
-				{
-					typebot: {
-						...flowData,
-						instanceId: instanceId,
-					},
-				},
-				{
-					headers: {
-						Authorization: `Bearer ${token}`,
-						"Content-Type": "application/json",
-					},
-				},
-			);
-
-			// Atualiza a lista de instâncias para refletir a mudança
-			await fetchInstances();
-
-			toast.success("Typebot adicionado com sucesso!");
-			setShowTypebotConfig(false);
-		} catch (error) {
-			console.error("Erro ao adicionar Typebot:", error);
-
-			// Log mais detalhado do erro
-			if (axios.isAxiosError(error)) {
-				console.error("Detalhes do erro:", error.response?.data);
-				console.error("Status:", error.response?.status);
-			}
-
-			toast.error("Erro ao adicionar Typebot");
-		}
-	};
-
-	const handleEditTypebotFlow = async (
-		instanceId: string,
-		flowId: string,
-		flowData: TypebotConfig,
-	) => {
-		try {
-			const token = authService.getToken();
-			const response = await axios.put(
-				`${API_BASE_URL}/api/instance/${instanceId}/typebot/${flowId}`,
-				{
-					typebot: {
-						...flowData,
-						instanceId: instanceId,
-						id: flowId,
-					},
-				},
-				{
-					headers: { Authorization: `Bearer ${token}` },
-				},
-			);
-
-			// Atualiza a lista de instâncias para refletir a mudança
-			await fetchInstances();
-
-			// Atualiza os fluxos do Typebot
-			await fetchTypebotFlows();
-
-			toast.success("Typebot atualizado com sucesso!");
-			setShowTypebotConfig(false);
-		} catch (error) {
-			console.error("Erro ao editar Typebot:", error);
-			toast.error("Erro ao editar Typebot");
-		}
-	};
-
-	const handleDeleteTypebotFlow = async (
-		instanceId: string,
-		flowId: string,
-	) => {
-		if (!window.confirm("Tem certeza que deseja remover este Typebot?")) return;
-
-		try {
-			const token = authService.getToken();
-			await axios.delete(
-				`${API_BASE_URL}/api/instances/instance/${instanceId}/typebot/${flowId}`,
-				{
-					headers: { Authorization: `Bearer ${token}` },
-				},
-			);
-
-			// Atualiza a lista de instâncias para refletir a mudança
-			await fetchInstances();
-
-			// Atualiza os fluxos do Typebot
-			await fetchTypebotFlows();
-
-			toast.success("Typebot removido com sucesso!");
-			setShowTypebotConfig(false);
-		} catch (error) {
-			console.error("Erro ao remover Typebot:", error);
-			toast.error("Erro ao remover Typebot");
-		}
-	};
-
 	const fetchUserPlan = async () => {
 		try {
 			const token = authService.getToken();
@@ -594,34 +281,50 @@ const Instances: React.FC = () => {
 				headers: { Authorization: `Bearer ${token}` },
 			});
 
+			console.log("Dados do plano recebidos:", response.data);
+
 			if (response.data) {
-				const { currentPlan, limits } = response.data;
+				const { currentPlan, limits, usage } = response.data;
 
-				// Atualiza o nome do plano
-				setCurrentPlan(currentPlan.name);
+				console.log({
+					planName: currentPlan.name,
+					planType: currentPlan.type,
+					maxInstances: limits.maxCampaigns,
+					isInTrial: currentPlan.isInTrial
+				});
 
-				// Define o limite de instâncias (usando maxCampaigns como limite de instâncias)
-				const maxInstances = limits.maxCampaigns || 3;
+				// Definir o nome do plano
+				setCurrentPlan(currentPlan.name || "Gratuito");
+
+				// Definir o limite de instâncias/campanhas
+				const maxInstances = limits.maxCampaigns || 1; // Valor padrão de 1
 				setInstanceLimit(maxInstances);
 
-				// Calcula slots restantes
+				// Calcular slots restantes
 				const usedInstances = instances.length;
 				const remaining = maxInstances - usedInstances;
 				setRemainingSlots(Math.max(0, remaining));
 
-				// Atualiza detalhes do plano
+				// Detalhes mais completos do plano
 				setPlanDetails({
-					type: currentPlan.type,
-					isInTrial: currentPlan.isInTrial,
-					trialEndDate: currentPlan.trialEndDate,
+					type: currentPlan.type || "free",
+					isInTrial: currentPlan.isInTrial || false,
+					trialEndDate: currentPlan.trialEndDate || null,
+					leadsLimit: limits.maxLeads || 0,
+					currentLeads: usage.currentLeads || 0,
+					leadsPercentage: usage.leadsPercentage || 0
 				});
 			}
 		} catch (error) {
 			console.error("Erro ao carregar dados do plano:", error);
+
 			// Valores padrão em caso de erro
 			setCurrentPlan("Gratuito");
 			setInstanceLimit(1);
 			setRemainingSlots(Math.max(0, 1 - instances.length));
+
+			// Tratamento de erro com toast
+			handleError(error);
 		}
 	};
 
@@ -751,8 +454,8 @@ const Instances: React.FC = () => {
 			console.error("Erro ao criar instância:", error);
 			toast.error(
 				error.response?.data?.error ||
-					error.response?.data?.message ||
-					"Erro ao criar instância",
+				error.response?.data?.message ||
+				"Erro ao criar instância",
 			);
 		} finally {
 			setIsCreatingInstance(false);
@@ -1009,11 +712,6 @@ const Instances: React.FC = () => {
 		}
 	};
 
-	function handleConfigureTypebot(instance: Instance): void {
-		setSelectedInstance(instance);
-		setShowTypebotConfig(true);
-	}
-
 	const handleConfigureProxy = (instance: Instance) => {
 		setSelectedInstanceForProxy(instance);
 		setShowProxyConfig(true);
@@ -1100,9 +798,8 @@ const Instances: React.FC = () => {
 						<div className="flex items-center gap-2">
 							<span className="text-white/60">Disponível:</span>
 							<span
-								className={`font-semibold ${
-									remainingSlots > 0 ? "text-neon-green" : "text-red-500"
-								}`}
+								className={`font-semibold ${remainingSlots > 0 ? "text-neon-green" : "text-red-500"
+									}`}
 							>
 								{remainingSlots}
 							</span>
@@ -1138,29 +835,6 @@ const Instances: React.FC = () => {
 				/>
 			)}
 
-			{/* Modal de Configuração do Typebot */}
-			{showTypebotConfig && selectedInstance && (
-				<Modal
-					isOpen={showTypebotConfig}
-					onClose={() => {
-						setShowTypebotConfig(false);
-						setSelectedInstance(null);
-					}}
-					title={
-						selectedInstance.typebot ? "Editar Typebot" : "Adicionar Typebot"
-					}
-				>
-					<TypebotConfigForm
-						instance={selectedInstance}
-						onUpdate={(config) =>
-							handleUpdateTypebotConfig(config, selectedInstance.id)
-						}
-						onDelete={handleDeleteTypebotConfig}
-						isEditing={!!selectedInstance.typebot}
-					/>
-				</Modal>
-			)}
-
 			{/* Grid de Instâncias */}
 			{loading ? (
 				<div className="flex justify-center items-center h-64">
@@ -1188,10 +862,6 @@ const Instances: React.FC = () => {
 							onLogout={handleLogoutInstance}
 							onDelete={handleDeleteInstance}
 							deletingInstance={deletingInstance}
-							typebotFlows={typebotFlows}
-							onAddTypebotFlow={handleAddTypebotFlow}
-							onEditTypebotFlow={handleEditTypebotFlow}
-							onDeleteTypebotFlow={handleDeleteTypebotFlow}
 						/>
 					))}
 				</motion.div>
@@ -1211,9 +881,8 @@ const Instances: React.FC = () => {
 						<span className="text-electric font-semibold">{instanceLimit}</span>
 						. Disponível:{" "}
 						<span
-							className={`${
-								remainingSlots > 0 ? "text-neon-green" : "text-red-500"
-							}`}
+							className={`${remainingSlots > 0 ? "text-neon-green" : "text-red-500"
+								}`}
 						>
 							{remainingSlots}
 						</span>
@@ -1248,12 +917,11 @@ const Instances: React.FC = () => {
 							className={`
                 bg-gradient-to-r from-electric to-neon-purple
                 hover:shadow-lg hover:shadow-electric/50
-                ${
-									isCreatingInstance ||
+                ${isCreatingInstance ||
 									!newInstanceName.trim() ||
 									remainingSlots <= 0
-										? "opacity-50 cursor-not-allowed"
-										: ""
+									? "opacity-50 cursor-not-allowed"
+									: ""
 								}
               `}
 						>
