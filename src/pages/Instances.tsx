@@ -258,7 +258,7 @@ const Instances: React.FC = () => {
 
 	const fetchUserPlan = async () => {
 		try {
-			const response = await api.main.get("/instances/plan");
+			const response = await api.main.get("/users/plan");
 
 			// Log para depuração
 			console.log("Dados do plano recebidos:", response.data);
