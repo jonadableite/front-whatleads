@@ -259,51 +259,37 @@ const Instances: React.FC = () => {
 	const fetchUserPlan = async () => {
 		try {
 			const response = await api.main.get("/users/plan");
-
-			// Log para depuração
 			console.log("Dados do plano recebidos:", response.data);
 
-			// Defina os estados de plano com os dados recebidos
+			// Corrija a definição dos estados
 			setCurrentPlan(
-				response.data.plan ||
-				response.data.currentPlan ||
-				"Plano Básico"
+				(response.data.currentPlan?.name || response.data.plan || "Plano Básico")
 			);
 
 			setInstanceLimit(
+				response.data.currentPlan?.limits?.maxInstances ||
 				response.data.maxInstances ||
-				response.data.instanceLimit || 5
+				5
 			);
 
 			setRemainingSlots(
-				response.data.remainingSlots !== undefined
-					? response.data.remainingSlots
-					: Math.max(0, (response.data.maxInstances || 5) - (response.data.instances?.length || 0))
+				(response.data.instanceLimit || 5) - (response.data.currentInstances || 0)
 			);
 
-			// Detalhes adicionais do plano
+			// Para planDetails, use apenas valores primitivos
 			setPlanDetails({
-				type: response.data.plan || response.data.currentPlan,
-				isInTrial: !!response.data.isInTrial, // Garante boolean
-				trialEndDate: response.data.trialEndDate || null, // Permite null
-				leadsLimit: response.data.leadsLimit,
-				currentLeads: response.data.currentLeads,
-				leadsPercentage: response.data.leadsPercentage,
+				type: response.data.currentPlan?.type,
+				isInTrial: response.data.currentPlan?.isInTrial,
+				trialEndDate: response.data.currentPlan?.trialEndDate,
+				leadsLimit: response.data.currentPlan?.limits?.maxLeads,
+				currentLeads: response.data.usage?.currentLeads,
+				leadsPercentage: response.data.usage?.leadsPercentage
 			});
 		} catch (error) {
-			console.error("Erro ao carregar dados do plano:", error);
-			// Definir valores padrão em caso de erro
-			setCurrentPlan("Plano Básico");
-			setInstanceLimit(1);
-			setRemainingSlots(0);
-			setPlanDetails({
-				type: "Básico",
-				isInTrial: false,
-				trialEndDate: null,
-			});
-			toast.error("Não foi possível carregar os detalhes do plano");
+			handleError(error);
 		}
 	};
+
 
 
 	const fetchInstances = async () => {
@@ -708,7 +694,9 @@ const Instances: React.FC = () => {
 					<div className="flex flex-wrap gap-6 justify-between items-center">
 						<div className="flex items-center gap-2">
 							<span className="text-white/60">Plano:</span>
-							<span className="text-electric font-semibold">{currentPlan}</span>
+							<span className="text-electric font-semibold">
+								{typeof currentPlan === 'string' ? currentPlan : 'Plano não definido'}
+							</span>
 						</div>
 
 						{planDetails?.isInTrial && planDetails.trialEndDate && (
@@ -719,6 +707,7 @@ const Instances: React.FC = () => {
 								</span>
 							</div>
 						)}
+
 
 						<div className="flex items-center gap-2">
 							<span className="text-white/60">Instâncias:</span>
