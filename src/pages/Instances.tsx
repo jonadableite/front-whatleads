@@ -224,7 +224,7 @@ const Instances: React.FC = () => {
 	const [planDetails, setPlanDetails] = useState<{
 		type?: string;
 		isInTrial?: boolean;
-		trialEndDate?: string;
+		trialEndDate?: string | null;
 		leadsLimit?: number;
 		currentLeads?: number;
 		leadsPercentage?: number;
@@ -265,34 +265,46 @@ const Instances: React.FC = () => {
 
 			// Defina os estados de plano com os dados recebidos
 			setCurrentPlan(
-				response.data.plan || response.data.currentPlan || "Plano Básico",
+				response.data.plan ||
+				response.data.currentPlan ||
+				"Plano Básico"
 			);
+
 			setInstanceLimit(
-				response.data.maxInstances || response.data.instanceLimit || 5,
+				response.data.maxInstances ||
+				response.data.instanceLimit || 5
 			);
+
 			setRemainingSlots(
 				response.data.remainingSlots !== undefined
 					? response.data.remainingSlots
-					: (response.data.maxInstances || 5) -
-					(response.data.instances?.length || 0),
+					: Math.max(0, (response.data.maxInstances || 5) - (response.data.instances?.length || 0))
 			);
 
 			// Detalhes adicionais do plano
 			setPlanDetails({
 				type: response.data.plan || response.data.currentPlan,
-				isInTrial: response.data.isInTrial || false,
-				trialEndDate: response.data.trialEndDate,
+				isInTrial: !!response.data.isInTrial, // Garante boolean
+				trialEndDate: response.data.trialEndDate || null, // Permite null
 				leadsLimit: response.data.leadsLimit,
 				currentLeads: response.data.currentLeads,
 				leadsPercentage: response.data.leadsPercentage,
 			});
 		} catch (error) {
 			console.error("Erro ao carregar dados do plano:", error);
-
-			// Tratamento de erro com toast
+			// Definir valores padrão em caso de erro
+			setCurrentPlan("Plano Básico");
+			setInstanceLimit(1);
+			setRemainingSlots(0);
+			setPlanDetails({
+				type: "Básico",
+				isInTrial: false,
+				trialEndDate: null,
+			});
 			toast.error("Não foi possível carregar os detalhes do plano");
 		}
 	};
+
 
 	const fetchInstances = async () => {
 		try {
@@ -699,13 +711,11 @@ const Instances: React.FC = () => {
 							<span className="text-electric font-semibold">{currentPlan}</span>
 						</div>
 
-						{planDetails.isInTrial && (
+						{planDetails?.isInTrial && planDetails.trialEndDate && (
 							<div className="flex items-center gap-2">
 								<span className="text-white/60">Teste até:</span>
 								<span className="text-white font-semibold">
-									{new Date(planDetails.trialEndDate || "").toLocaleDateString(
-										"pt-BR",
-									)}
+									{new Date(planDetails.trialEndDate).toLocaleDateString("pt-BR")}
 								</span>
 							</div>
 						)}
