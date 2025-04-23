@@ -2,12 +2,10 @@
 
 import { CampaignForm } from "@/components/campaign/CampaignForm";
 import { DeleteConfirmationDialog } from "@/components/campaign/DeleteConfirmationDialog";
-import { ImportLeadsModal } from "@/components/campaign/ImportLeadsModal";
+import { ImportLeadsModal } from "@/components/leads/ImportLeadsModal";
 import { Button } from "@/components/ui/button";
 import { DialogOverlay } from "@/components/ui/dialog";
-import { Input } from "@/components/ui/input";
 import { DialogContent } from "@/components/ui/modal";
-import { Select } from "@/components/ui/select";
 import { toast } from "@/components/ui/toast";
 import type {
 	Campaign,
@@ -17,7 +15,12 @@ import type {
 	StatsCardProps,
 } from "@/interface";
 import { api } from "@/lib/api";
-import { Dialog, DialogTitle } from "@radix-ui/react-dialog";
+import {
+	Dialog,
+	DialogClose,
+	DialogDescription,
+	DialogTitle,
+} from "@radix-ui/react-dialog";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "framer-motion";
 import { useEffect, useMemo, useState } from "react";
@@ -31,6 +34,7 @@ import {
 	FiTrash2,
 	FiUpload,
 	FiUsers,
+	FiX,
 } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
 
@@ -434,11 +438,12 @@ const Campanhas: React.FC = () => {
 					className="bg-deep/50 rounded-xl p-6 border border-electric/30"
 				>
 					<div className="animate-pulse space-y-4">
+						{/* biome-ignore lint/style/useSelfClosingElements: <explanation> */}
 						<div className="h-6 bg-electric/20 rounded w-3/4"></div>
-						<div className="h-4 bg-electric/20 rounded w-1/2"></div>
+						<div className="h-4 bg-electric/20 rounded w-1/2" />
 						<div className="space-y-3">
-							<div className="h-2 bg-electric/20 rounded"></div>
-							<div className="h-2 bg-electric/20 rounded w-5/6"></div>
+							<div className="h-2 bg-electric/20 rounded" />
+							<div className="h-2 bg-electric/20 rounded w-5/6" />
 						</div>
 					</div>
 				</motion.div>
@@ -789,18 +794,38 @@ const Campanhas: React.FC = () => {
 		onSubmit: (data: Partial<Campaign>) => void;
 	}> = ({ isOpen, onClose, campaign, onSubmit }) => (
 		<Dialog open={isOpen} onOpenChange={(open) => !open && onClose()}>
-			<DialogOverlay className="fixed inset-0 bg-black/50 z-50" />
-			<DialogContent className="fixed top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-full max-w-md bg-deep border border-electric rounded-lg p-6 z-50">
-				<DialogTitle className="text-xl font-bold text-white mb-4">
-					{campaign ? "Editar Campanha" : "Nova Campanha"}
-				</DialogTitle>
+			<DialogOverlay className="fixed inset-0 bg-black/50 backdrop-blur-sm z-40 flex items-center justify-center" />
+			<DialogContent className="fixed inset-0 z-50 flex items-center justify-center">
+				<div
+					className="w-full max-w-md bg-deep border border-electric rounded-lg p-6 shadow-2xl transform transition-all duration-300 ease-in-out"
+					// Previne que cliques dentro do modal fechem ele
+					onClick={(e) => e.stopPropagation()}
+				>
+					{/* Botão de fechar */}
+					<DialogClose
+						className="absolute top-4 right-4 text-white/60 hover:text-white transition-colors"
+						onClick={onClose}
+					>
+						<FiX />
+					</DialogClose>
 
-				<CampaignForm
-					campaign={campaign}
-					onSubmit={onSubmit}
-					onCancel={onClose}
-					isLoading={false}
-				/>
+					<DialogTitle className="text-xl font-bold text-white mb-4">
+						{campaign ? "Editar Campanha" : "Nova Campanha"}
+					</DialogTitle>
+
+					<DialogDescription className="text-white/70 mb-6">
+						{campaign
+							? "Modifique os detalhes da sua campanha"
+							: "Crie uma nova campanha para iniciar seus disparos"}
+					</DialogDescription>
+
+					<CampaignForm
+						campaign={campaign}
+						onSubmit={onSubmit}
+						onCancel={onClose}
+						isLoading={false}
+					/>
+				</div>
 			</DialogContent>
 		</Dialog>
 	);
@@ -962,7 +987,7 @@ const Campanhas: React.FC = () => {
 							trendLabel="média"
 						/>
 					</div>
-					<div className="flex flex-wrap gap-4 items-center">
+					{/* <div className="flex flex-wrap gap-4 items-center">
 						<Input
 							type="text"
 							placeholder="Buscar campanhas..."
@@ -983,23 +1008,25 @@ const Campanhas: React.FC = () => {
 							<option value="draft">Rascunho</option>
 							<option value="pending">Pendentes</option>
 						</Select>
-					</div>
+					</div> */}
 					{/* Campaigns Grid */}
 					<AnimatePresence mode="popLayout">
 						<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-							{filteredCampaigns.slice(0, visibleCampaigns).map((campaign) => (
-								<CampaignCard
-									key={campaign.id}
-									campaign={campaign}
-									onAction={handleAction}
-									onEdit={() => {
-										setSelectedCampaign(campaign);
-										setIsModalOpen(true);
-									}}
-									onDelete={() => handleDelete(campaign.id)}
-									isLoading={false}
-								/>
-							))}
+							{filteredCampaigns
+								.slice(0, visibleCampaigns)
+								.map((campaign, index) => (
+									<CampaignCard
+										key={`campaign-${campaign.id}-${index}`}
+										campaign={campaign}
+										onAction={handleAction}
+										onEdit={() => {
+											setSelectedCampaign(campaign);
+											setIsModalOpen(true);
+										}}
+										onDelete={() => handleDelete(campaign.id)}
+										isLoading={false}
+									/>
+								))}
 						</div>
 
 						{visibleCampaigns < filteredCampaigns.length && (

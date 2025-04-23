@@ -1,23 +1,15 @@
 // @ts-nocheck
 
 // src/pages/Instances.tsx
-import ProxyConfigModal from "@/components/ProxyConfigModal";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Modal } from "@/components/ui/modal";
 import type { Instance } from "@/interface";
+import { api } from "@/lib/api";
 import { authService } from "@/services/auth.service";
 import axios from "axios";
 import { motion } from "framer-motion";
-import {
-	AlertCircle,
-	MessageSquareMore,
-	Plus,
-	Power,
-	Trash2,
-	Wifi,
-	X,
-} from "lucide-react";
+import { AlertCircle, Plus, Power, Trash2, Wifi, X } from "lucide-react";
 import type React from "react";
 import { useEffect, useState } from "react";
 import { Toaster, toast } from "react-hot-toast";
@@ -92,122 +84,116 @@ const InstanceCard: React.FC<{
 	onLogout: (name: string) => void;
 	onDelete: (id: string, name: string) => void;
 	deletingInstance: string | null;
-}> = ({
-	instance,
-	onReconnect,
-	onLogout,
-	onDelete,
-	deletingInstance,
-}) => {
-		const isConnected =
-			instance.connectionStatus === "OPEN" ||
-			instance.connectionStatus === "CONNECTED";
+}> = ({ instance, onReconnect, onLogout, onDelete, deletingInstance }) => {
+	const isConnected =
+		instance.connectionStatus === "OPEN" ||
+		instance.connectionStatus === "CONNECTED";
 
-		const handleDeleteInstance = () => {
-			if (
-				window.confirm(
-					`Tem certeza que deseja excluir a instância ${instance.instanceName}?`,
-				)
-			) {
-				onDelete(instance.id, instance.instanceName);
-			}
-		};
+	const handleDeleteInstance = () => {
+		if (
+			window.confirm(
+				`Tem certeza que deseja excluir a instância ${instance.instanceName}?`,
+			)
+		) {
+			onDelete(instance.id, instance.instanceName);
+		}
+	};
 
-		return (
-			<motion.div
-				variants={itemVariants}
-				whileHover={{ scale: 1.02 }}
-				className="relative bg-deep/80 backdrop-blur-xl p-6 rounded-xl border border-electric shadow-lg hover:shadow-electric transition-all duration-300"
-			>
-				<div className="absolute inset-0 bg-gradient-to-tr from-electric/5 to-neon-purple/5 opacity-50" />
+	return (
+		<motion.div
+			variants={itemVariants}
+			whileHover={{ scale: 1.02 }}
+			className="relative bg-deep/80 backdrop-blur-xl p-6 rounded-xl border border-electric shadow-lg hover:shadow-electric transition-all duration-300"
+		>
+			<div className="absolute inset-0 bg-gradient-to-tr from-electric/5 to-neon-purple/5 opacity-50" />
 
-				<div className="relative z-10 space-y-6">
-					{/* Header da Instância */}
-					<div className="flex justify-between items-center">
-						<div className="flex items-center space-x-4">
-							<div className="relative">
-								{instance.profilePicUrl ? (
-									<img
-										src={instance.profilePicUrl}
-										alt="Profile"
-										className={`w-12 h-12 rounded-full object-cover border-2 ${isConnected ? "border-neon-green" : "border-red-500"
-											}`}
-									/>
-								) : (
-									<div
-										className={`w-12 h-12 rounded-full flex items-center justify-center ${isConnected
-											? "bg-neon-green/10 text-neon-green"
-											: "bg-red-500/20 text-red-500"
-											}`}
-									>
-										<FaWhatsapp className="w-6 h-6" />
-									</div>
-								)}
-							</div>
-							<div>
-								<h3 className="text-lg font-bold text-white">
-									{instance.instanceName}
-								</h3>
-								<p className="text-sm text-white/70">
-									{instance.phoneNumber || "Sem número"}
-								</p>
-							</div>
+			<div className="relative z-10 space-y-6">
+				{/* Header da Instância */}
+				<div className="flex justify-between items-center">
+					<div className="flex items-center space-x-4">
+						<div className="relative">
+							{instance.profilePicUrl ? (
+								<img
+									src={instance.profilePicUrl}
+									alt="Profile"
+									className={`w-12 h-12 rounded-full object-cover border-2 ${isConnected ? "border-neon-green" : "border-red-500"
+										}`}
+								/>
+							) : (
+								<div
+									className={`w-12 h-12 rounded-full flex items-center justify-center ${isConnected
+										? "bg-neon-green/10 text-neon-green"
+										: "bg-red-500/20 text-red-500"
+										}`}
+								>
+									<FaWhatsapp className="w-6 h-6" />
+								</div>
+							)}
 						</div>
-						<ConnectionStatus connected={isConnected} />
+						<div>
+							<h3 className="text-lg font-bold text-white">
+								{instance.instanceName}
+							</h3>
+							<p className="text-sm text-white/70">
+								{instance.phoneNumber || "Sem número"}
+							</p>
+						</div>
 					</div>
+					<ConnectionStatus connected={isConnected} />
+				</div>
 
-					{/* Ações Principais */}
-					<div className="space-y-4">
-						{!isConnected && (
-							<Button
-								variant="outline"
-								size="lg"
-								onClick={() => onReconnect(instance.instanceName)}
-								className="w-full bg-neon-green/10 text-white border-neon-green/20 hover:bg-neon-green/20 hover:border-neon-green/30"
-							>
-								<Wifi className="w-5 h-5 mr-2" /> Reconectar
-							</Button>
-						)}
-
-						<div className="grid grid-cols-2 gap-3">
-							<Button
-								variant="outline"
-								size="lg"
-								onClick={() => onLogout(instance.instanceName)}
-								className="bg-neon-yellow/10 text-neon-yellow border-neon-yellow/20 hover:bg-neon-yellow/20 hover:border-neon-yellow/30"
-							>
-								<Power className="w-5 h-5 mr-2" /> Logout
-							</Button>
-						</div>
-
-						{/* Botão de Excluir Instância */}
+				{/* Ações Principais */}
+				<div className="space-y-4">
+					{!isConnected && (
 						<Button
 							variant="outline"
 							size="lg"
-							onClick={handleDeleteInstance}
-							disabled={deletingInstance === instance.id}
-							className="w-full bg-red-500/10 text-red-500 border-red-500/20 hover:bg-red-500/20 hover:border-red-500/30"
+							onClick={() => onReconnect(instance.instanceName)}
+							className="w-full bg-neon-green/10 text-white border-neon-green/20 hover:bg-neon-green/20 hover:border-neon-green/30"
 						>
-							{deletingInstance === instance.id ? (
-								<motion.div
-									animate={{ rotate: 360 }}
-									transition={{
-										duration: 1,
-										repeat: Number.POSITIVE_INFINITY,
-										ease: "linear",
-									}}
-									className="w-5 h-5 border-2 border-red-500 border-t-transparent rounded-full mr-2"
-								/>
-							) : (
-								<Trash2 className="w-5 h-5 mr-2" />
-							)}
-							Excluir Instância
+							<Wifi className="w-5 h-5 mr-2" /> Reconectar
+						</Button>
+					)}
+
+					<div className="grid grid-cols-2 gap-3">
+						<Button
+							variant="outline"
+							size="lg"
+							onClick={() => onLogout(instance.instanceName)}
+							className="bg-neon-yellow/10 text-neon-yellow border-neon-yellow/20 hover:bg-neon-yellow/20 hover:border-neon-yellow/30"
+						>
+							<Power className="w-5 h-5 mr-2" /> Logout
 						</Button>
 					</div>
+
+					{/* Botão de Excluir Instância */}
+					<Button
+						variant="outline"
+						size="lg"
+						onClick={handleDeleteInstance}
+						disabled={deletingInstance === instance.id}
+						className="w-full bg-red-500/10 text-red-500 border-red-500/20 hover:bg-red-500/20 hover:border-red-500/30"
+					>
+						{deletingInstance === instance.id ? (
+							<motion.div
+								animate={{ rotate: 360 }}
+								transition={{
+									duration: 1,
+									repeat: Number.POSITIVE_INFINITY,
+									ease: "linear",
+								}}
+								className="w-5 h-5 border-2 border-red-500 border-t-transparent rounded-full mr-2"
+							/>
+						) : (
+							<Trash2 className="w-5 h-5 mr-2" />
+						)}
+						Excluir Instância
+					</Button>
 				</div>
-			</motion.div>
-		);
-	};
+			</div>
+		</motion.div>
+	);
+};
 
 // Componente principal: Instances
 const Instances: React.FC = () => {
@@ -215,7 +201,6 @@ const Instances: React.FC = () => {
 	const navigate = useNavigate();
 	const [instances, setInstances] = useState<Instance[]>([]);
 	const [loading, setLoading] = useState(true);
-	const [showProxyConfig, setShowProxyConfig] = useState(false);
 	const [selectedInstance, setSelectedInstance] = useState<Instance | null>(
 		null,
 	);
@@ -223,15 +208,12 @@ const Instances: React.FC = () => {
 	const [qrCodeError, setQrCodeError] = useState(false);
 	const [isModalOpen, setIsModalOpen] = useState(false);
 	const [isCreatingInstance, setIsCreatingInstance] = useState(false);
-	const [currentPlan, setCurrentPlan] = useState("Gratuito");
+	const [currentPlan, setCurrentPlan] = useState("");
 	const [instanceLimit, setInstanceLimit] = useState(1);
 	const [remainingSlots, setRemainingSlots] = useState(0);
 	const [pollingIntervals, setPollingIntervals] = useState<{
 		[key: string]: any;
 	}>({});
-
-	const [selectedInstanceForProxy, setSelectedInstanceForProxy] =
-		useState<Instance | null>(null);
 
 	const [qrCode, setQrCode] = useState<{
 		base64: string;
@@ -276,55 +258,39 @@ const Instances: React.FC = () => {
 
 	const fetchUserPlan = async () => {
 		try {
-			const token = authService.getToken();
-			const response = await axios.get(`${API_BASE_URL}/api/users/plan`, {
-				headers: { Authorization: `Bearer ${token}` },
-			});
+			const response = await api.main.get("/instances/plan");
 
+			// Log para depuração
 			console.log("Dados do plano recebidos:", response.data);
 
-			if (response.data) {
-				const { currentPlan, limits, usage } = response.data;
+			// Defina os estados de plano com os dados recebidos
+			setCurrentPlan(
+				response.data.plan || response.data.currentPlan || "Plano Básico",
+			);
+			setInstanceLimit(
+				response.data.maxInstances || response.data.instanceLimit || 5,
+			);
+			setRemainingSlots(
+				response.data.remainingSlots !== undefined
+					? response.data.remainingSlots
+					: (response.data.maxInstances || 5) -
+					(response.data.instances?.length || 0),
+			);
 
-				console.log({
-					planName: currentPlan.name,
-					planType: currentPlan.type,
-					maxInstances: limits.maxCampaigns,
-					isInTrial: currentPlan.isInTrial
-				});
-
-				// Definir o nome do plano
-				setCurrentPlan(currentPlan.name || "Gratuito");
-
-				// Definir o limite de instâncias/campanhas
-				const maxInstances = limits.maxCampaigns || 1; // Valor padrão de 1
-				setInstanceLimit(maxInstances);
-
-				// Calcular slots restantes
-				const usedInstances = instances.length;
-				const remaining = maxInstances - usedInstances;
-				setRemainingSlots(Math.max(0, remaining));
-
-				// Detalhes mais completos do plano
-				setPlanDetails({
-					type: currentPlan.type || "free",
-					isInTrial: currentPlan.isInTrial || false,
-					trialEndDate: currentPlan.trialEndDate || null,
-					leadsLimit: limits.maxLeads || 0,
-					currentLeads: usage.currentLeads || 0,
-					leadsPercentage: usage.leadsPercentage || 0
-				});
-			}
+			// Detalhes adicionais do plano
+			setPlanDetails({
+				type: response.data.plan || response.data.currentPlan,
+				isInTrial: response.data.isInTrial || false,
+				trialEndDate: response.data.trialEndDate,
+				leadsLimit: response.data.leadsLimit,
+				currentLeads: response.data.currentLeads,
+				leadsPercentage: response.data.leadsPercentage,
+			});
 		} catch (error) {
 			console.error("Erro ao carregar dados do plano:", error);
 
-			// Valores padrão em caso de erro
-			setCurrentPlan("Gratuito");
-			setInstanceLimit(1);
-			setRemainingSlots(Math.max(0, 1 - instances.length));
-
 			// Tratamento de erro com toast
-			handleError(error);
+			toast.error("Não foi possível carregar os detalhes do plano");
 		}
 	};
 
@@ -343,6 +309,7 @@ const Instances: React.FC = () => {
 		}
 	};
 
+	// biome-ignore lint/correctness/useExhaustiveDependencies: <explanation>
 	useEffect(() => {
 		const loadData = async () => {
 			await fetchInstances();
@@ -405,7 +372,6 @@ const Instances: React.FC = () => {
 
 			console.log("Dados recebidos do backend:", response.data);
 
-			// Aqui é onde a nova parte se encaixa
 			// biome-ignore lint/complexity/useOptionalChain: <explanation>
 			if (response.data && response.data.instance) {
 				const newInstance = response.data.instance;
@@ -712,48 +678,6 @@ const Instances: React.FC = () => {
 		}
 	};
 
-	const handleConfigureProxy = (instance: Instance) => {
-		setSelectedInstanceForProxy(instance);
-		setShowProxyConfig(true);
-	};
-
-	const handleSaveProxyConfig = async (config: ProxyConfig) => {
-		if (!selectedInstanceForProxy) return;
-
-		try {
-			const token = authService.getToken();
-			if (!token) {
-				toast.error("Sessão expirada. Faça login novamente.");
-				navigate("/login");
-				return;
-			}
-
-			const response = await axios.put(
-				`${API_BASE_URL}/api/instances/instance/${selectedInstanceForProxy.id}/proxy`,
-				config,
-				{ headers: { Authorization: `Bearer ${token}` } },
-			);
-
-			if (response.data) {
-				toast.success("Configurações de proxy atualizadas com sucesso!");
-				setInstances((prevInstances) =>
-					prevInstances.map((instance) =>
-						instance.id === selectedInstanceForProxy.id
-							? { ...instance, proxyConfig: config }
-							: instance,
-					),
-				);
-				setShowProxyConfig(false);
-				setSelectedInstanceForProxy(null);
-			} else {
-				throw new Error("Falha ao atualizar configurações de proxy");
-			}
-		} catch (error) {
-			console.error("Erro ao atualizar configurações de proxy:", error);
-			toast.error("Erro ao atualizar configurações de proxy");
-		}
-	};
-
 	return (
 		<motion.div
 			initial="hidden"
@@ -826,14 +750,6 @@ const Instances: React.FC = () => {
 					{remainingSlots <= 0 && " (Limite atingido)"}
 				</Button>
 			</div>
-			{/* Modal de Configuração do Proxy */}
-			{showProxyConfig && selectedInstanceForProxy && (
-				<ProxyConfigModal
-					instanceName={selectedInstanceForProxy.instanceName}
-					onClose={() => setShowProxyConfig(false)}
-					onSave={handleSaveProxyConfig}
-				/>
-			)}
 
 			{/* Grid de Instâncias */}
 			{loading ? (
@@ -961,6 +877,7 @@ const Instances: React.FC = () => {
 						className="bg-deep/90 backdrop-blur-xl p-8 rounded-2xl shadow-2xl border border-electric/20 w-full max-w-md relative"
 					>
 						{/* Botão Fechar */}
+						{/* biome-ignore lint/a11y/useButtonType: <explanation> */}
 						<button
 							onClick={closeQrCodeModal}
 							className="absolute top-4 right-4 p-2 rounded-full bg-white/10 hover:bg-white/20 transition-colors"

@@ -286,8 +286,8 @@ export const ImportLeadsModal: React.FC<ImportLeadsModalProps> = ({
 								!selectedCampaign || !selectedFile || isLoading || disableImport
 							}
 							className={`${disableImport
-									? "bg-gray-400"
-									: "bg-neon-green hover:bg-neon-green/80"
+								? "bg-gray-400"
+								: "bg-neon-green hover:bg-neon-green/80"
 								} text-white`}
 						>
 							{isLoading ? (

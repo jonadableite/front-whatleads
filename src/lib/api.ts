@@ -1,6 +1,7 @@
-import { authService } from "@/services/auth.service";
 // src/lib/api.ts
+import { authService } from "@/services/auth.service";
 import axios from "axios";
+import { toast } from "react-hot-toast"; // Se estiver usando react-hot-toast
 
 const API_URL = import.meta.env.VITE_API_URL || "https://api.whatlead.com.br";
 const API_KEY = "429683C4C977415CAAFCCE10F7D57E11";
@@ -28,27 +29,55 @@ const createApiInstance = (baseURL: string) => {
 			if (token) {
 				config.headers.Authorization = `Bearer ${token}`;
 			}
-			console.log(
-				"Config da requisição (token enviado):",
-				config.headers.Authorization,
-			);
 			return config;
 		},
-		(error) => {
-			console.error("Erro na requisição:", error);
-			return Promise.reject(error);
-		},
+		(error) => Promise.reject(error),
 	);
 
 	instance.interceptors.response.use(
 		(response) => response,
 		(error) => {
-			if (error.response && error.response.status === 401) {
-				// Token expirado ou inválido
-				authService.logout();
-				// Redirecionar para a página de login
-				window.location.href = "/login";
+			if (error.response) {
+				switch (error.response.status) {
+					case 401:
+						// Token expirado ou inválido
+						toast.error("Sessão expirada. Faça login novamente.");
+						authService.logout(() => {
+							// Redireciona para login
+							window.location.href = "/login";
+						});
+						break;
+
+					case 403:
+						toast.error("Você não tem permissão para acessar este recurso.");
+						break;
+
+					case 404:
+						toast.error("Recurso não encontrado.");
+						break;
+
+					case 500:
+						toast.error(
+							"Erro interno do servidor. Tente novamente mais tarde.",
+						);
+						break;
+
+					default:
+						// Outros erros de servidor
+						// biome-ignore lint/complexity/useOptionalChain: <explanation>
+						if (error.response.data && error.response.data.message) {
+							toast.error(error.response.data.message);
+						}
+						break;
+				}
+			} else if (error.request) {
+				// Erro de rede
+				toast.error("Sem conexão com o servidor. Verifique sua internet.");
+			} else {
+				// Erro genérico
+				toast.error("Ocorreu um erro inesperado.");
 			}
+
 			return Promise.reject(error);
 		},
 	);
