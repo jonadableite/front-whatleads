@@ -1,16 +1,60 @@
-import {
-	Dialog,
-	DialogContent,
-	DialogDescription,
-	DialogHeader,
-	DialogTitle,
-} from "@/components/ui/dialog";
-import { cn } from "@/lib/utils";
-import { AnimatePresence, motion } from "framer-motion";
 // src/components/ui/modal.tsx
-import * as React from "react"; // Adicione esta importação
+import * as React from "react";
+import * as DialogPrimitive from "@radix-ui/react-dialog";
+import { cva, type VariantProps } from "class-variance-authority";
+import { cn } from "@/lib/utils";
+import { motion } from "framer-motion";
+import { X, AlertCircle, CheckCircle2, Info, XCircle } from "lucide-react";
 
-interface ModalProps {
+// Variantes de estilo para diferentes tipos de modal
+const modalVariants = cva(
+	"fixed left-1/2 top-1/2 z-50 w-full max-w-lg -translate-x-1/2 -translate-y-1/2 " +
+	"bg-deep/95 backdrop-blur-xl border-none p-0 overflow-hidden rounded-2xl shadow-lg " +
+	"data-[state=open]:animate-in data-[state=closed]:animate-out " +
+	"data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0 " +
+	"data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
+	{
+		variants: {
+			type: {
+				default: "border-l-4 border-electric",
+				success: "border-l-4 border-neon-green",
+				error: "border-l-4 border-red-500",
+				warning: "border-l-4 border-yellow-500",
+				info: "border-l-4 border-blue-500",
+			},
+			size: {
+				default: "max-w-lg",
+				sm: "max-w-md",
+				lg: "max-w-xl",
+				xl: "max-w-2xl",
+				full: "max-w-full h-full",
+			},
+		},
+		defaultVariants: {
+			type: "default",
+			size: "default",
+		},
+	}
+);
+
+// Ícones para diferentes tipos de modal
+const getModalIcon = (type: ModalProps['type']) => {
+	const iconProps = {
+		className: "w-6 h-6 mr-3",
+	};
+	const icons = {
+		success: <CheckCircle2 {...iconProps} className={`${iconProps.className} text-neon-green`} />,
+		error: <XCircle {...iconProps} className={`${iconProps.className} text-red-500`} />,
+		warning: <AlertCircle {...iconProps} className={`${iconProps.className} text-yellow-500`} />,
+		info: <Info {...iconProps} className={`${iconProps.className} text-blue-500`} />,
+		default: null,
+	};
+	return icons[type || 'default'];
+};
+
+// Definição de props para o Modal
+interface ModalProps extends React.HTMLAttributes<HTMLDivElement>,
+	VariantProps<typeof modalVariants> {
 	isOpen: boolean;
 	onClose: () => void;
 	title?: string;
@@ -18,128 +62,133 @@ interface ModalProps {
 	children: React.ReactNode;
 	className?: string;
 	progress?: number;
+	closeOnOverlayClick?: boolean;
+	showCloseButton?: boolean;
 }
 
-export const Modal: React.FC<ModalProps> = ({
-	isOpen,
-	onClose,
-	title,
-	description,
-	children,
-	className,
-	progress,
-}) => {
-	const [showGlow, setShowGlow] = React.useState(false);
-	const modalId = React.useId();
+// Componente Modal Principal
+const Modal = React.forwardRef<HTMLDivElement, ModalProps>(
+	(
+		{
+			isOpen,
+			onClose,
+			title,
+			description,
+			children,
+			className,
+			progress,
+			type = "default",
+			size = "default",
+			closeOnOverlayClick = true,
+			showCloseButton = true,
+			...props
+		},
+		ref
+	) => {
+		const iconElement = getModalIcon(type);
 
-	React.useEffect(() => {
-		if (isOpen) {
-			setTimeout(() => setShowGlow(true), 300);
-		} else {
-			setShowGlow(false);
-		}
-	}, [isOpen]);
-
-	return (
-		<Dialog open={isOpen} onOpenChange={onClose}>
-			<AnimatePresence>
-				{isOpen && (
-					<motion.div
-						initial={{ opacity: 0 }}
-						animate={{ opacity: 1 }}
-						exit={{ opacity: 0 }}
-						className="fixed inset-0 z-40 bg-black/70 backdrop-blur-sm"
-					/>
-				)}
-			</AnimatePresence>
-			<DialogContent
-				className={cn(
-					"fixed left-1/2 top-1/2 z-50 w-full max-w-lg -translate-x-1/2 -translate-y-1/2",
-					"bg-deep/95 backdrop-blur-xl border-none p-0 overflow-hidden rounded-2xl shadow-lg",
-					className,
-				)}
-				aria-labelledby={`${modalId}-title`}
-				aria-describedby={description ? `${modalId}-description` : undefined}
+		return (
+			<DialogPrimitive.Root
+				open={isOpen}
+				onOpenChange={(open) => !open && onClose()}
 			>
-				<DialogHeader className="p-6 border-b border-electric/30">
-					<DialogTitle
-						id={`${modalId}-title`}
-						className="text-2xl font-bold text-white bg-clip-text text-transparent bg-gradient-to-r from-electric to-white"
+				<DialogPrimitive.Portal>
+					<DialogPrimitive.Overlay
+						className="fixed inset-0 z-40 bg-black/50 backdrop-blur-sm"
+						onClick={closeOnOverlayClick ? onClose : undefined}
+					/>
+					<DialogPrimitive.Content
+						ref={ref}
+						className={cn(
+							modalVariants({ type, size }),
+							className
+						)}
+						{...props}
 					>
-						{title}
-					</DialogTitle>
+						{/* Cabeçalho do Modal */}
+						<div className="flex items-center p-6 border-b border-electric/30">
+							{iconElement}
+							<div>
+								{title && (
+									<DialogPrimitive.Title
+										className="text-2xl font-bold 
+             bg-gradient-to-r from-electric to-blue-500 
+             bg-clip-text text-transparent 
+             animate-gradient-x 
+             bg-[length:200%_200%]"
+									>
+										{title}
+									</DialogPrimitive.Title>
+								)}
 
-					{description && (
-						<DialogDescription
-							id={`${modalId}-description`}
-							className="text-white/70 mt-2"
-						>
-							{description}
-						</DialogDescription>
-					)}
-				</DialogHeader>
 
-				<div className="p-6">
-					{progress !== undefined && (
-						<motion.div
-							className="mb-4"
-							initial={{ opacity: 0, y: 20 }}
-							animate={{ opacity: 1, y: 0 }}
-							transition={{ delay: 0.4 }}
-							role="progressbar"
-							aria-valuemin={0}
-							aria-valuemax={100}
-							aria-valuenow={progress}
-						>
-							<div className="relative w-full bg-deep/50 rounded-full h-2 overflow-hidden">
-								<motion.div
-									className="absolute inset-0 bg-gradient-to-r from-electric via-neon-green to-electric opacity-20"
-									animate={{
-										x: ["0%", "100%"],
-										transition: {
-											duration: 2,
-											repeat: Number.POSITIVE_INFINITY,
-										},
-									}}
-								/>
-								<motion.div
-									className="relative bg-neon-green h-full rounded-full"
-									initial={{ width: "0%" }}
-									animate={{ width: `${progress}%` }}
-									transition={{ duration: 0.5 }}
-								/>
+								{description && (
+									<DialogPrimitive.Description
+										className="text-white/70 mt-1"
+									>
+										{description}
+									</DialogPrimitive.Description>
+								)}
 							</div>
-							<p className="text-white text-center mt-2">
-								{progress}% concluído
-							</p>
-						</motion.div>
-					)}
+							{/* Botão de Fechar */}
+							{showCloseButton && (
+								<DialogPrimitive.Close
+									className="ml-auto p-2 rounded-full
+                  bg-electric/10 text-white/70
+                  hover:bg-electric/20 hover:text-white
+                  transition-colors"
+									aria-label="Fechar modal"
+								>
+									<X className="h-5 w-5" />
+								</DialogPrimitive.Close>
+							)}
+						</div>
 
-					{children}
-				</div>
+						{/* Barra de Progresso */}
+						{progress !== undefined && (
+							<div className="px-6 pt-4">
+								<div className="relative w-full bg-deep/50 rounded-full h-2 overflow-hidden">
+									<motion.div
+										className="absolute inset-0 bg-gradient-to-r
+                    from-electric via-neon-green to-electric opacity-20"
+										animate={{
+											x: ["0%", "100%"],
+											transition: {
+												duration: 2,
+												repeat: Number.POSITIVE_INFINITY,
+											},
+										}}
+									/>
+									<motion.div
+										className="relative bg-neon-green h-full rounded-full"
+										initial={{ width: "0%" }}
+										animate={{ width: `${progress}%` }}
+										transition={{ duration: 0.5 }}
+									/>
+								</div>
+								<p className="text-white text-center mt-2">
+									{progress}% concluído
+								</p>
+							</div>
+						)}
 
-				<button
-					className="absolute right-4 top-4 p-2 rounded-full bg-electric/10 text-white/70 hover:bg-electric/20 hover:text-white transition-colors"
-					onClick={onClose}
-					aria-label="Fechar modal"
-				>
-					<svg
-						xmlns="http://www.w3.org/2000/svg"
-						width="18"
-						height="18"
-						viewBox="0 0 24 24"
-						fill="none"
-						stroke="currentColor"
-						strokeWidth="2"
-						strokeLinecap="round"
-						strokeLinejoin="round"
-					>
-						<path d="M18 6L6 18M6 6l12 12" />
-					</svg>
-				</button>
-			</DialogContent>
-		</Dialog>
-	);
-};
+						{/* Conteúdo do Modal */}
+						<div className="p-6">{children}</div>
+					</DialogPrimitive.Content>
+				</DialogPrimitive.Portal>
+			</DialogPrimitive.Root>
+		);
+	}
+);
 
-export { DialogContent, DialogTitle };
+Modal.displayName = "Modal";
+
+export const DialogContent = DialogPrimitive.Content;
+export const DialogTitle = DialogPrimitive.Title;
+export const DialogDescription = DialogPrimitive.Description;
+export const DialogClose = DialogPrimitive.Close;
+export const DialogPortal = DialogPrimitive.Portal;
+export const DialogOverlay = DialogPrimitive.Overlay;
+export const DialogRoot = DialogPrimitive.Root;
+
+export { Modal };

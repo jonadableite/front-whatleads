@@ -296,12 +296,11 @@ const Campanhas: React.FC = () => {
 			await refetch();
 
 			toast.success(
-				`Campanha ${
-					action === "start"
-						? "iniciada"
-						: action === "pause"
-							? "pausada"
-							: "parada"
+				`Campanha ${action === "start"
+					? "iniciada"
+					: action === "pause"
+						? "pausada"
+						: "parada"
 				} com sucesso!`,
 			);
 		} catch {

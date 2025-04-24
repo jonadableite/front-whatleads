@@ -4,7 +4,7 @@ import { Modal } from "@/components/ui/modal";
 import { Select } from "@/components/ui/select";
 import type { Campaign } from "@/interface";
 import { AnimatePresence, motion } from "framer-motion";
-import { useCallback, useRef, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { FiFile, FiUpload, FiX } from "react-icons/fi";
 
 interface ImportLeadsModalProps {
@@ -116,10 +116,10 @@ export const ImportLeadsModal: React.FC<ImportLeadsModalProps> = ({
 					campaignId: selectedCampaign,
 					fileInfo: selectedFile
 						? {
-								name: selectedFile.name,
-								size: selectedFile.size,
-								type: selectedFile.type,
-							}
+							name: selectedFile.name,
+							size: selectedFile.size,
+							type: selectedFile.type,
+						}
 						: null,
 				});
 				setError(
@@ -172,12 +172,10 @@ export const ImportLeadsModal: React.FC<ImportLeadsModalProps> = ({
 						>
 							Selecione a Campanha
 						</label>
-						<Select
-							id="campaign"
+						<select
 							value={selectedCampaign}
 							onChange={(e) => setSelectedCampaign(e.target.value)}
-							className="w-full bg-deep/50 border-electric/30 text-white focus:ring-2 focus:ring-electric focus:border-transparent"
-							required
+							className="w-full bg-deep/50 border-electric/30 text-white"
 						>
 							<option value="">Selecione uma campanha</option>
 							{campaigns.map((campaign) => (
@@ -185,7 +183,8 @@ export const ImportLeadsModal: React.FC<ImportLeadsModalProps> = ({
 									{campaign.name}
 								</option>
 							))}
-						</Select>
+						</select>
+
 					</div>
 
 					{/* Upload de Arquivo */}
@@ -194,9 +193,8 @@ export const ImportLeadsModal: React.FC<ImportLeadsModalProps> = ({
 							Arquivo de Leads
 						</label>
 						<div
-							className={`relative mt-1 flex justify-center px-6 pt-5 pb-6 border-2 ${
-								isDragging ? "border-electric" : "border-electric/30"
-							} border-dashed rounded-lg transition-colors cursor-pointer
+							className={`relative mt-1 flex justify-center px-6 pt-5 pb-6 border-2 ${isDragging ? "border-electric" : "border-electric/30"
+								} border-dashed rounded-lg transition-colors cursor-pointer
                             ${isDragging ? "bg-electric/10" : "hover:border-electric/50"}`}
 							onDragEnter={handleDragEnter}
 							onDragOver={handleDragEnter}
@@ -294,11 +292,10 @@ export const ImportLeadsModal: React.FC<ImportLeadsModalProps> = ({
 							disabled={
 								!selectedCampaign || !selectedFile || isLoading || disableImport
 							}
-							className={`${
-								disableImport
-									? "bg-gray-400"
-									: "bg-neon-green hover:bg-neon-green/80"
-							} text-white`}
+							className={`${disableImport
+								? "bg-gray-400"
+								: "bg-neon-green hover:bg-neon-green/80"
+								} text-white`}
 						>
 							{isLoading ? (
 								<div className="flex items-center">
