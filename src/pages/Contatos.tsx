@@ -1,19 +1,23 @@
 // @ts-nocheck
-
+import React, { useMemo, useState } from 'react';
 import EditLeadModal from "@/components/leads/EditLeadModal";
 import { ImportLeadsModal } from "@/components/leads/ImportLeadsModal";
 import { LeadTable } from "@/components/leads/LeadTable";
 import SegmentationModal from "@/components/leads/SegmentationModal";
 import { Input } from "@/components/ui/input";
-import { Select } from "@/components/ui/select";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue
+} from "@/components/ui/select";
 import { toast } from "@/components/ui/toast";
 import { useLeadsData } from "@/hooks/useLeadsData";
 import type { SegmentationRule } from "@/interface";
 import { leadsApi } from "@/services/api/leads";
 import { useMutation } from "@tanstack/react-query";
 import { motion } from "framer-motion";
-import type React from "react";
-import { useMemo, useState } from "react";
 import { FiPieChart, FiUsers } from "react-icons/fi";
 
 const Contatos: React.FC = () => {
@@ -25,8 +29,14 @@ const Contatos: React.FC = () => {
 	const [leadsPerPage] = useState(20);
 	const [isEditModalOpen, setIsEditModalOpen] = useState(false);
 	const [selectedLead, setSelectedLead] = useState(null);
-	const { leads, isLoading, userPlan, statistics, refetchLeads } =
-		useLeadsData();
+
+	const {
+		leads,
+		isLoading,
+		userPlan,
+		statistics,
+		refetchLeads
+	} = useLeadsData();
 
 	const importLeadsMutation = useMutation({
 		mutationFn: ({ campaignId, file }: { campaignId: string; file: File }) =>
@@ -35,7 +45,6 @@ const Contatos: React.FC = () => {
 			toast.success("Leads importados com sucesso!");
 			refetchLeads();
 		},
-
 		onError: (error: Error) => {
 			toast.error(`Erro ao importar leads: ${error.message}`);
 		},
@@ -45,7 +54,7 @@ const Contatos: React.FC = () => {
 		mutationFn: (rules: SegmentationRule[]) => leadsApi.segmentLeads(rules),
 		onSuccess: () => {
 			toast.success("Segmentação realizada com sucesso!");
-			refetch();
+			refetchLeads();
 		},
 		onError: (error: Error) => {
 			toast.error(`Erro ao segmentar leads: ${error.message}`);
@@ -54,13 +63,11 @@ const Contatos: React.FC = () => {
 
 	const filteredLeads = useMemo(() => {
 		let filteredLeads = leads || [];
-
-		if (selectedSegment) {
+		if (selectedSegment && selectedSegment !== "TODOS") {
 			filteredLeads = filteredLeads.filter(
-				(lead) => lead.segment === selectedSegment,
+				(lead) => lead.segment === selectedSegment
 			);
 		}
-
 		if (searchTerm) {
 			filteredLeads = filteredLeads.filter((lead) => {
 				const searchLower = searchTerm.toLowerCase();
@@ -70,7 +77,6 @@ const Contatos: React.FC = () => {
 				);
 			});
 		}
-
 		return filteredLeads;
 	}, [leads, searchTerm, selectedSegment]);
 
@@ -84,12 +90,15 @@ const Contatos: React.FC = () => {
 	const pageCount = Math.ceil((filteredLeads?.length || 0) / leadsPerPage);
 
 	const handleImportLeads = async (campaignId: string, file: File) => {
+		const { totalLeads, maxLeads } = statistics;
+
 		if (totalLeads >= maxLeads) {
 			toast.error(
 				"Limite de leads atingido. Não é possível importar mais leads.",
 			);
 			return;
 		}
+
 		await importLeadsMutation.mutateAsync({ campaignId, file });
 	};
 
@@ -187,7 +196,6 @@ const Contatos: React.FC = () => {
 				>
 					<h1 className="text-4xl font-bold text-white">Contatos</h1>
 				</motion.div>
-
 				<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 mb-12">
 					{[
 						{
@@ -226,32 +234,38 @@ const Contatos: React.FC = () => {
 						</motion.div>
 					))}
 				</div>
-
 				<motion.div variants={itemVariants} className="mb-8">
-					<div className="flex flex-wrap gap-4 items-center">
+					<div className="flex gap-4 items-center">
+						<Select
+							value={selectedSegment}
+							onValueChange={(value) => setSelectedSegment(value)}
+						>
+							<SelectTrigger className="w-[180px] bg-deep/50 border-electric text-white">
+								<SelectValue placeholder="Selecione o status" />
+							</SelectTrigger>
+							<SelectContent>
+								<SelectItem value="TODOS">Todos os status</SelectItem>
+								<SelectItem value="ALTAMENTE_ENGAJADO">Altamente Engajado</SelectItem>
+								<SelectItem value="MODERADAMENTE_ENGAJADO">
+									Moderadamente Engajado
+								</SelectItem>
+								<SelectItem value="LEVEMENTE_ENGAJADO">
+									Levemente Engajado
+								</SelectItem>
+								<SelectItem value="BAIXO_ENGAJAMENTO">
+									Baixo Engajamento
+								</SelectItem>
+							</SelectContent>
+						</Select>
 						<Input
 							type="text"
 							placeholder="Buscar leads..."
 							value={searchTerm}
 							onChange={(e) => setSearchTerm(e.target.value)}
-							className="w-64 bg-deep/50 text-white placeholder-white/50 border-electric"
+							className="w-48 bg-deep/50 text-white placeholder-white/50 border-electric"
 						/>
-						<Select
-							value={selectedSegment}
-							onChange={(e) => setSelectedSegment(e.target.value)}
-							className="flex-grow bg-deep border-electric text-white"
-						>
-							<option value="">Todos os status</option>
-							<option value="ALTAMENTE_ENGAJADO">Altamente Engajado</option>
-							<option value="MODERADAMENTE_ENGAJADO">
-								Moderadamente Engajado
-							</option>
-							<option value="LEVEMENTE_ENGAJADO">Levemente Engajado</option>
-							<option value="BAIXO_ENGAJAMENTO">Baixo Engajamento</option>
-						</Select>
 					</div>
 				</motion.div>
-
 				<motion.div
 					variants={itemVariants}
 					className="bg-deep/80 backdrop-blur-xl p-6 rounded-xl border border-electric"
@@ -283,7 +297,6 @@ const Contatos: React.FC = () => {
 					)}
 				</motion.div>
 			</div>
-
 			{selectedLead && (
 				<EditLeadModal
 					isOpen={isEditModalOpen}
@@ -292,13 +305,15 @@ const Contatos: React.FC = () => {
 					onSave={handleSaveEditedLead}
 				/>
 			)}
-
 			<ImportLeadsModal
 				isOpen={isImportModalOpen}
 				onClose={() => setIsImportModalOpen(false)}
 				onImport={handleImportLeads}
+				campaigns={[]}
+				disableImport={totalLeads >= maxLeads}
+				totalLeads={totalLeads}
+				maxLeads={maxLeads}
 			/>
-
 			<SegmentationModal
 				isOpen={isSegmentModalOpen}
 				onClose={() => setIsSegmentModalOpen(false)}

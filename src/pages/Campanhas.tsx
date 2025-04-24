@@ -37,6 +37,14 @@ import {
 	FiX,
 } from "react-icons/fi";
 import { useNavigate } from "react-router-dom";
+import { Input } from "@/components/ui/input";
+import {
+	Select,
+	SelectContent,
+	SelectItem,
+	SelectTrigger,
+	SelectValue
+} from "@/components/ui/select";
 
 // Constantes para Animações
 const cardVariants = {
@@ -184,9 +192,12 @@ const Campanhas: React.FC = () => {
 		return campaigns.filter(
 			(campaign) =>
 				campaign.name.toLowerCase().includes(searchTerm.toLowerCase()) &&
-				(statusFilter ? campaign.status === statusFilter : true),
+				(statusFilter && statusFilter !== 'all'
+					? campaign.status === statusFilter
+					: true)
 		);
 	}, [campaigns, searchTerm, statusFilter]);
+
 
 	const startCampaign = useMutation({
 		mutationFn: async (id: string) => {
@@ -986,28 +997,33 @@ const Campanhas: React.FC = () => {
 							trendLabel="média"
 						/>
 					</div>
-					{/* <div className="flex flex-wrap gap-4 items-center">
+					<div className="flex gap-4 items-center">
+						<Select
+							value={statusFilter}
+							onValueChange={(value) => setStatusFilter(value)}
+						>
+							<SelectTrigger className="w-[180px] bg-deep/50 border-electric text-white">
+								<SelectValue placeholder="Selecione o status" />
+							</SelectTrigger>
+							<SelectContent>
+								<SelectItem value="all">Todos os status</SelectItem>
+								<SelectItem value="running">Em execução</SelectItem>
+								<SelectItem value="scheduled">Agendadas</SelectItem>
+								<SelectItem value="paused">Pausadas</SelectItem>
+								<SelectItem value="completed">Concluídas</SelectItem>
+								<SelectItem value="draft">Rascunho</SelectItem>
+								<SelectItem value="pending">Pendentes</SelectItem>
+							</SelectContent>
+						</Select>
 						<Input
 							type="text"
 							placeholder="Buscar campanhas..."
 							value={searchTerm}
 							onChange={(e) => setSearchTerm(e.target.value)}
-							className="w-64 bg-deep/50 text-white placeholder-white/50"
+							className="w-48 bg-deep/50 text-white placeholder-white/50 border-electric"
 						/>
-						<Select
-							value={statusFilter}
-							onChange={(e) => setStatusFilter(e.target.value)}
-							className="bg-deep/50 text-white border-electric"
-						>
-							<option value="">Todos os status</option>
-							<option value="running">Em execução</option>
-							<option value="scheduled">Agendadas</option>
-							<option value="paused">Pausadas</option>
-							<option value="completed">Concluídas</option>
-							<option value="draft">Rascunho</option>
-							<option value="pending">Pendentes</option>
-						</Select>
-					</div> */}
+					</div>
+
 					{/* Campaigns Grid */}
 					<AnimatePresence mode="popLayout">
 						<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

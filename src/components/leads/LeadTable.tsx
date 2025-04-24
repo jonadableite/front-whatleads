@@ -147,11 +147,10 @@ export const LeadTable: React.FC<LeadTableProps> = ({
 								<motion.tr
 									key={lead.id}
 									variants={rowVariants}
-									className={`transition-all duration-300 ${
-										hoveredRow === lead.id
-											? "bg-electric/20"
-											: "hover:bg-electric/10"
-									}`}
+									className={`transition-all duration-300 ${hoveredRow === lead.id
+										? "bg-electric/20"
+										: "hover:bg-electric/10"
+										}`}
 									onMouseEnter={() => setHoveredRow(lead.id)}
 									onMouseLeave={() => setHoveredRow(null)}
 								>
@@ -238,7 +237,7 @@ export const LeadTable: React.FC<LeadTableProps> = ({
 						onClick={() => onPageChange(currentPage - 1)}
 						disabled={currentPage === 1}
 						variant="outline"
-						className="flex items-center justify-center gap-2 hover:bg-electric/30 hover:text-electric disabled:opacity-50 transition-all duration-200 w-32 h-10 rounded-full"
+						className="flex items-center justify-center gap-2 hover:bg-electric/30 hover:text-blue-500 disabled:opacity-50 transition-all duration-200 w-32 h-10 rounded-full"
 					>
 						<FiChevronLeft className="text-lg" />
 						<span>Anterior</span>
@@ -247,7 +246,7 @@ export const LeadTable: React.FC<LeadTableProps> = ({
 						onClick={() => onPageChange(currentPage + 1)}
 						disabled={currentPage === pageCount}
 						variant="outline"
-						className="flex items-center justify-center gap-2 hover:bg-electric/30 hover:text-electric disabled:opacity-50 transition-all duration-200 w-32 h-10 rounded-full"
+						className="flex items-center justify-center gap-2 hover:bg-electric/30 hover:text-blue-500 disabled:opacity-50 transition-all duration-200 w-32 h-10 rounded-full"
 					>
 						<span>Próxima</span>
 						<FiChevronRight className="text-lg" />
@@ -260,13 +259,13 @@ export const LeadTable: React.FC<LeadTableProps> = ({
 						whileHover={{ scale: 1.05 }}
 					>
 						<span className="text-white/90 mr-2">Página</span>
-						<span className="text-electric font-bold">{currentPage}</span>
+						<span className="text-blue-500 font-bold">{currentPage}</span>
 						<span className="text-white/90 mx-2">de</span>
-						<span className="text-electric font-bold">{pageCount}</span>
+						<span className="text-blue-500 font-bold">{pageCount}</span>
 					</motion.div>
 
 					<motion.div
-						className="flex items-center justify-center text-electric text-sm bg-electric/20 px-6 py-2 rounded-full backdrop-blur-sm"
+						className="flex items-center justify-center text-blue-500 text-sm bg-electric/20 px-6 py-2 rounded-full backdrop-blur-sm"
 						whileHover={{ scale: 1.05 }}
 					>
 						<FiUser className="mr-2" />
