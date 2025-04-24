@@ -135,7 +135,10 @@ const InstanceCard: React.FC<{
 								{instance.instanceName}
 							</h3>
 							<p className="text-sm text-white/70">
-								{instance.phoneNumber || "Sem número"}
+								{instance.ownerJid
+									? instance.ownerJid.replace('@s.whatsapp.net', '')
+									: 'Sem número'
+								}
 							</p>
 						</div>
 					</div>
@@ -258,7 +261,7 @@ const Instances: React.FC = () => {
 
 	const fetchUserPlan = async () => {
 		try {
-			const response = await api.main.get("/users/plan");
+			const response = await api.main.get("/users/instance-limits");
 			console.log("Dados do plano recebidos:", response.data);
 
 			// Corrija a definição dos estados
