@@ -11,7 +11,9 @@ import { ProgressModal } from "../components/ProgressModal";
 import { api } from "../lib/api";
 import { cn } from "../lib/utils";
 import { authService } from "../services/auth.service";
-import type { Empresa, Instancia, StartCampaignPayload } from "../types"; // Correcting the import path
+import type { Empresa, Instancia, StartCampaignPayload } from "../types";
+import { calculateWarmupProgress } from "../services/instance.service";
+import { getWarmupProgressColor } from '../lib/utils';
 
 interface Campaign {
 	id: string;
@@ -194,30 +196,82 @@ export default function Disparos() {
 		}
 
 		const initializeData = async () => {
+			let isMounted = true;
 			setIsInitialLoading(true);
 			try {
 				await fetchData();
 			} finally {
-				setTimeout(() => {
-					setIsInitialLoading(false);
-				}, 2000);
+				if (isMounted) {
+					setTimeout(() => {
+						setIsInitialLoading(false);
+					}, 2000);
+				}
 			}
+			return () => {
+				isMounted = false;
+			};
 		};
 
 		initializeData();
 	}, [navigate]);
 
+
+	useEffect(() => {
+		// Crie uma função para comparar instâncias de forma mais robusta
+		const hasSignificantChange = (prevInstances: Instancia[], newInstances: Instancia[]) => {
+			if (prevInstances.length !== newInstances.length) return true;
+
+			return newInstances.some((newInstance, index) => {
+				const prevInstance = prevInstances[index];
+				return (
+					prevInstance.warmupStatus?.progress !== newInstance.warmupStatus?.progress ||
+					prevInstance.connectionStatus !== newInstance.connectionStatus
+				);
+			});
+		};
+
+		const updatedInstances = instances.map(instanceItem => {
+			const warmupProgress = calculateWarmupProgress(instanceItem);
+
+			// Verifica se o progresso mudou significativamente (margem de 0.1%)
+			const progressChanged =
+				Math.abs((instanceItem.warmupStatus?.progress || 0) - warmupProgress) > 0.1;
+
+			if (progressChanged) {
+				return {
+					...instanceItem,
+					warmupStatus: {
+						...instanceItem.warmupStatus,
+						progress: warmupProgress
+					}
+				};
+			}
+
+			return instanceItem;
+		});
+
+		// Só atualiza se realmente houver mudança significativa
+		if (hasSignificantChange(instances, updatedInstances)) {
+			setInstances(updatedInstances);
+		}
+	}, [instances]); // Mantenha a dependência, mas adicione a lógica de comparação
+
+
+
+	// No fetchData ou na função que atualiza as instâncias
 	const fetchData = async () => {
 		try {
 			setIsLoadingInstances(true);
 			setIsLoadingCampaigns(true);
-
 			const [instancesResponse, campaignsResponse] = await Promise.all([
 				GetInstancesAction(),
 				api.main.get<Campaign[]>("/campaigns"),
 			]);
 
-			if (instancesResponse?.instances) {
+			if (
+				instancesResponse?.instances &&
+				JSON.stringify(instancesResponse.instances) !== JSON.stringify(instances)
+			) {
 				setInstances(instancesResponse.instances);
 			}
 
@@ -704,17 +758,32 @@ export default function Disparos() {
 											<select
 												disabled={isLoadingInstances}
 												value={selectedInstance}
-												onChange={(e) => setSelectedInstance(e.target.value)}
+												onChange={(e) => {
+													const selectedInstanceId = e.target.value;
+													setSelectedInstance(selectedInstanceId);
+
+													// Opcional: Lógica adicional ao selecionar uma instância
+													const selectedInstanceData = instances.find(
+														(instance) => instance.id === selectedInstanceId
+													);
+
+													if (selectedInstanceData) {
+														console.log('Instância selecionada:', selectedInstanceData);
+														// Exemplo: Verificar status de aquecimento
+														if (selectedInstanceData.warmupStatus) {
+															console.log('Progresso de Warmup:', selectedInstanceData.warmupStatus.progress);
+														}
+													}
+												}}
 												className={cn(
 													"w-full p-4 bg-electric/10 border border-electric rounded-xl text-white focus:ring-2 focus:ring-neon-green transition-all",
 													isLoadingInstances && "animate-pulse",
-													"appearance-none", // Adicione esta classe
+													"appearance-none"
 												)}
 												style={{
 													WebkitAppearance: "none",
 													MozAppearance: "none",
-													backgroundImage:
-														'url(\'data:image/svg+xml;utf8,<svg fill="white" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/></svg>\')',
+													backgroundImage: 'url(\'data:image/svg+xml;utf8,<svg fill="white" height="24" viewBox="0 0 24 24" width="24" xmlns="http://www.w3.org/2000/svg"><path d="M7 10l5 5 5-5z"/></svg>\')',
 													backgroundRepeat: "no-repeat",
 													backgroundPosition: "right 10px top 50%",
 													backgroundSize: "24px auto",
@@ -722,92 +791,109 @@ export default function Disparos() {
 												}}
 											>
 												<option value="" className="bg-deep text-white">
-													{isLoadingInstances
-														? "Carregando instâncias..."
-														: "Selecione a Instância"}
+													{isLoadingInstances ? "Carregando instâncias..." : "Selecione a Instância"}
 												</option>
-												{instances.map((instance) => (
-													<option
-														key={instance.id}
-														value={instance.id}
-														className={cn(
-															"bg-deep text-white",
-															instance.warmupStatus?.isRecommended &&
-																"text-neon-green",
-															instance.connectionStatus === "OPEN" &&
-																"font-medium",
-															"text-neon-green",
-															instance.connectionStatus === "OPEN" &&
-																"font-medium",
-														)}
-													>
-														{instance.instanceName}
-														{instance.warmupStatus?.isRecommended && " ⭐"}
-														{instance.warmupStatus?.progress > 0 &&
-															` (${instance.warmupStatus.progress.toFixed(1)}%)`}
-													</option>
-												))}
+												{instances.map((instance) => {
+													// Cálculo de progresso de warmup
+													const warmupProgress = instance.warmupStatus?.progress ?? 0;
+
+													return (
+														<option
+															key={instance.id}
+															value={instance.id}
+															className={cn(
+																"bg-deep text-white",
+																instance.warmupStatus?.isRecommended && "text-neon-green",
+																instance.connectionStatus === "OPEN" && "font-medium"
+															)}
+														>
+															{instance.instanceName}
+															{instance.warmupStatus?.isRecommended && " ⭐"}
+															{warmupProgress > 0 && (
+																<span
+																	className={cn(
+																		"ml-2 font-bold",
+																		warmupProgress >= 100 ? "text-green-500" :
+																			instance.connectionStatus !== "OPEN" ? "text-yellow-500" : "text-blue-500"
+																	)}
+																>
+																	({warmupProgress.toFixed(1)}%)
+																</span>
+															)}
+														</option>
+													);
+												})}
 											</select>
+
 											{selectedInstance && (
 												<div className="mt-2 space-y-2">
 													{/* Informações do Perfil */}
-													{instances.find((i) => i.id === selectedInstance)
-														?.profileName && (
-														<div className="text-sm text-white/80 flex items-center gap-2">
-															<div className="w-2 h-2 bg-white/50 rounded-full" />
-															<span>
-																Nome do Perfil:{" "}
-																{
-																	instances.find(
-																		(i) => i.id === selectedInstance,
-																	)?.profileName
-																}
-															</span>
-														</div>
-													)}
+													{(() => {
+														const selectedInstanceData = instances.find(
+															(instance) => instance.id === selectedInstance
+														);
 
-													{/* Status de Aquecimento */}
-													{instances.find((i) => i.id === selectedInstance)
-														?.warmupStatus?.isRecommended && (
-														<div className="text-sm text-green-400 flex items-center gap-2">
-															<div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
-															<span>
-																Esta instância já possui mais de 300 horas de
-																aquecimento
-															</span>
-														</div>
-													)}
+														return (
+															<>
+																{selectedInstanceData?.profileName && (
+																	<div className="text-sm text-white/80 flex items-center gap-2">
+																		<div className="w-2 h-2 bg-white/50 rounded-full" />
+																		<span>Nome do Perfil: {selectedInstanceData.profileName}</span>
+																	</div>
+																)}
 
-													{/* Status de Conexão */}
-													<div
-														className={cn(
-															"text-sm flex items-center gap-2",
-															instances.find((i) => i.id === selectedInstance)
-																?.connectionStatus === "OPEN"
-																? "text-green-400"
-																: "text-yellow-400",
-														)}
-													>
-														<div
-															className={cn(
-																"w-2 h-2 rounded-full",
-																instances.find((i) => i.id === selectedInstance)
-																	?.connectionStatus === "OPEN"
-																	? "bg-green-400"
-																	: "bg-yellow-400",
-															)}
-														/>
-														<span>
-															Status:{" "}
-															{instances.find((i) => i.id === selectedInstance)
-																?.connectionStatus === "OPEN"
-																? "Conectado"
-																: "Desconectado"}
-														</span>
-													</div>
+																{/* Progresso de Aquecimento */}
+																{selectedInstanceData?.warmupStatus?.progress !== undefined && (
+																	<div className="text-sm text-white/80 flex items-center gap-2">
+																		<div className="w-2 h-2 bg-white/50 rounded-full" />
+																		<span>
+																			Aquecimento: <span className={`${getWarmupProgressColor(selectedInstanceData.warmupStatus?.progress || 0)}`}>
+																				{selectedInstanceData.warmupStatus?.progress.toFixed(2)}%
+																			</span>
+																		</span>
+
+																	</div>
+																)}
+
+																{/* Status de Aquecimento Recomendado */}
+																{selectedInstanceData?.warmupStatus?.isRecommended && (
+																	<div className="text-sm text-green-400 flex items-center gap-2">
+																		<div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
+																		<span>Esta instância já possui mais de 300 horas de aquecimento</span>
+																	</div>
+																)}
+
+																{/* Status de Conexão */}
+																<div
+																	className={cn(
+																		"text-sm flex items-center gap-2",
+																		selectedInstanceData?.connectionStatus === "OPEN"
+																			? "text-green-400"
+																			: "text-yellow-400"
+																	)}
+																>
+																	<div
+																		className={cn(
+																			"w-2 h-2 rounded-full",
+																			selectedInstanceData?.connectionStatus === "OPEN"
+																				? "bg-green-400"
+																				: "bg-yellow-400"
+																		)}
+																	/>
+																	<span>
+																		Status:{" "}
+																		{selectedInstanceData?.connectionStatus === "OPEN"
+																			? "Conectado"
+																			: "Desconectado"}
+																	</span>
+																</div>
+															</>
+														);
+													})()}
 												</div>
 											)}
 										</div>
+
 
 										<div>
 											<label
@@ -849,7 +935,7 @@ export default function Disparos() {
 														className={cn(
 															"bg-deep text-white",
 															campaign.status === "running" &&
-																"text-neon-green",
+															"text-neon-green",
 														)}
 													>
 														{campaign.name}
@@ -870,15 +956,15 @@ export default function Disparos() {
 													</div>
 													{campaigns.find((c) => c.id === selectedCampaign)
 														?.statistics && (
-														<div className="text-sm text-white/80">
-															<span>
-																Envios:{" "}
-																{campaigns.find(
-																	(c) => c.id === selectedCampaign,
-																)?.statistics?.totalLeads || 0}
-															</span>
-														</div>
-													)}
+															<div className="text-sm text-white/80">
+																<span>
+																	Envios:{" "}
+																	{campaigns.find(
+																		(c) => c.id === selectedCampaign,
+																	)?.statistics?.totalLeads || 0}
+																</span>
+															</div>
+														)}
 												</div>
 											)}
 										</div>

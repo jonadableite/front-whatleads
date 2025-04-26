@@ -26,12 +26,17 @@ import {
 	Users
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import type React from "react";
-import { useState, useEffect, useRef } from "react";
+import React, {
+	useState,
+	useEffect,
+	useRef,
+	useMemo
+} from "react";
+
 import { useCrmConversations } from "@/hooks/useCrmConversations";
 import { Conversation } from "@/hooks/useCrmConversations";
 import { toast } from "sonner";
-import { formatDistanceToNow } from "date-fns";
+import { formatDate, formatDistanceToNow } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Skeleton } from "@/components/ui/Skeleton";
 import {
@@ -50,31 +55,49 @@ import {
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
 
+interface Chat {
+	id: string;
+	contactName: string;
+	lastMessage: string;
+	timestamp: Date;
+	unreadCount: number;
+	remoteJid?: string;
+	profilePicUrl?: string;
+}
+
 interface WhatsAppCRMProps {
-	conversations: Conversation[];
-	onUpdateStatus: (conversationId: string, newStatus: string) => Promise<boolean>;
+	chats: Chat[];
+	onUpdateStatus: (conversationId: string, status: string) => Promise<boolean>;
 	onOpenClientProfile: (conversation: Conversation) => void;
 	loading: boolean;
 }
 
-const WhatsAppCRM: React.FC<WhatsAppCRMProps> = ({
-	conversations,
+
+
+export function WhatsAppCRM({
+	chats = [], // Now using chats from Evolution API
 	onUpdateStatus,
 	onOpenClientProfile,
-	loading,
-}) => {
+	loading
+}: WhatsAppCRMProps) {
 	const [selectedChat, setSelectedChat] = useState<Conversation | null>(null);
 	const [searchTerm, setSearchTerm] = useState("");
 
+	// Memoize filtered chats
+	const filteredChats = useMemo(() =>
+		chats.filter((chat) =>
+			!searchTerm ||
+			chat.contactName.toLowerCase().includes(searchTerm.toLowerCase())
+		),
+		[chats, searchTerm]
+	);
+
 	return (
 		<div className="flex h-[calc(100vh-200px)] bg-deep/30 rounded-2xl overflow-hidden">
-			{/* Coluna de Lista de Chats */}
+			{/* Chat List Column */}
 			<div className="w-[400px] border-r border-electric/10">
 				<ConversationList
-					conversations={conversations.filter((conv) =>
-						!searchTerm ||
-						conv.contactName.toLowerCase().includes(searchTerm.toLowerCase())
-					)}
+					conversations={filteredChats} // Pass filtered chats here
 					searchTerm={searchTerm}
 					onSearchChange={setSearchTerm}
 					onSelectConversation={setSelectedChat}
@@ -83,7 +106,7 @@ const WhatsAppCRM: React.FC<WhatsAppCRMProps> = ({
 				/>
 			</div>
 
-			{/* Coluna de Conversa Atual */}
+			{/* Conversation View Column */}
 			<div className="flex-1">
 				{selectedChat ? (
 					<ConversationView
@@ -93,18 +116,24 @@ const WhatsAppCRM: React.FC<WhatsAppCRMProps> = ({
 						onOpenClientProfile={onOpenClientProfile}
 					/>
 				) : (
-					<div className="flex items-center justify-center h-full text-white/50">
-						<MessageSquare size={60} className="mr-4" />
-						<div>
-							<h2 className="text-xl font-semibold">Selecione uma conversa</h2>
-							<p>Escolha um chat para começar a conversar</p>
-						</div>
-					</div>
+					<EmptyConversationState />
 				)}
 			</div>
 		</div>
 	);
-};
+}
+
+// Empty state component extracted for cleaner code
+const EmptyConversationState = () => (
+	<div className="flex items-center justify-center h-full text-white/50">
+		<MessageSquare size={60} className="mr-4" />
+		<div>
+			<h2 className="text-xl font-semibold">Selecione uma conversa</h2>
+			<p>Escolha um chat para começar a conversar</p>
+		</div>
+	</div>
+);
+
 
 
 // Componente para exibição da lista de conversas
@@ -128,7 +157,7 @@ const ConversationList: React.FC<ConversationListProps> = ({
 	return (
 		<div className="flex h-[calc(100vh-200px)] bg-deep/30 rounded-2xl overflow-hidden">
 			<div className="w-full border-r border-electric/10 overflow-hidden flex flex-col">
-				{/* Área de Busca e Filtro */}
+				{/* Search and Filter Area */}
 				<div className="sticky top-0 bg-deep/90 z-10 p-4 border-b border-electric/10 flex items-center space-x-2">
 					<div className="relative flex-grow">
 						<input
@@ -151,10 +180,10 @@ const ConversationList: React.FC<ConversationListProps> = ({
 					</motion.button>
 				</div>
 
-				{/* Lista de Conversas */}
+				{/* Conversation List */}
 				<div className="flex-grow overflow-y-auto">
-					{loading && conversations.length === 0 ? (
-						// Esqueletos para carregamento
+					{loading ? (
+						// Loading skeletons
 						Array(5)
 							.fill(0)
 							.map((_, index) => (
@@ -173,10 +202,18 @@ const ConversationList: React.FC<ConversationListProps> = ({
 							Nenhuma conversa encontrada
 						</div>
 					) : (
-						conversations.map((conv) => (
+						conversations.map((chat) => (
 							<ConversationListItem
-								key={conv.id}
-								conversation={conv}
+								key={chat.id}
+								conversation={{
+									id: chat.id,
+									contactName: chat.contactName,
+									contactPhone: chat.remoteJid,
+									lastMessage: chat.lastMessage,
+									timestamp: chat.timestamp,
+									unreadCount: chat.unreadCount,
+									profilePicUrl: chat.profilePicUrl
+								}}
 								onSelect={onSelectConversation}
 								onOpenProfile={onOpenClientProfile}
 							/>
@@ -187,6 +224,7 @@ const ConversationList: React.FC<ConversationListProps> = ({
 		</div>
 	);
 };
+
 
 // Componente para item da lista de conversas
 interface ConversationListItemProps {
@@ -211,18 +249,26 @@ const getStatusColor = (status: string): string => {
 };
 
 // Função para formatar status para exibição
-const formatStatus = (status: string): string => {
-	if (!status) return "Desconhecido";
+type ConversationStatus =
+	| 'OPEN'
+	| 'pending'
+	| 'closed'
+	| 'Resolvido'
+	| 'Pendente'
+	| 'Aberto';
 
-	const statusDisplay: Record<string, string> = {
-		"OPEN": "Aberto",
-		"pending": "Pendente",
-		"closed": "Resolvido",
+// Update status related functions
+const formatStatus = (status: ConversationStatus): string => {
+	const statusMap: Record<ConversationStatus, string> = {
+		'OPEN': 'Aberto',
+		'pending': 'Pendente',
+		'closed': 'Resolvido',
+		'Resolvido': 'Resolvido',
+		'Pendente': 'Pendente',
+		'Aberto': 'Aberto'
 	};
-
-	return statusDisplay[status] || status.charAt(0).toUpperCase() + status.slice(1).toLowerCase();
+	return statusMap[status] || 'Desconhecido';
 };
-
 // Função para exibir o tempo decorrido de forma amigável
 const formatMessageTime = (timestamp: string | undefined): string => {
 	if (!timestamp) return "Data desconhecida";
@@ -238,11 +284,11 @@ const formatMessageTime = (timestamp: string | undefined): string => {
 	}
 };
 
-const ConversationListItem: React.FC<ConversationListItemProps> = ({
+const ConversationListItem = React.memo(({
 	conversation,
 	onSelect,
-	onOpenProfile,
-}) => {
+	onOpenProfile
+}: ConversationListItemProps) => {
 	// Verificar se há dados para evitar erros de nulo
 	const contactName = conversation?.contactName || "Contato";
 	const lastMessage = conversation?.lastMessage?.content || "Sem mensagens";
@@ -308,7 +354,23 @@ const ConversationListItem: React.FC<ConversationListItemProps> = ({
 			</div>
 		</motion.div>
 	);
+});
+
+const areConversationsEqual = (
+	prevProps: ConversationListItemProps,
+	nextProps: ConversationListItemProps
+) => {
+	return (
+		prevProps.conversation.id === nextProps.conversation.id &&
+		prevProps.conversation.lastMessage?.content === nextProps.conversation.lastMessage?.content &&
+		prevProps.conversation.status === nextProps.conversation.status
+	);
 };
+
+const MemoizedConversationListItem = React.memo(
+	ConversationListItem,
+	areConversationsEqual
+);
 
 // Interface para componente do EmojiPicker (mockado para evitar erro de importação)
 interface EmojiPickerProps {
@@ -358,11 +420,20 @@ const ConversationView: React.FC<ConversationViewProps> = ({
 	const inputRef = useRef<HTMLInputElement>(null);
 
 	const {
-		messages,
-		loading: loadingMessages,
-		sendMessage,
-		updateConversationTags
+		conversations,
+		loading,
+		error,
+		fetchConversations,
+		fetchConversationMessages
 	} = useCrmConversations();
+
+	useEffect(() => {
+		const selectedInstance = localStorage.getItem("selectedInstance");
+		if (selectedInstance) {
+			fetchConversations(selectedInstance);
+		}
+	}, []);
+
 
 	// Rolar para a mensagem mais recente quando as mensagens forem carregadas
 	useEffect(() => {
@@ -737,64 +808,6 @@ const ConversationView: React.FC<ConversationViewProps> = ({
 							</motion.button>
 						))}
 					</div>
-				</div>
-
-				{/* Input de Mensagem */}
-				<div className="p-4 border-t border-electric/10 flex items-center space-x-2">
-					<div className="flex space-x-2">
-						<TooltipProvider>
-							<Tooltip>
-								<TooltipTrigger asChild>
-									<motion.button
-										whileHover={{ scale: 1.1 }}
-										className="text-white/70 hover:text-white p-2 rounded-full hover:bg-deep/40"
-									>
-										<Smile size={22} />
-									</motion.button>
-								</TooltipTrigger>
-								<TooltipContent side="top" className="bg-deep text-white border-electric/30">
-									<p>Emojis</p>
-								</TooltipContent>
-							</Tooltip>
-						</TooltipProvider>
-
-						<TooltipProvider>
-							<Tooltip>
-								<TooltipTrigger asChild>
-									<motion.button
-										whileHover={{ scale: 1.1 }}
-										className="text-white/70 hover:text-white p-2 rounded-full hover:bg-deep/40"
-									>
-										<Paperclip size={22} />
-									</motion.button>
-								</TooltipTrigger>
-								<TooltipContent side="top" className="bg-deep text-white border-electric/30">
-									<p>Anexar arquivo</p>
-								</TooltipContent>
-							</Tooltip>
-						</TooltipProvider>
-					</div>
-
-					<input
-						type="text"
-						placeholder="Digite sua mensagem..."
-						value={messageInput}
-						onChange={(e) => setMessageInput(e.target.value)}
-						onKeyPress={(e) => e.key === "Enter" && handleSendMessage()}
-						className="flex-1 bg-deep/30 rounded-full px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-electric border border-electric/30"
-					/>
-
-					<motion.button
-						onClick={handleSendMessage}
-						whileHover={{ scale: 1.1 }}
-						className={`p-3 rounded-full ${!messageInput.trim()
-							? "bg-electric/50 text-white/50 cursor-not-allowed"
-							: "bg-electric text-white hover:bg-electric/80"
-							} transition-colors`}
-						disabled={!messageInput.trim()}
-					>
-						<Send size={20} />
-					</motion.button>
 				</div>
 			</motion.div>
 		</div>
