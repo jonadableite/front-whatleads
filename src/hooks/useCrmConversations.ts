@@ -11,13 +11,13 @@ export interface Conversation {
   lastMessageAt?: string;
   unreadCount: number;
   status: string;
-  isGroup: boolean;
+  isGroup?: boolean;
   tags: any[];
   contactPhone: string;
   id: string;
   remoteJid: string;
-  pushName: string;
-  profilePicUrl: string | null;
+  pushName?: string;
+  profilePicUrl?: string;
   timestamp: Date;
 }
 

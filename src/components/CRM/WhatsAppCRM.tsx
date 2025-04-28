@@ -1,4 +1,11 @@
 // src/components/CRM/WhatsAppCRM.tsx
+import React, {
+	useState,
+	useEffect,
+	useRef,
+	useMemo,
+	useCallback
+} from "react";
 import { motion } from "framer-motion";
 import {
 	ArrowLeft,
@@ -26,17 +33,10 @@ import {
 	Users
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import React, {
-	useState,
-	useEffect,
-	useRef,
-	useMemo
-} from "react";
-
 import { useCrmConversations } from "@/hooks/useCrmConversations";
 import { Conversation } from "@/hooks/useCrmConversations";
 import { toast } from "sonner";
-import { formatDate, formatDistanceToNow } from "date-fns";
+import { format, formatDistanceToNow, isToday, isYesterday } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { Skeleton } from "@/components/ui/Skeleton";
 import {
@@ -54,7 +54,10 @@ import {
 	TooltipProvider,
 	TooltipTrigger,
 } from "@/components/ui/tooltip";
+import axios from "axios";
+import { io, Socket } from 'socket.io-client';
 
+// Interfaces
 interface Chat {
 	id: string;
 	contactName: string;
@@ -63,6 +66,11 @@ interface Chat {
 	unreadCount: number;
 	remoteJid?: string;
 	profilePicUrl?: string;
+	status?: string;
+	isGroup?: boolean;
+	tags?: string[];
+	contactPhone?: string;
+	pushName?: string;
 }
 
 interface WhatsAppCRMProps {
@@ -72,16 +80,35 @@ interface WhatsAppCRMProps {
 	loading: boolean;
 }
 
-
+const adaptChatToConversation = (chat: Chat): Conversation => {
+	return {
+		...chat,
+		lastMessage: {
+			sender: 'other',
+			content: chat.lastMessage || ""
+		},
+		lastMessageAt: chat.timestamp?.toString() || new Date().toString(),
+		status: chat.status || "OPEN", // Valor padrão caso não exista
+		isGroup: chat.isGroup || false, // Garante que isGroup sempre tenha um valor
+		tags: chat.tags || [], // Garante que tags sempre seja um array, mesmo que vazio
+		contactPhone: chat.contactPhone || "", // Garante que contactPhone sempre tenha um valor
+		remoteJid: chat.remoteJid || "" // Garante que remoteJid sempre tenha um valor
+	};
+};
 
 export function WhatsAppCRM({
-	chats = [], // Now using chats from Evolution API
+	chats = [],
 	onUpdateStatus,
 	onOpenClientProfile,
 	loading
 }: WhatsAppCRMProps) {
 	const [selectedChat, setSelectedChat] = useState<Conversation | null>(null);
 	const [searchTerm, setSearchTerm] = useState("");
+	const [messages, setMessages] = useState<any[]>([]);
+	const [loadingMessages, setLoadingMessages] = useState(false);
+	const [instanceName, setInstanceName] = useState<string | null>(null);
+	const [conversationsList, setConversationsList] = useState<Conversation[]>([]);
+	const [user, setUser] = useState<any>(null);
 
 	// Memoize filtered chats
 	const filteredChats = useMemo(() =>
@@ -92,20 +119,177 @@ export function WhatsAppCRM({
 		[chats, searchTerm]
 	);
 
+	const {
+		fetchConversationMessages,
+	} = useCrmConversations();
+
+	// Função para buscar as mensagens da conversa
+	const loadMessages = useCallback(async (conversationId: string) => {
+		setLoadingMessages(true);
+		try {
+			const fetchedMessages = await fetchConversationMessages(
+				conversationId,
+				selectedChat?.remoteJid || ""
+			);
+			setMessages(fetchedMessages.data || []);
+		} catch (error) {
+			console.error("Erro ao carregar mensagens:", error);
+			toast.error("Erro ao carregar mensagens");
+		} finally {
+			setLoadingMessages(false);
+		}
+	}, [fetchConversationMessages, selectedChat?.remoteJid]);
+
+	// Função para lidar com a seleção de uma conversa
+	const handleSelectConversation = useCallback((chat: Chat) => {
+		const conversation = adaptChatToConversation(chat);
+		setSelectedChat(conversation);
+		loadMessages(conversation.id);
+	}, [loadMessages]);
+
+	// Tente obter o usuário do localStorage ao montar o componente
+	useEffect(() => {
+		try {
+			const storedUser = localStorage.getItem('user');
+			if (storedUser) {
+				setUser(JSON.parse(storedUser));
+			}
+		} catch (error) {
+			console.error("Erro ao carregar dados do usuário:", error);
+		}
+	}, []);
+
+	// Conecta ao Socket.IO
+	useEffect(() => {
+		// Configuração do Socket.IO
+		const socket = io('https://api.whatlead.com.br', {
+			transports: ['websocket', 'polling'],
+			reconnectionAttempts: 5,
+			reconnectionDelay: 1000,
+		});
+
+		// Handler para quando o socket se conectar
+		socket.on('connect', () => {
+			console.log('Socket conectado com sucesso!', socket.id);
+			// Emitir evento para se juntar ao canal do usuário
+			const tenantId = user?.companyId || user?.id;
+			if (tenantId) {
+				socket.emit('join', tenantId.toString());
+			}
+		});
+
+		// Handler para erros de conexão
+		socket.on('connect_error', (error) => {
+			console.error('Erro ao conectar ao socket:', error);
+		});
+
+		// Handler para atualização de conversas
+		socket.on('conversation_update', async (data) => {
+			console.log('conversation_update recebido:', data);
+			// Verificar se a conversa pertence à conversa selecionada
+			if (selectedChat && data.phone === selectedChat.contactPhone) {
+				// Atualizar a conversa com a nova mensagem
+				const updatedMessages = await fetchConversationMessages(data.conversationId, selectedChat?.remoteJid || "");
+				setMessages(updatedMessages);
+			}
+		});
+
+		// Handler para atualização de status de mensagem
+		socket.on('message_status_update', (data) => {
+			// Atualizar o status da mensagem no estado local
+			setMessages(prevMessages =>
+				prevMessages.map(msg =>
+					msg.id === data.messageId ? { ...msg, status: data.status } : msg
+				)
+			);
+		});
+
+		// Handler para novas mensagens
+		socket.on('new_message', async (data) => {
+			console.log('Nova mensagem recebida:', data);
+			// Verificar se a mensagem pertence à conversa selecionada
+			if (selectedChat && data.conversationId === selectedChat.id) {
+				// Adicionar a nova mensagem ao estado local
+				const newMessage = {
+					id: data.message.id,
+					content: data.message.content,
+					sender: data.message.sender,
+					timestamp: new Date(data.message.timestamp),
+					status: data.message.status,
+					// ... outros campos conforme necessário
+				};
+				setMessages(prevMessages => [...prevMessages, newMessage]);
+			}
+		});
+
+		// Limpeza da conexão ao desmontar o componente
+		return () => {
+			socket.disconnect();
+		};
+	}, [selectedChat, user]);
+
+	// Função para enviar mensagem
+	const sendMessage = async (conversationId: string, content: string) => {
+		try {
+			// Implemente sua lógica de envio de mensagem
+			const response = await axios.post('/api/crm/messages/send', {
+				conversationId,
+				content,
+			});
+
+			if (response.data && response.status === 200) {
+				// Adiciona mensagem enviada à lista local
+				const newMessage = {
+					id: response.data.id || Date.now().toString(),
+					content,
+					sender: 'me',
+					timestamp: new Date().toISOString(),
+					status: 'SENT',
+				};
+
+				setMessages(prevMessages => [...prevMessages, newMessage]);
+				return response.data;
+			}
+		} catch (error) {
+			console.error("Erro ao enviar mensagem:", error);
+			throw error;
+		}
+	};
+
+	// Função para atualizar tags
+	const updateConversationTags = async (conversationId: string, tags: string[]) => {
+		try {
+			const response = await axios.put(`/api/crm/conversations/${conversationId}/tags`, {
+				tags
+			});
+
+			// Se o chat selecionado foi o que teve as tags atualizadas, atualiza o estado local
+			if (selectedChat && selectedChat.id === conversationId) {
+				setSelectedChat(prev => prev ? { ...prev, tags } : null);
+			}
+
+			return response.data;
+		} catch (error) {
+			console.error("Erro ao atualizar tags:", error);
+			throw error;
+		}
+	};
+
 	return (
 		<div className="flex h-[calc(100vh-200px)] bg-deep/30 rounded-2xl overflow-hidden">
 			{/* Chat List Column */}
 			<div className="w-[400px] border-r border-electric/10">
-				<ConversationList
-					conversations={filteredChats} // Pass filtered chats here
-					searchTerm={searchTerm}
-					onSearchChange={setSearchTerm}
-					onSelectConversation={setSelectedChat}
-					onOpenClientProfile={onOpenClientProfile}
-					loading={loading}
-				/>
+				<div>
+					{filteredChats.map((chat) => (
+						<ConversationListItem
+							key={chat.id}
+							conversation={adaptChatToConversation(chat)}
+							onSelect={() => handleSelectConversation(chat)}
+							onOpenProfile={() => onOpenClientProfile(adaptChatToConversation(chat))}
+						/>
+					))}
+				</div>
 			</div>
-
 			{/* Conversation View Column */}
 			<div className="flex-1">
 				{selectedChat ? (
@@ -114,123 +298,26 @@ export function WhatsAppCRM({
 						onBack={() => setSelectedChat(null)}
 						onUpdateStatus={onUpdateStatus}
 						onOpenClientProfile={onOpenClientProfile}
+						messages={messages}
+						loadingMessages={loadingMessages}
+						sendMessage={sendMessage}
+						updateConversationTags={updateConversationTags}
 					/>
 				) : (
-					<EmptyConversationState />
+					<div className="flex items-center justify-center h-full text-white/50">
+						<p>Selecione uma conversa para começar</p>
+					</div>
 				)}
 			</div>
 		</div>
 	);
 }
 
-// Empty state component extracted for cleaner code
-const EmptyConversationState = () => (
-	<div className="flex items-center justify-center h-full text-white/50">
-		<MessageSquare size={60} className="mr-4" />
-		<div>
-			<h2 className="text-xl font-semibold">Selecione uma conversa</h2>
-			<p>Escolha um chat para começar a conversar</p>
-		</div>
-	</div>
-);
-
-
-
-// Componente para exibição da lista de conversas
-interface ConversationListProps {
-	conversations: Conversation[];
-	searchTerm: string;
-	onSearchChange: (value: string) => void;
-	onSelectConversation: (conversation: Conversation) => void;
-	onOpenClientProfile: (conversation: Conversation) => void;
-	loading: boolean;
-}
-
-const ConversationList: React.FC<ConversationListProps> = ({
-	conversations,
-	searchTerm,
-	onSearchChange,
-	onSelectConversation,
-	onOpenClientProfile,
-	loading,
-}) => {
-	return (
-		<div className="flex h-[calc(100vh-200px)] bg-deep/30 rounded-2xl overflow-hidden">
-			<div className="w-full border-r border-electric/10 overflow-hidden flex flex-col">
-				{/* Search and Filter Area */}
-				<div className="sticky top-0 bg-deep/90 z-10 p-4 border-b border-electric/10 flex items-center space-x-2">
-					<div className="relative flex-grow">
-						<input
-							type="text"
-							placeholder="Buscar conversas..."
-							value={searchTerm}
-							onChange={(e) => onSearchChange(e.target.value)}
-							className="w-full bg-deep/30 rounded-full pl-10 pr-4 py-2 text-white focus:outline-none focus:ring-2 focus:ring-electric"
-						/>
-						<Search
-							className="absolute left-3 top-1/2 transform -translate-y-1/2 text-white/50"
-							size={20}
-						/>
-					</div>
-					<motion.button
-						whileHover={{ scale: 1.1 }}
-						className="bg-deep/30 p-2 rounded-full"
-					>
-						<Filter size={20} className="text-white/70" />
-					</motion.button>
-				</div>
-
-				{/* Conversation List */}
-				<div className="flex-grow overflow-y-auto">
-					{loading ? (
-						// Loading skeletons
-						Array(5)
-							.fill(0)
-							.map((_, index) => (
-								<div key={index} className="p-4 border-b border-electric/10">
-									<div className="flex items-center">
-										<Skeleton className="w-12 h-12 rounded-full mr-4" />
-										<div className="flex-1">
-											<Skeleton className="h-5 w-32 mb-2" />
-											<Skeleton className="h-4 w-40" />
-										</div>
-									</div>
-								</div>
-							))
-					) : conversations.length === 0 ? (
-						<div className="p-8 text-center text-white/50">
-							Nenhuma conversa encontrada
-						</div>
-					) : (
-						conversations.map((chat) => (
-							<ConversationListItem
-								key={chat.id}
-								conversation={{
-									id: chat.id,
-									contactName: chat.contactName,
-									contactPhone: chat.remoteJid,
-									lastMessage: chat.lastMessage,
-									timestamp: chat.timestamp,
-									unreadCount: chat.unreadCount,
-									profilePicUrl: chat.profilePicUrl
-								}}
-								onSelect={onSelectConversation}
-								onOpenProfile={onOpenClientProfile}
-							/>
-						))
-					)}
-				</div>
-			</div>
-		</div>
-	);
-};
-
-
 // Componente para item da lista de conversas
 interface ConversationListItemProps {
 	conversation: Conversation;
-	onSelect: (conversation: Conversation) => void;
-	onOpenProfile: (conversation: Conversation) => void;
+	onSelect: () => void;
+	onOpenProfile: () => void;
 }
 
 // Função para obter cor de status
@@ -244,7 +331,6 @@ const getStatusColor = (status: string): string => {
 		"pending": "bg-amber-500/20 text-amber-400",
 		"closed": "bg-green-500/20 text-green-400",
 	};
-
 	return statusMap[status] || "bg-gray-500/20 text-gray-400";
 };
 
@@ -269,10 +355,10 @@ const formatStatus = (status: ConversationStatus): string => {
 	};
 	return statusMap[status] || 'Desconhecido';
 };
+
 // Função para exibir o tempo decorrido de forma amigável
 const formatMessageTime = (timestamp: string | undefined): string => {
 	if (!timestamp) return "Data desconhecida";
-
 	try {
 		return formatDistanceToNow(new Date(timestamp), {
 			addSuffix: true,
@@ -295,40 +381,60 @@ const ConversationListItem = React.memo(({
 	const lastMessageTime = conversation?.lastMessageAt;
 	const unreadCount = conversation?.unreadCount || 0;
 	const status = conversation?.status || "";
+	const profilePicUrl = conversation?.profilePicUrl;
+
+	const formatTime = (timestamp: string | Date) => {
+		if (!timestamp) return '';
+		const date = new Date(timestamp);
+		if (isToday(date)) {
+			return format(date, 'HH:mm'); // Horário se for hoje
+		} else if (isYesterday(date)) {
+			return 'Ontem'; // "Ontem" se foi ontem
+		} else {
+			return format(date, 'dd/MM/yyyy'); // Data completa para datas mais antigas
+		}
+	};
+
+	const timeAgo = lastMessageTime ? formatTime(lastMessageTime) : '';
 
 	return (
 		<motion.div
-			onClick={() => onSelect(conversation)}
+			onClick={onSelect}
 			className="flex items-center p-4 cursor-pointer transition-colors duration-200 border-b border-electric/10 hover:bg-electric/10"
 			whileHover={{ backgroundColor: "rgba(56, 189, 248, 0.15)" }}
 			whileTap={{ scale: 0.99 }}
 		>
-			<div className="w-12 h-12 rounded-full bg-electric/30 flex items-center justify-center mr-4 text-xl font-bold text-white relative">
-				{contactName && contactName.charAt(0).toUpperCase()}
-
-				{conversation.isGroup && (
-					<div className="absolute -bottom-1 -right-1 bg-deep/80 rounded-full p-1">
-						<Users size={12} className="text-electric" />
-					</div>
-				)}
-			</div>
-
+			{profilePicUrl ? (
+				<img
+					src={profilePicUrl}
+					alt={contactName}
+					className="w-12 h-12 rounded-full mr-4 object-cover"
+				/>
+			) : (
+				<div className="w-12 h-12 rounded-full bg-electric/30 flex items-center justify-center mr-4 text-xl font-bold text-white relative">
+					{contactName && contactName.charAt(0).toUpperCase()}
+					{conversation.isGroup && (
+						<div className="absolute -bottom-1 -right-1 bg-deep/80 rounded-full p-1">
+							<Users size={12} className="text-electric" />
+						</div>
+					)}
+				</div>
+			)}
 			<div className="flex-1 min-w-0">
 				<div className="flex justify-between items-center">
 					<h3
 						className="font-semibold text-white truncate cursor-pointer hover:text-electric transition-colors max-w-[70%]"
 						onClick={(e) => {
 							e.stopPropagation();
-							onOpenProfile(conversation);
+							onOpenProfile();
 						}}
 					>
 						{contactName}
 					</h3>
 					<span className="text-xs text-white/50 whitespace-nowrap">
-						{formatMessageTime(lastMessageTime)}
+						{timeAgo}
 					</span>
 				</div>
-
 				<div className="flex justify-between items-center mt-1">
 					<p className="text-sm text-white/60 truncate max-w-[180px]">
 						{conversation.lastMessage?.sender === "me" && (
@@ -336,17 +442,15 @@ const ConversationListItem = React.memo(({
 						)}
 						{lastMessage}
 					</p>
-
 					<div className="flex items-center gap-2">
 						{unreadCount > 0 && (
 							<span className="bg-electric text-white rounded-full flex items-center justify-center h-5 min-w-[20px] px-1 text-xs font-medium">
 								{unreadCount}
 							</span>
 						)}
-
 						{status && (
 							<span className={`px-2 py-0.5 rounded-full text-xs ${getStatusColor(status)}`}>
-								{formatStatus(status)}
+								{formatStatus(status as ConversationStatus)}
 							</span>
 						)}
 					</div>
@@ -381,7 +485,6 @@ interface EmojiPickerProps {
 // Mock do componente EmojiPicker (substitua pela biblioteca real quando disponível)
 const EmojiPicker: React.FC<EmojiPickerProps> = ({ onEmojiSelect }) => {
 	const emojis = ["😊", "👍", "❤️", "🎉", "🔥", "👋", "😂", "🙏", "👌", "✅"];
-
 	return (
 		<div className="bg-deep/90 p-3 rounded-lg border border-electric/20 shadow-lg">
 			<div className="grid grid-cols-5 gap-2">
@@ -405,6 +508,10 @@ interface ConversationViewProps {
 	onBack: () => void;
 	onUpdateStatus: (conversationId: string, newStatus: string) => Promise<boolean>;
 	onOpenClientProfile: (conversation: Conversation) => void;
+	messages: any[];
+	loadingMessages: boolean;
+	sendMessage: (conversationId: string, content: string) => Promise<any>;
+	updateConversationTags: (conversationId: string, tags: string[]) => Promise<any>;
 }
 
 const ConversationView: React.FC<ConversationViewProps> = ({
@@ -412,28 +519,16 @@ const ConversationView: React.FC<ConversationViewProps> = ({
 	onBack,
 	onUpdateStatus,
 	onOpenClientProfile,
+	messages,
+	loadingMessages,
+	sendMessage,
+	updateConversationTags
 }) => {
 	const [messageInput, setMessageInput] = useState("");
 	const [showEmojiPicker, setShowEmojiPicker] = useState(false);
 	const [attachmentMenuOpen, setAttachmentMenuOpen] = useState(false);
 	const messageEndRef = useRef<HTMLDivElement>(null);
 	const inputRef = useRef<HTMLInputElement>(null);
-
-	const {
-		conversations,
-		loading,
-		error,
-		fetchConversations,
-		fetchConversationMessages
-	} = useCrmConversations();
-
-	useEffect(() => {
-		const selectedInstance = localStorage.getItem("selectedInstance");
-		if (selectedInstance) {
-			fetchConversations(selectedInstance);
-		}
-	}, []);
-
 
 	// Rolar para a mensagem mais recente quando as mensagens forem carregadas
 	useEffect(() => {
@@ -444,7 +539,6 @@ const ConversationView: React.FC<ConversationViewProps> = ({
 
 	const handleSendMessage = async () => {
 		if (!messageInput.trim()) return;
-
 		try {
 			await sendMessage(conversation.id, messageInput);
 			setMessageInput("");
@@ -460,7 +554,7 @@ const ConversationView: React.FC<ConversationViewProps> = ({
 	const handleStatusChange = async (newStatus: string) => {
 		const success = await onUpdateStatus(conversation.id, newStatus);
 		if (success) {
-			toast.success(`Status alterado para ${formatStatus(newStatus)}`);
+			toast.success(`Status alterado para ${formatStatus(newStatus as ConversationStatus)}`);
 		}
 	};
 
@@ -468,7 +562,6 @@ const ConversationView: React.FC<ConversationViewProps> = ({
 		// Verificar se a tag já existe
 		const currentTags = conversation.tags || [];
 		const hasTag = currentTags.includes(tag);
-
 		let updatedTags;
 		if (hasTag) {
 			updatedTags = currentTags.filter(t => t !== tag);
@@ -477,7 +570,6 @@ const ConversationView: React.FC<ConversationViewProps> = ({
 			updatedTags = [...currentTags, tag];
 			toast.success(`Tag "${tag}" adicionada`);
 		}
-
 		try {
 			await updateConversationTags(conversation.id, updatedTags);
 		} catch (error) {
@@ -519,14 +611,12 @@ const ConversationView: React.FC<ConversationViewProps> = ({
 					>
 						<ArrowLeft size={20} className="text-white" />
 					</Button>
-
 					<div
 						className="w-12 h-12 rounded-full bg-electric/30 flex items-center justify-center mr-4 text-xl font-bold text-white"
 						onClick={() => onOpenClientProfile(conversation)}
 					>
 						{contactName.charAt(0).toUpperCase()}
 					</div>
-
 					<div className="cursor-pointer" onClick={() => onOpenClientProfile(conversation)}>
 						<h3 className="font-semibold text-white hover:text-electric transition-colors">
 							{contactName}
@@ -541,7 +631,6 @@ const ConversationView: React.FC<ConversationViewProps> = ({
 						</div>
 					</div>
 				</div>
-
 				<div className="flex items-center space-x-2">
 					{/* Botões de status */}
 					<div className="hidden md:flex space-x-2 mr-2">
@@ -549,19 +638,16 @@ const ConversationView: React.FC<ConversationViewProps> = ({
 							<button
 								key={status}
 								onClick={() => handleStatusChange(status)}
-								className={`
-                  px-3 py-1 rounded-full text-xs font-medium transition-all
-                  ${conversation.status === status
+								className={` px-3 py-1 rounded-full text-xs font-medium transition-all
+                       ${conversation.status === status
 										? "bg-electric text-white"
 										: "bg-deep/30 text-white/70 hover:bg-electric/20"
-									}
-                `}
+									}`}
 							>
-								{formatStatus(status)}
+								{formatStatus(status as ConversationStatus)}
 							</button>
 						))}
 					</div>
-
 					{/* Botões de ação */}
 					<div className="flex items-center">
 						<TooltipProvider>
@@ -576,7 +662,6 @@ const ConversationView: React.FC<ConversationViewProps> = ({
 								</TooltipContent>
 							</Tooltip>
 						</TooltipProvider>
-
 						<TooltipProvider>
 							<Tooltip>
 								<TooltipTrigger asChild>
@@ -619,7 +704,6 @@ const ConversationView: React.FC<ConversationViewProps> = ({
 					</div>
 				</div>
 			</motion.div>
-
 			{/* Área de Mensagens - usando div overflow em vez de ScrollArea */}
 			<div className="flex-1 overflow-y-auto p-4 space-y-4 bg-deep/10">
 				{loadingMessages ? (
@@ -652,7 +736,7 @@ const ConversationView: React.FC<ConversationViewProps> = ({
 					<div className="space-y-4 pb-4">
 						{messages.map((message, index) => (
 							<motion.div
-								key={message.id}
+								key={message.id || index}
 								initial={{ opacity: 0, y: 10 }}
 								animate={{ opacity: 1, y: 0 }}
 								transition={{ delay: index * 0.05, duration: 0.2 }}
@@ -663,7 +747,6 @@ const ConversationView: React.FC<ConversationViewProps> = ({
 										{contactName.charAt(0).toUpperCase()}
 									</div>
 								)}
-
 								<div
 									className={`rounded-2xl p-3 max-w-[80%] shadow-sm ${message.sender === "me"
 										? "bg-electric text-white rounded-tr-none"
@@ -675,17 +758,18 @@ const ConversationView: React.FC<ConversationViewProps> = ({
 											{message.senderName}
 										</p>
 									)}
-
 									<p className="break-words">{message.content}</p>
-
 									<div className="text-xs mt-1 opacity-70 text-right flex items-center justify-end gap-1">
 										{formatMessageTime(message.timestamp)}
 										{message.sender === "me" && (
 											<span className="ml-1">
 												{message.status === "READ" ? (
-													<Check size={14} className="text-white inline-block fill-current" />
+
+													<Check size={12} className="text-green-400" />
+												) : message.status === "SENT" ? (
+													<Check size={12} className="text-electric/50" />
 												) : (
-													<Check size={14} className="text-white/60 inline-block" />
+													<Check size={12} className="text-red-400" />
 												)}
 											</span>
 										)}
@@ -697,7 +781,6 @@ const ConversationView: React.FC<ConversationViewProps> = ({
 					</div>
 				)}
 			</div>
-
 			{/* Input de Mensagem */}
 			<motion.div
 				initial={{ opacity: 0, y: 20 }}
@@ -715,14 +798,12 @@ const ConversationView: React.FC<ConversationViewProps> = ({
 						>
 							<Smile size={24} />
 						</motion.button>
-
 						{showEmojiPicker && (
 							<div className="absolute bottom-14 left-0 z-10">
 								<EmojiPicker onEmojiSelect={handleEmojiSelect} theme="dark" />
 							</div>
 						)}
 					</div>
-
 					{/* Attachment Picker */}
 					<div className="relative">
 						<motion.button
@@ -733,7 +814,6 @@ const ConversationView: React.FC<ConversationViewProps> = ({
 						>
 							<Paperclip size={24} />
 						</motion.button>
-
 						{attachmentMenuOpen && (
 							<motion.div
 								initial={{ opacity: 0, y: 10 }}
@@ -764,7 +844,6 @@ const ConversationView: React.FC<ConversationViewProps> = ({
 							</motion.div>
 						)}
 					</div>
-
 					{/* Input de texto */}
 					<input
 						ref={inputRef}
@@ -775,7 +854,6 @@ const ConversationView: React.FC<ConversationViewProps> = ({
 						onKeyPress={(e) => e.key === "Enter" && handleSendMessage()}
 						className="flex-1 bg-deep/50 rounded-full px-4 py-3 text-white focus:outline-none focus:ring-2 focus:ring-electric placeholder-white/50"
 					/>
-
 					{/* Botão de envio animado */}
 					<motion.button
 						onClick={handleSendMessage}
@@ -790,7 +868,6 @@ const ConversationView: React.FC<ConversationViewProps> = ({
 						<Send size={20} />
 					</motion.button>
 				</div>
-
 				{/* Sugestões de resposta rápida */}
 				<div className="px-4 py-2 border-t border-electric/10">
 					<div className="flex flex-wrap gap-2">
@@ -812,6 +889,30 @@ const ConversationView: React.FC<ConversationViewProps> = ({
 			</motion.div>
 		</div>
 	);
+};
+
+// Implementação das funções que estavam faltando
+const updateConversationTags = async (conversationId: string, tags: string[]) => {
+	try {
+		await axios.put(`/api/crm/conversations/${conversationId}/tags`, { tags });
+		return true;
+	} catch (error) {
+		console.error("Erro ao atualizar tags:", error);
+		return false;
+	}
+};
+
+const sendMessage = async (conversationId: string, content: string) => {
+	try {
+		const response = await axios.post(`/api/crm/conversations/${conversationId}/messages`, {
+			content,
+			messageType: 'text'
+		});
+		return response.data;
+	} catch (error) {
+		console.error("Erro ao enviar mensagem:", error);
+		throw error;
+	}
 };
 
 export default WhatsAppCRM;
