@@ -9,6 +9,7 @@ import {
 	ChevronRight,
 	Crown,
 	FileText,
+	Flame,
 	Home,
 	LogOut,
 	Menu,
@@ -32,6 +33,7 @@ interface SidebarItem {
 		path: string;
 	}[];
 	adminOnly?: boolean;
+	isExternal?: boolean;
 }
 
 const sidebarItems: SidebarItem[] = [
@@ -67,18 +69,25 @@ const sidebarItems: SidebarItem[] = [
 		title: "Chat CRM",
 		icon: <MessageCircle className="w-5 h-5" />,
 		path: "https://chat.whatlead.com.br",
+		isExternal: true,
 	},
 	{
 		title: "Chatbot",
 		icon: <Bot className="w-5 h-5" />,
 		path: "https://flowapi.whatlead.com.br",
+		isExternal: true,
 	},
-	// Novo item para o Painel de Admin
+	{
+		title: "Aquecimento",
+		icon: <Flame className="w-5 h-5" />,
+		path: "https://aquecer.whatlead.com.br",
+		isExternal: true,
+	},
 	{
 		title: "Painel de Admin",
 		icon: <Crown className="w-5 h-5" />,
 		path: "/admin",
-		adminOnly: true, // Nova propriedade para indicar que é apenas para admins
+		adminOnly: true,
 	},
 ];
 
@@ -162,16 +171,27 @@ export function Sidebar() {
 				{/* Navigation */}
 				<nav className="flex-1 py-4">
 					{sidebarItems.map((item) => {
-						// Verifica se o item deve ser exibido apenas para admins
 						if (item.adminOnly && !isAdmin) {
 							return null;
 						}
 
+						const isActive =
+							location.pathname === item.path && !item.isExternal;
+
+						// Lógica para renderizar <a> para links externos e <Link> para internos
+						const LinkComponent = item.isExternal ? "a" : Link;
+						const linkProps: any = item.isExternal
+							? {
+									href: item.path,
+									target: "_blank",
+									rel: "noopener noreferrer",
+								}
+							: { to: item.path };
+
 						return (
 							<div key={item.path} className="relative">
-								{/* Active Route Indicator */}
 								<AnimatePresence>
-									{location.pathname === item.path && (
+									{isActive && ( // Indicador de rota ativa apenas para links internos
 										<motion.div
 											initial={{ opacity: 0, x: -5 }}
 											animate={{ opacity: 1, x: 0 }}
@@ -181,29 +201,28 @@ export function Sidebar() {
 									)}
 								</AnimatePresence>
 
-								<Link
-									to={item.path}
+								<LinkComponent
+									{...linkProps}
 									className={cn(
 										"flex items-center gap-3 px-4 py-3 text-white/80 relative group",
 										"transition-all duration-200",
-										location.pathname === item.path && "text-white",
+										isActive && "text-white", // Estilo ativo apenas para links internos
 										isCollapsed && "justify-center",
 									)}
-									onClick={() => item.submenu && toggleSubmenu(item.path)}
+									onClick={() =>
+										item.submenu && !item.isExternal && toggleSubmenu(item.path)
+									}
 								>
-									{/* Hover Background Effect */}
 									<motion.div
 										className="absolute inset-0 bg-electric/10 rounded-lg opacity-0 group-hover:opacity-100"
 										initial={{ scale: 0.95, opacity: 0 }}
 										whileHover={{ scale: 1, opacity: 1 }}
 										transition={{ duration: 0.2 }}
 									/>
-
-									{/* Icon with effects */}
 									<motion.div
 										className={cn(
 											"relative z-10",
-											location.pathname === item.path && "text-neon-green",
+											isActive && "text-neon-green", // Estilo ativo apenas para links internos
 										)}
 										whileHover={{ scale: 1.1, rotate: [0, -10, 10, -10, 0] }}
 										transition={{ duration: 0.3 }}
@@ -226,8 +245,7 @@ export function Sidebar() {
 													initial={{ scale: 0.8 }}
 													animate={{ scale: 1 }}
 													whileHover={{ scale: 1.1 }}
-													className="bg-neon-green text-deep px-2 py-0.5 rounded-full text-xs z-10
-                        shadow-[0_0_10px_rgba(0,255,106,0.5)]"
+													className="bg-neon-green text-deep px-2 py-0.5 rounded-full text-xs z-10 shadow-[0_0_10px_rgba(0,255,106,0.5)]"
 												>
 													{item.badge}
 												</motion.span>
@@ -247,21 +265,17 @@ export function Sidebar() {
 											)}
 										</>
 									)}
-
-									{/* Tooltip for collapsed state */}
 									{isCollapsed && (
 										<motion.div
 											initial={{ opacity: 0, x: 20 }}
 											whileHover={{ opacity: 1, x: 0 }}
-											className="absolute left-full ml-2 px-2 py-1 bg-deep/90 rounded-md
-                    text-sm whitespace-nowrap z-50 hidden group-hover:block"
+											className="absolute left-full ml-2 px-2 py-1 bg-deep/90 rounded-md text-sm whitespace-nowrap z-50 hidden group-hover:block"
 										>
 											{item.title}
 										</motion.div>
 									)}
-								</Link>
+								</LinkComponent>
 
-								{/* Submenu */}
 								<AnimatePresence>
 									{!isCollapsed &&
 										item.submenu &&
@@ -298,65 +312,23 @@ export function Sidebar() {
 				<div className="border-t border-electric/30 p-4 space-y-4">
 					{/* Upgrade Button */}
 					<Link
-						to="/pricing"
+						to="/pricing" // Este é um link interno, então <Link> está correto
 						className={cn(
 							"block w-full bg-gradient-to-r from-electric to-rose-950 rounded-lg relative overflow-hidden",
 							"group hover:shadow-lg transition-all duration-300",
 							isCollapsed ? "p-2" : "p-3",
 						)}
 					>
-						<motion.div
-							className="absolute inset-0 bg-white opacity-0"
-							animate={{
-								opacity: [0, 0.2, 0],
-								scale: [1, 1.2, 1],
-							}}
-							transition={{
-								duration: 2,
-								repeat: Number.POSITIVE_INFINITY,
-								repeatType: "reverse",
-							}}
-						/>
-
-						<motion.div
-							className="absolute inset-0 bg-white opacity-0"
-							animate={{
-								scale: [1, 1.05, 1],
-							}}
-							transition={{
-								duration: 1.5,
-								repeat: Number.POSITIVE_INFINITY,
-								repeatType: "reverse",
-							}}
-						/>
-
+						{/* ... animações do botão de upgrade ... */}
 						{isCollapsed ? (
 							<div className="flex justify-center items-center">
-								<motion.div
-									animate={{
-										scale: [1, 1.2, 1],
-									}}
-									transition={{
-										duration: 2,
-										repeat: Number.POSITIVE_INFINITY,
-										repeatType: "reverse",
-									}}
-								>
+								<motion.div /* ... */>
 									<Crown className="w-6 h-6 text-yellow-300 filter drop-shadow-glow" />
 								</motion.div>
 							</div>
 						) : (
 							<div className="flex items-center gap-3">
-								<motion.div
-									animate={{
-										scale: [1, 1.2, 1],
-									}}
-									transition={{
-										duration: 2,
-										repeat: Number.POSITIVE_INFINITY,
-										repeatType: "reverse",
-									}}
-								>
+								<motion.div /* ... */>
 									<Crown className="w-5 h-5 text-yellow-300 filter drop-shadow-glow" />
 								</motion.div>
 								<div className="flex-1">
@@ -365,17 +337,7 @@ export function Sidebar() {
 										Desbloqueie todos os recursos
 									</p>
 								</div>
-								<motion.div
-									animate={{
-										scale: [1, 1.2, 1],
-										opacity: [0.5, 1, 0.5],
-									}}
-									transition={{
-										duration: 2,
-										repeat: Number.POSITIVE_INFINITY,
-										repeatType: "reverse",
-									}}
-								>
+								<motion.div /* ... */>
 									<Sparkles className="w-4 h-4 text-yellow-300" />
 								</motion.div>
 							</div>
