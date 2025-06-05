@@ -430,8 +430,10 @@ export interface LoginCredentials {
 }
 
 export interface User {
+  evoAiUserId: string;
 	affiliate: any;
 	id: string;
+	client_Id: string;
 	name: string;
 	email: string;
 	profile: string;
@@ -443,7 +445,10 @@ export interface User {
 
 export interface LoginResponse {
 	user: User;
-	token: string;
+	tokenInterno: string;
+  tokenEvoAi: string;
+	evoAiUserId?: string;
+	evoAiClientId?: string;
 	planStatus?: {
 		plan: string;
 		isTrialExpired: boolean;

@@ -148,11 +148,11 @@ const Login: React.FC = () => {
 				return;
 			}
 
-			if (!response.user.companyId) {
-				toast.info("Configure sua empresa para continuar.");
-				navigate("/company-setup", { replace: true });
-				return;
-			}
+			// if (!response.user.companyId) {
+			// 	toast.info("Configure sua empresa para continuar.");
+			// 	navigate("/company-setup", { replace: true });
+			// 	return;
+			// }
 
 			toast.success("Login realizado com sucesso!");
 

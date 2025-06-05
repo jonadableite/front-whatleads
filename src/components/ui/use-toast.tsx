@@ -54,3 +54,5 @@ export function ToastProvider({ children }: { children: React.ReactNode }) {
 export const useToast = () => {
 	return { toast };
 };
+
+export { toast };

@@ -1,3 +1,6 @@
+// @ts-nocheck
+
+// src/App.tsx
 import { Toaster } from "@/components/ui/toaster";
 import { SidebarProvider } from "@/contexts/SidebarContext";
 import { UserProvider } from "@/contexts/UserContext";
@@ -9,8 +12,8 @@ import { Routes } from "./routes";
 const queryClient = new QueryClient({
 	defaultOptions: {
 		queries: {
-			refetchOnWindowFocus: false,
-			retry: false,
+			refetchOnWindowFocus: false, // Geralmente bom para evitar refetching inesperado
+			retry: false, // Desabilitar retries por padrão
 		},
 	},
 });
@@ -22,6 +25,7 @@ function App() {
 			<UserProvider>
 				<SidebarProvider>
 					<Routes />
+					{/* O Toaster deve estar no nível mais alto para exibir notificações */}
 					<Toaster />
 				</SidebarProvider>
 			</UserProvider>

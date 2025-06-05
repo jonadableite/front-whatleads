@@ -5,7 +5,6 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Modal } from "@/components/ui/modal";
 import type { Instance } from "@/interface";
-import { api } from "@/lib/api";
 import { authService } from "@/services/auth.service";
 import axios from "axios";
 import { motion } from "framer-motion";
@@ -18,7 +17,7 @@ import { useNavigate } from "react-router-dom";
 
 // Constantes
 const API_BASE_URL =
-	import.meta.env.VITE_API_URL || "https://api.whatlead.com.br";
+	import.meta.env.VITE_API_URL || "http://localhost:9000";
 const API_KEY =
 	import.meta.env.VITE_PUBLIC_API_KEY || "429683C4C977415CAAFCCE10F7D57E11";
 
@@ -260,45 +259,98 @@ const Instances: React.FC = () => {
 	};
 
 	const fetchUserPlan = async () => {
+
+		const currentUser = authService.getUser(); // Verifica se há um usuário logado
+		if (!currentUser || !currentUser.id) {
+			console.warn("Usuário não autenticado ou ID do usuário ausente. Não foi possível buscar o plano.");
+			// Opcional: Limpar estados relacionados ao plano ou redirecionar
+			setCurrentPlan("N/A");
+			setInstanceLimit(0);
+			setRemainingSlots(0);
+			setPlanDetails({});
+			return; // Sai da função se não houver usuário logado válido
+		}
+
 		try {
-			const response = await api.main.get("/users/instance-limits");
-			console.log("Dados do plano recebidos:", response.data);
+			// Obtém o token interno, que é usado para autenticar na sua API principal
+			const token = authService.getTokenInterno();
 
-			// Corrija a definição dos estados
-			setCurrentPlan(
-				(response.data.currentPlan?.name || response.data.plan || "Plano Básico")
-			);
+			if (!token) {
+				console.error("Token interno não encontrado para buscar o plano. O usuário pode precisar fazer login novamente.");
 
-			setInstanceLimit(
-				response.data.currentPlan?.limits?.maxInstances ||
-				response.data.maxInstances ||
-				5
-			);
+				setCurrentPlan("N/A");
+				setInstanceLimit(0);
+				setRemainingSlots(0);
+				setPlanDetails({});
+				return;
+			}
 
-			setRemainingSlots(
-				(response.data.instanceLimit || 5) - (response.data.currentInstances || 0)
-			);
-
-			// Para planDetails, use apenas valores primitivos
-			setPlanDetails({
-				type: response.data.currentPlan?.type,
-				isInTrial: response.data.currentPlan?.isInTrial,
-				trialEndDate: response.data.currentPlan?.trialEndDate,
-				leadsLimit: response.data.currentPlan?.limits?.maxLeads,
-				currentLeads: response.data.usage?.currentLeads,
-				leadsPercentage: response.data.usage?.leadsPercentage
+			// Faz a requisição para buscar o status do plano
+			const response = await axios.get(`${API_BASE_URL}/api/users/plan-status`, {
+				headers: {
+					Authorization: `Bearer ${token}`, // Usa o token interno com o esquema Bearer
+				},
 			});
+
+			console.log("Informações do plano recuperadas com sucesso:", response.data);
+
+			// Valida a estrutura básica da resposta para evitar erros ao acessar propriedades
+			if (!response.data || !response.data.plan || !response.data.limits || !response.data.usage) {
+				console.error("Estrutura de dados do plano inválida recebida:", response.data);
+				throw new Error("Estrutura de dados do plano inválida recebida");
+			}
+
+			const planData = response.data; // Para facilitar o acesso
+
+			// Atualiza os estados do componente com os dados recebidos
+			setCurrentPlan(planData.plan?.name || "Plano Desconhecido");
+
+			const maxInstances = planData.limits?.maxInstances || 0;
+			setInstanceLimit(maxInstances);
+
+			const currentInstances = planData.usage?.currentInstances || 0;
+			setRemainingSlots(maxInstances - currentInstances);
+
+			// Atualiza os detalhes completos do plano, incluindo todos os campos relevantes
+			setPlanDetails({
+				type: planData.plan?.type,
+				isInTrial: planData.plan?.isInTrial,
+				trialEndDate: planData.plan?.trialEndDate,
+				subscriptionStatus: planData.plan?.subscriptionStatus,
+				subscriptionId: planData.plan?.subscriptionId,
+				price: planData.plan?.price,
+				leadsLimit: planData.limits?.maxLeads,
+				campaignsLimit: planData.limits?.maxCampaigns,
+				instancesLimit: planData.limits?.maxInstances,
+				features: planData.limits?.features,
+				currentLeads: planData.usage?.currentLeads,
+				currentCampaigns: planData.usage?.currentCampaigns,
+				currentInstances: planData.usage?.currentInstances,
+				leadsPercentage: planData.usage?.leadsPercentage,
+				campaignsPercentage: planData.usage?.campaignsPercentage,
+				instancesPercentage: planData.usage?.instancesPercentage,
+			});
+
 		} catch (error) {
-			handleError(error);
+			console.error("Erro ao buscar informações do plano:", error);
+			toast.error("Erro ao carregar informações do plano.");
+			setCurrentPlan("Erro");
+			setInstanceLimit(0);
+			setRemainingSlots(0);
+			setPlanDetails({});
 		}
 	};
+
 
 
 
 	const fetchInstances = async () => {
 		try {
 			setLoading(true);
-			const token = authService.getToken();
+			const token = authService.getTokenInterno();
+			if (!token) {
+				throw new Error("Token de autenticação interno não encontrado.");
+			}
 			const response = await axios.get(`${API_BASE_URL}/api/instances`, {
 				headers: { Authorization: `Bearer ${token}` },
 			});
@@ -348,7 +400,7 @@ const Instances: React.FC = () => {
 		setIsCreatingInstance(true);
 
 		try {
-			const token = authService.getToken();
+			const token = authService.getTokenInterno()
 
 			if (!token) {
 				toast.error("Sessão expirada. Faça login novamente.");
@@ -495,7 +547,7 @@ const Instances: React.FC = () => {
 		setDeletingInstance(id);
 
 		try {
-			const token = authService.getToken();
+			const token = authService.getTokenInterno()
 			if (!token) {
 				toast.error("Sessão expirada. Faça login novamente.");
 				navigate("/login");

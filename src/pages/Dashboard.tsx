@@ -1,6 +1,5 @@
 // @ts-nocheck
-
-//src/pages/Dashboard.tsx
+// src/pages/Dashboard.tsx
 import CustomDatePicker from "@/components/CustomDatePicker";
 import { BarChart, LineChart, PieChart } from "@/components/charts";
 import { Skeleton } from "@/components/ui/Skeleton";
@@ -27,7 +26,7 @@ import {
 } from "lucide-react";
 import { useEffect, useState } from "react";
 
-const API_URL = "https://api.whatlead.com.br";
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:9000";
 
 const containerVariants = {
 	hidden: { opacity: 0, y: 20 },
@@ -70,12 +69,11 @@ const StatCard = ({ icon: Icon, title, value, description }) => (
 const formatPhoneNumber = (ownerJid: string) => {
 	// Remove "@s.whatsapp.net" e qualquer outro texto após o "@"
 	const number = ownerJid.split("@")[0];
-
 	// Formata o número (ajuste conforme necessário)
 	if (number.startsWith("55")) {
+		// Exemplo: 5511987654321 -> +55 11 98765-4321
 		return `+${number.slice(0, 2)} ${number.slice(2, 4)} ${number.slice(4, 9)}-${number.slice(9)}`;
 	}
-
 	return number;
 };
 
@@ -109,8 +107,8 @@ const InstanceCard = ({ instance }) => (
 			<div className="flex flex-col items-end">
 				<span
 					className={`text-xs px-2 py-1 rounded-full ${instance.connectionStatus === "OPEN"
-							? "bg-neon-green/20 text-neon-green"
-							: "bg-red-500/20 text-red-500"
+						? "bg-neon-green/20 text-neon-green"
+						: "bg-red-500/20 text-red-500"
 						}`}
 				>
 					{instance.connectionStatus === "OPEN" ? "Conectado" : "Desconectado"}
@@ -155,12 +153,12 @@ const MessageLogItem = ({ log }) => (
 		<div className="text-right">
 			<span
 				className={`px-3 py-1 text-sm rounded-full ${log.status === "SERVER_ACK"
-						? "bg-yellow-500/20 text-yellow-500"
-						: log.status === "DELIVERY_ACK"
-							? "bg-green-500/20 text-green-500"
-							: log.status === "READ"
-								? "bg-blue-500/20 text-blue-500"
-								: "bg-gray-500/20 text-gray-500"
+					? "bg-yellow-500/20 text-yellow-500"
+					: log.status === "DELIVERY_ACK"
+						? "bg-green-500/20 text-green-500"
+						: log.status === "READ"
+							? "bg-blue-500/20 text-blue-500"
+							: "bg-gray-500/20 text-gray-500"
 					}`}
 			>
 				{log.status === "SERVER_ACK"
@@ -181,8 +179,8 @@ const PaginationButton = ({ onClick, disabled, children }) => (
 		onClick={onClick}
 		disabled={disabled}
 		className={`px-3 py-2 rounded-md ${disabled
-				? "bg-deep/40 text-white/40 cursor-not-allowed"
-				: "bg-electric/20 text-electric hover:bg-electric/30 transition-colors"
+			? "bg-deep/40 text-white/40 cursor-not-allowed"
+			: "bg-electric/20 text-electric hover:bg-electric/30 transition-colors"
 			}`}
 	>
 		{children}
@@ -216,10 +214,12 @@ export default function Dashboard() {
 			currentPage * logsPerPage,
 		) || [];
 
+	// Fetch daily data when selectedDate changes
 	useEffect(() => {
 		fetchDailyData(selectedDate);
 	}, [selectedDate]);
 
+	// Fetch messages by day data once on component mount
 	useEffect(() => {
 		fetchMessagesByDay();
 	}, []);
@@ -227,12 +227,15 @@ export default function Dashboard() {
 	const fetchDailyData = async (date: Date) => {
 		try {
 			setIsLoading(true);
-			const token = authService.getToken();
+			// Use getTokenInterno() para buscar dados da sua API
+			const token = authService.getTokenInterno();
+			if (!token) {
+				throw new Error("Token de autenticação interno não encontrado.");
+			}
 
-			// Adicione um dia à data selecionada
+			// Adicione um dia à data selecionada (para buscar dados do dia inteiro)
 			const adjustedDate = addDays(date, 1);
 			const formattedDate = format(adjustedDate, "yyyy-MM-dd");
-
 			console.log("Data ajustada para busca:", formattedDate);
 
 			const [dashboardResponse, instancesResponse, leadsResponse] =
@@ -256,10 +259,8 @@ export default function Dashboard() {
 
 			const segments = processSegmentData(leadsResponse.data);
 			setSegmentDistribution(segments);
-
 			setDashboardData(dashboardResponse.data);
 			setInstances(instancesResponse.data.instances || []);
-
 			setError(null);
 		} catch (error) {
 			console.error("Erro ao buscar dados diários:", error);
@@ -269,6 +270,12 @@ export default function Dashboard() {
 				description: "Não foi possível carregar os dados do dashboard",
 				variant: "destructive",
 			});
+			// Redirecionar para login se o erro for relacionado à autenticação
+			if (error.message === "Token de autenticação interno não encontrado.") {
+				authService.logout(() => {
+					window.location.href = "/login";
+				});
+			}
 		} finally {
 			setIsLoading(false);
 		}
@@ -297,13 +304,22 @@ export default function Dashboard() {
 
 	const fetchMessagesByDay = async () => {
 		try {
-			const token = authService.getToken();
+			// Use getTokenInterno() para buscar dados da sua API
+			const token = authService.getTokenInterno();
+			if (!token) {
+				throw new Error("Token de autenticação interno não encontrado.");
+			}
 			const response = await axios.get(`${API_URL}/api/message-logs/by-day`, {
 				headers: { Authorization: `Bearer ${token}` },
 			});
 			setMessagesByDay(response.data.messagesByDay);
 		} catch (error) {
 			console.error("Erro ao buscar mensagens por dia:", error);
+			if (error.message === "Token de autenticação interno não encontrado.") {
+				authService.logout(() => {
+					window.location.href = "/login";
+				});
+			}
 		}
 	};
 
@@ -311,8 +327,8 @@ export default function Dashboard() {
 		const today = new Date();
 		const end = endOfDay(today);
 		const start = startOfDay(subDays(today, 6));
-
 		const formattedData = [];
+
 		for (let d = start; d <= end; d = addDays(d, 1)) {
 			const dateKey = format(d, "yyyy-MM-dd");
 			formattedData.push({
@@ -408,25 +424,25 @@ export default function Dashboard() {
 				</h1>
 				<p className="text-white/80">Aqui está um resumo das suas atividades</p>
 			</div>
-
 			<div className="mb-4">
 				<CustomDatePicker
 					selectedDate={selectedDate}
 					onChange={(date: Date) => {
 						// Subtraia um dia da data selecionada pelo usuário
-						const adjustedDate = subDays(date, 1);
+						// Isso é necessário porque o componente DatePicker pode retornar a data no fuso horário local
+						// e a API espera a data no formato 'yyyy-MM-dd'.
+						// Subtrair um dia garante que a data enviada para a API seja o dia selecionado pelo usuário.
+						const adjustedDate = subDays(date, 1); // Subtrai 1 dia
 						setSelectedDate(adjustedDate);
 					}}
-					maxDate={subDays(new Date(), 1)} // Limite a seleção até ontem
+					maxDate={new Date()} // Limite a seleção até hoje
 				/>
 			</div>
-
 			<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6 mb-8">
 				{stats.map((stat, index) => (
 					<StatCard key={index} {...stat} />
 				))}
 			</div>
-
 			<div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
 				<motion.div
 					variants={itemVariants}
@@ -465,7 +481,6 @@ export default function Dashboard() {
 							</Button>
 						</div>
 					</div>
-
 					{chartType === "bar" ? (
 						<BarChart
 							data={formatChartData(messagesByDay)}
@@ -482,7 +497,6 @@ export default function Dashboard() {
 						/>
 					)}
 				</motion.div>
-
 				<motion.div
 					variants={itemVariants}
 					className="bg-deep/80 backdrop-blur-xl p-6 rounded-xl border border-electric"
@@ -504,7 +518,6 @@ export default function Dashboard() {
 					)}
 				</motion.div>
 			</div>
-
 			<div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
 				<motion.div
 					variants={itemVariants}
@@ -540,7 +553,6 @@ export default function Dashboard() {
 						</div>
 					</div>
 				</motion.div>
-
 				<motion.div
 					variants={itemVariants}
 					className="bg-deep/80 backdrop-blur-xl p-6 rounded-xl border border-electric"

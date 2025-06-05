@@ -1,3 +1,4 @@
+// src/components/ui/button.tsx
 // @ts-nocheck
 
 import { cn } from "@/lib/utils";
@@ -50,7 +51,7 @@ type OmitMotionProps = Omit<HTMLMotionProps<"button">, "variant" | "size">;
 // Interface de props do botão
 interface ButtonProps
 	extends OmitMotionProps,
-		VariantProps<typeof buttonVariants> {
+	VariantProps<typeof buttonVariants> {
 	asChild?: boolean;
 	children?: ReactNode;
 }
@@ -134,3 +135,4 @@ Button.displayName = "Button";
 
 export { Button, buttonVariants };
 export type { ButtonProps };
+

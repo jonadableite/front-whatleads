@@ -1,7 +1,7 @@
 // src/components/ui/dialog.tsx
 import { cn } from "@/lib/utils";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
-import { AnimatePresence, motion } from "framer-motion";
+
 import { X } from "lucide-react";
 import * as React from "react";
 
@@ -35,48 +35,47 @@ const DialogContent = React.forwardRef<
 	React.ComponentPropsWithoutRef<typeof DialogPrimitive.Content>
 >(({ className, children, ...props }, ref) => (
 	<DialogPortal>
-		<AnimatePresence>
-			<DialogOverlay />
-			<DialogPrimitive.Content ref={ref} asChild {...props}>
-				<motion.div
-					initial={{ opacity: 0, scale: 0.95, y: 20 }}
-					animate={{ opacity: 1, scale: 1, y: 0 }}
-					exit={{ opacity: 0, scale: 0.95, y: 20 }}
-					transition={{
-						type: "spring",
-						stiffness: 300,
-						damping: 20,
-					}}
-					className={cn(
-						"fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg",
-						"translate-x-[-50%] translate-y-[-50%] gap-4",
-						"border border-electric/20 bg-deep/90 backdrop-blur-xl",
-						"p-6 shadow-2xl rounded-2xl",
-						"focus:outline-none focus:ring-2 focus:ring-electric/30",
-						"data-[state=open]:animate-in data-[state=closed]:animate-out",
-						"data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
-						"data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
-						className,
-					)}
-				>
-					{children}
-					<DialogPrimitive.Close
-						asChild
-						className="absolute right-4 top-4 rounded-full p-1
+
+		<DialogOverlay />
+		<DialogPrimitive.Content ref={ref} asChild {...props}>
+			<div
+				initial={{ opacity: 0, scale: 0.95, y: 20 }}
+				animate={{ opacity: 1, scale: 1, y: 0 }}
+				exit={{ opacity: 0, scale: 0.95, y: 20 }}
+				transition={{
+					type: "spring",
+					stiffness: 300,
+					damping: 20,
+				}}
+				className={cn(
+					"fixed left-[50%] top-[50%] z-50 grid w-full max-w-lg",
+					"translate-x-[-50%] translate-y-[-50%] gap-4",
+					"border border-electric/20 bg-deep/90 backdrop-blur-xl",
+					"p-6 shadow-2xl rounded-2xl",
+					"focus:outline-none focus:ring-2 focus:ring-electric/30",
+					"data-[state=open]:animate-in data-[state=closed]:animate-out",
+					"data-[state=closed]:fade-out-0 data-[state=open]:fade-in-0",
+					"data-[state=closed]:zoom-out-95 data-[state=open]:zoom-in-95",
+					className,
+				)}
+			>
+				{children}
+				<DialogPrimitive.Close
+					asChild
+					className="absolute right-4 top-4 rounded-full p-1
             hover:bg-electric/10 transition-all duration-200
             focus:outline-none focus:ring-2 focus:ring-electric/30"
+				>
+					<button
+						whileHover={{ rotate: 90 }}
+						whileTap={{ scale: 0.9 }}
 					>
-						<motion.button
-							whileHover={{ rotate: 90 }}
-							whileTap={{ scale: 0.9 }}
-						>
-							<X className="h-5 w-5 text-white/70 hover:text-white" />
-							<span className="sr-only">Fechar</span>
-						</motion.button>
-					</DialogPrimitive.Close>
-				</motion.div>
-			</DialogPrimitive.Content>
-		</AnimatePresence>
+						<X className="h-5 w-5 text-white/70 hover:text-white" />
+						<span className="sr-only">Fechar</span>
+					</button>
+				</DialogPrimitive.Close>
+			</div>
+		</DialogPrimitive.Content>
 	</DialogPortal>
 ));
 
@@ -154,5 +153,6 @@ export {
 	DialogOverlay,
 	DialogPortal,
 	DialogTitle,
-	DialogTrigger,
+	DialogTrigger
 };
+

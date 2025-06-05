@@ -3,9 +3,9 @@ import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { ProtectedLayout } from "@/components/layout/ProtectedLayout";
 import { PublicLayout } from "@/components/layout/PublicLayout";
 import AdminDashboard from "@/pages/AdminDashboard";
+import AgenteIA from "@/pages/AgenteIA";
 import CRM from "@/pages/CRM";
 import Campanhas from "@/pages/Campanhas";
-import ChatbotFlow from "@/pages/ChatbotFlow";
 import CheckoutPage from "@/pages/CheckoutPage";
 import Dashboard from "@/pages/Dashboard";
 import Disparos from "@/pages/Disparos";
@@ -64,6 +64,10 @@ const router = createBrowserRouter([
 						element: <Contatos />,
 					},
 					{
+						path: "/AgenteIA",
+						element: <AgenteIA />,
+					},
+					{
 						path: "/pricing",
 						element: <PricingPage />,
 					},
@@ -101,10 +105,6 @@ const router = createBrowserRouter([
 						element: <CRM />,
 					},
 				],
-			},
-			{
-				path: "/chatbot",
-				element: <ChatbotFlow />,
 			},
 		],
 	},

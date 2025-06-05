@@ -25,7 +25,7 @@ const createApiInstance = (baseURL: string) => {
 
 	instance.interceptors.request.use(
 		(config) => {
-			const token = authService.getToken();
+			const token = authService.getTokenInterno();
 			if (token) {
 				config.headers.Authorization = `Bearer ${token}`;
 			}
