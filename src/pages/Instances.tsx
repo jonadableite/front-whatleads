@@ -2,7 +2,9 @@
 
 // src/pages/Instances.tsx
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { Modal } from "@/components/ui/modal";
 import type { Instance } from "@/interface";
 import { authService } from "@/services/auth.service";
@@ -18,6 +20,8 @@ import { useNavigate } from "react-router-dom";
 // Constantes
 const API_BASE_URL =
 	import.meta.env.VITE_API_URL || "http://localhost:9000";
+const API_EVO_URL =
+	import.meta.env.VITE_EVOLUTION_API_UR || "http://localhost:8080";
 const API_KEY =
 	import.meta.env.VITE_PUBLIC_API_KEY || "429683C4C977415CAAFCCE10F7D57E11";
 
@@ -54,6 +58,17 @@ const pulseAnimation = {
 	},
 };
 
+interface InstanceSettings {
+	rejectCall: boolean;
+	msgCall: string;
+	groupsIgnore: boolean;
+	alwaysOnline: boolean;
+	readMessages: boolean;
+	syncFullHistory: boolean;
+	readStatus: boolean;
+	wavoipToken?: string;
+}
+
 // Componente: Connection Status
 const ConnectionStatus: React.FC<{ connected: boolean }> = ({ connected }) => (
 	<motion.div
@@ -82,8 +97,9 @@ const InstanceCard: React.FC<{
 	onReconnect: (name: string) => void;
 	onLogout: (name: string) => void;
 	onDelete: (id: string, name: string) => void;
+	onConfigure: (instance: Instance) => void; // Nova prop
 	deletingInstance: string | null;
-}> = ({ instance, onReconnect, onLogout, onDelete, deletingInstance }) => {
+}> = ({ instance, onReconnect, onLogout, onDelete, onConfigure, deletingInstance }) => { // Adicionar onConfigure aqui
 	const isConnected =
 		instance.connectionStatus === "OPEN" ||
 		instance.connectionStatus === "CONNECTED";
@@ -157,7 +173,8 @@ const InstanceCard: React.FC<{
 						</Button>
 					)}
 
-					<div className="grid grid-cols-2 gap-3">
+					{/* Modificar a grid de botões para incluir o Configurar */}
+					<div className="flex items-center justify-center gap-2">
 						<Button
 							variant="outline"
 							size="lg"
@@ -166,7 +183,18 @@ const InstanceCard: React.FC<{
 						>
 							<Power className="w-5 h-5 mr-2" /> Logout
 						</Button>
+						{/* Novo Botão de Configurar */}
+						<Button
+							variant="outline"
+							size="lg"
+							onClick={() => onConfigure(instance)} // Chama a nova prop
+							className="bg-blue-500/10 text-blue-500 border-blue-500/20 hover:bg-blue-500/20 hover:border-blue-500/30`"
+						>
+							<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-settings mr-2"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l-.22-.39a2 2 0 0 0-.73-2.73l-.15-.1a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0-.73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" /><circle cx="12" cy="12" r="3" /></svg>
+							Configurar
+						</Button>
 					</div>
+
 
 					{/* Botão de Excluir Instância */}
 					<Button
@@ -189,7 +217,7 @@ const InstanceCard: React.FC<{
 						) : (
 							<Trash2 className="w-5 h-5 mr-2" />
 						)}
-						Excluir Instância
+						Excluir WhatsApp
 					</Button>
 				</div>
 			</div>
@@ -231,6 +259,13 @@ const Instances: React.FC = () => {
 		currentLeads?: number;
 		leadsPercentage?: number;
 	}>({});
+
+	const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
+	const [instanceToConfigure, setInstanceToConfigure] = useState<Instance | null>(null);
+	const [instanceSettings, setInstanceSettings] = useState<InstanceSettings | null>(null);
+	const [settingsFormData, setSettingsFormData] = useState<InstanceSettings | null>(null);
+	const [isLoadingSettings, setIsLoadingSettings] = useState(false);
+	const [isSavingSettings, setIsSavingSettings] = useState(false);
 
 	const closeQrCodeModal = () => {
 		setShowQrCodeModal(false);
@@ -362,6 +397,102 @@ const Instances: React.FC = () => {
 		}
 	};
 
+	// NOVO: Função para buscar as configurações da instância
+	const fetchInstanceSettings = async (instanceName: string) => {
+		setIsLoadingSettings(true);
+		try {
+			const response = await axios.get(
+				`${API_EVO_URL}/settings/find/${instanceName}`,
+				{
+					headers: {
+						apikey: API_KEY, // Usando a API_KEY para a Evolution API
+					},
+				},
+			);
+			// A API retorna "wavoipToken": "" mesmo para booleanos.
+			// Precisamos garantir que os booleanos sejam tratados como tal.
+			const settingsData = {
+				...response.data,
+				rejectCall: Boolean(response.data.rejectCall),
+				groupsIgnore: Boolean(response.data.groupsIgnore),
+				alwaysOnline: Boolean(response.data.alwaysOnline),
+				readMessages: Boolean(response.data.readMessages),
+				syncFullHistory: Boolean(response.data.syncFullHistory),
+				readStatus: Boolean(response.data.readStatus),
+			};
+
+			setInstanceSettings(settingsData);
+			setSettingsFormData(settingsData); // Inicializa o formulário com os dados buscados
+		} catch (error) {
+			console.error("Erro ao buscar configurações da instância:", error);
+			toast.error("Erro ao carregar configurações da instância.");
+			setInstanceSettings(null);
+			setSettingsFormData(null);
+			handleError(error); // Reutiliza o handler de erro
+		} finally {
+			setIsLoadingSettings(false);
+		}
+	};
+
+	// NOVO: Função para salvar as configurações da instância
+	const saveInstanceSettings = async () => {
+		if (!instanceToConfigure || !settingsFormData) return;
+
+		setIsSavingSettings(true);
+		try {
+			const instanceName = instanceToConfigure.instanceName;
+			// Usar o método POST e o caminho correto conforme a documentação da API
+			const response = await axios.post(
+				`${API_EVO_URL}/settings/set/${instanceName}`, // <-- Caminho e método CORRIGIDOS
+				settingsFormData,
+				{
+					headers: {
+						apikey: API_KEY,
+						"Content-Type": "application/json",
+					},
+				}
+			);
+			console.log("Configurações salvas com sucesso:", response.data);
+			toast.success("Configurações salvas com sucesso!");
+			// Atualizar a instância na lista se necessário
+			fetchInstances(); // Ou atualize a instância específica no estado
+			closeSettingsModal();
+		} catch (error) {
+			console.error("Erro ao salvar configurações:", error);
+			toast.error("Erro ao salvar configurações. Verifique o console.");
+		} finally {
+			setIsSavingSettings(false);
+		}
+	};
+
+
+
+
+	// NOVO: Handler para abrir o modal de configurações
+	const handleConfigureInstance = (instance: Instance) => {
+		setInstanceToConfigure(instance);
+		setIsSettingsModalOpen(true);
+		fetchInstanceSettings(instance.instanceName); // Busca as configurações ao abrir o modal
+	};
+
+	// NOVO: Handler para fechar o modal de configurações
+	const closeSettingsModal = () => {
+		setIsSettingsModalOpen(false);
+		setInstanceToConfigure(null);
+		setInstanceSettings(null);
+		setSettingsFormData(null);
+	};
+
+	// NOVO: Handler para mudanças nos inputs do formulário de configurações
+	const handleSettingsInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
+		const { name, value, type, checked } = e.target;
+		setSettingsFormData((prevData) => ({
+			...prevData!, // Garante que prevData não é null
+			[name]: type === 'checkbox' ? checked : value,
+		}));
+	};
+
+
 	// biome-ignore lint/correctness/useExhaustiveDependencies: <explanation>
 	useEffect(() => {
 		const loadData = async () => {
@@ -385,6 +516,17 @@ const Instances: React.FC = () => {
 			setNewInstanceName("");
 		}
 	}, [isModalOpen]);
+
+	useEffect(() => {
+		if (!isSettingsModalOpen) {
+			setInstanceToConfigure(null);
+			setInstanceSettings(null);
+			setSettingsFormData(null);
+			setIsLoadingSettings(false);
+			setIsSavingSettings(false);
+		}
+	}, [isSettingsModalOpen]);
+
 
 	const handleCreateInstance = async () => {
 		if (!newInstanceName.trim()) {
@@ -503,7 +645,7 @@ const Instances: React.FC = () => {
 		const pollInterval = setInterval(async () => {
 			try {
 				const response = await axios.get(
-					`${API_BASE_URL}/instance/connectionState/${instanceName}`,
+					`${API_EVO_URL}/instance/connectionState/${instanceName}`,
 					{
 						headers: {
 							apikey: API_KEY,
@@ -572,6 +714,8 @@ const Instances: React.FC = () => {
 			setDeletingInstance(null);
 		}
 	};
+
+
 
 	const handleReconnectInstance = async (instanceName) => {
 		try {
@@ -822,7 +966,9 @@ const Instances: React.FC = () => {
 			) : (
 				<motion.div
 					variants={containerVariants}
-					className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 max-w-7xl mx-auto"
+					initial="hidden"
+					animate="visible"
+					className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6"
 				>
 					{instances.map((instance) => (
 						<InstanceCard
@@ -831,6 +977,7 @@ const Instances: React.FC = () => {
 							onReconnect={handleReconnectInstance}
 							onLogout={handleLogoutInstance}
 							onDelete={handleDeleteInstance}
+							onConfigure={handleConfigureInstance} // Passa a função de configurar
 							deletingInstance={deletingInstance}
 						/>
 					))}
@@ -838,6 +985,7 @@ const Instances: React.FC = () => {
 			)}
 
 			{/* Modal de Nova Instância */}
+			{/* ... código existente do Modal de Nova Instância ... */}
 			<Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)}>
 				<div className="p-6 bg-deep/80 backdrop-blur-xl rounded-xl border border-electric/20">
 					<h2 className="text-2xl font-bold text-white mb-4">
@@ -915,6 +1063,7 @@ const Instances: React.FC = () => {
 					</div>
 				</div>
 			</Modal>
+
 
 			{/* Modal do QR Code */}
 			{showQrCodeModal && qrCode?.base64 && (
@@ -997,6 +1146,268 @@ const Instances: React.FC = () => {
 					</motion.div>
 				</motion.div>
 			)}
+
+
+			{/* Modal de Configurações da Instância */}
+			<Modal
+				isOpen={isSettingsModalOpen}
+				onClose={closeSettingsModal}
+				title={`Configurações da Instância: ${instanceToConfigure?.instanceName}`} // Título já estava presente
+				description="Ajuste as configurações avançadas para esta instância do WhatsApp." // Adicionando a descrição para acessibilidade
+				className="w-full max-w-2xl" // Mantendo a classe de tamanho
+			>
+				{/* O conteúdo interno do modal permanece o mesmo */}
+				<div className="p-6 bg-deep/80 backdrop-blur-xl rounded-xl border border-electric/20">
+					{/* O h2 abaixo é visual, o título para leitores de tela é a prop 'title' do Modal */}
+					<h2 className="text-2xl font-bold text-white mb-4">
+						Configurações da Instância:{" "}
+						<span className="text-electric">{instanceToConfigure?.instanceName}</span>
+					</h2>
+
+
+					{isLoadingSettings ? (
+						<div className="flex justify-center items-center h-40">
+							<motion.div
+								animate={{ rotate: 360 }}
+								transition={{
+									duration: 1,
+									repeat: Number.POSITIVE_INFINITY,
+									ease: "linear",
+								}}
+								className="w-8 h-8 border-4 border-electric border-t-transparent rounded-full"
+							/>
+						</div>
+					) : settingsFormData ? (
+						<div className="space-y-4">
+							{/* rejectCall */}
+							<div className="flex items-center space-x-2">
+								<Checkbox
+									id="rejectCall"
+									name="rejectCall"
+									checked={settingsFormData.rejectCall}
+									onCheckedChange={(checked) =>
+										handleSettingsInputChange({
+											target: {
+												name: "rejectCall",
+												value: String(checked), // Checkbox value is boolean, convert to string for generic handler
+												type: "checkbox",
+												checked: Boolean(checked) // Pass the boolean value
+											}
+										} as React.ChangeEvent<HTMLInputElement>)
+									}
+									disabled={isSavingSettings}
+									className="border-electric data-[state=checked]:bg-electric data-[state=checked]:text-deep"
+								/>
+								<Label htmlFor="rejectCall" className="text-white/80">
+									Rejeitar Chamadas
+								</Label>
+							</div>
+
+
+							{/* msgCall */}
+							<div className="space-y-2">
+								<Label htmlFor="msgCall" className="text-white/80">
+									Mensagem para Chamadas Rejeitadas
+								</Label>
+								<Input
+									id="msgCall"
+									name="msgCall"
+									value={settingsFormData.msgCall}
+									onChange={handleSettingsInputChange}
+									disabled={isSavingSettings}
+									className="bg-deep/50 border-electric/20 text-white placeholder:text-white/50"
+								/>
+							</div>
+
+
+							{/* groupsIgnore */}
+							<div className="flex items-center space-x-2">
+								<Checkbox
+									id="groupsIgnore"
+									name="groupsIgnore"
+									checked={settingsFormData.groupsIgnore}
+									onCheckedChange={(checked) =>
+										handleSettingsInputChange({
+											target: {
+												name: "groupsIgnore",
+												value: String(checked),
+												type: "checkbox",
+												checked: Boolean(checked)
+											}
+										} as React.ChangeEvent<HTMLInputElement>)
+									}
+									disabled={isSavingSettings}
+									className="border-electric data-[state=checked]:bg-electric data-[state=checked]:text-deep"
+								/>
+								<Label htmlFor="groupsIgnore" className="text-white/80">
+									Ignorar Grupos
+								</Label>
+							</div>
+
+
+							{/* alwaysOnline */}
+							<div className="flex items-center space-x-2">
+								<Checkbox
+									id="alwaysOnline"
+									name="alwaysOnline"
+									checked={settingsFormData.alwaysOnline}
+									onCheckedChange={(checked) =>
+										handleSettingsInputChange({
+											target: {
+												name: "alwaysOnline",
+												value: String(checked),
+												type: "checkbox",
+												checked: Boolean(checked)
+											}
+										} as React.ChangeEvent<HTMLInputElement>)
+									}
+									disabled={isSavingSettings}
+									className="border-electric data-[state=checked]:bg-electric data-[state=checked]:text-deep"
+								/>
+								<Label htmlFor="alwaysOnline" className="text-white/80">
+									Sempre Online
+								</Label>
+							</div>
+
+
+							{/* readMessages */}
+							<div className="flex items-center space-x-2">
+								<Checkbox
+									id="readMessages"
+									name="readMessages"
+									checked={settingsFormData.readMessages}
+									onCheckedChange={(checked) =>
+										handleSettingsInputChange({
+											target: {
+												name: "readMessages",
+												value: String(checked),
+												type: "checkbox",
+												checked: Boolean(checked)
+											}
+										} as React.ChangeEvent<HTMLInputElement>)
+									}
+									disabled={isSavingSettings}
+									className="border-electric data-[state=checked]:bg-electric data-[state=checked]:text-deep"
+								/>
+								<Label htmlFor="readMessages" className="text-white/80">
+									Marcar Mensagens como Lidas
+								</Label>
+							</div>
+
+
+							{/* syncFullHistory */}
+							<div className="flex items-center space-x-2">
+								<Checkbox
+									id="syncFullHistory"
+									name="syncFullHistory"
+									checked={settingsFormData.syncFullHistory}
+									onCheckedChange={(checked) =>
+										handleSettingsInputChange({
+											target: {
+												name: "syncFullHistory",
+												value: String(checked),
+												type: "checkbox",
+												checked: Boolean(checked)
+											}
+										} as React.ChangeEvent<HTMLInputElement>)
+									}
+									disabled={isSavingSettings}
+									className="border-electric data-[state=checked]:bg-electric data-[state=checked]:text-deep"
+								/>
+								<Label htmlFor="syncFullHistory" className="text-white/80">
+									Sincronizar Histórico Completo
+								</Label>
+							</div>
+
+
+							{/* readStatus */}
+							<div className="flex items-center space-x-2">
+								<Checkbox
+									id="readStatus"
+									name="readStatus"
+									checked={settingsFormData.readStatus}
+									onCheckedChange={(checked) =>
+										handleSettingsInputChange({
+											target: {
+												name: "readStatus",
+												value: String(checked),
+												type: "checkbox",
+												checked: Boolean(checked)
+											}
+										} as React.ChangeEvent<HTMLInputElement>)
+									}
+									disabled={isSavingSettings}
+									className="border-electric data-[state=checked]:bg-electric data-[state=checked]:text-deep"
+								/>
+								<Label htmlFor="readStatus" className="text-white/80">
+									Marcar Status como Vistos
+								</Label>
+							</div>
+
+
+							{/* wavoipToken (se aplicável e se quiser exibir/editar) */}
+							{/* <div className="space-y-2">
+                                <Label htmlFor="wavoipToken" className="text-white/80">WA VOIP Token</Label>
+                                <Input
+                                    id="wavoipToken"
+                                    name="wavoipToken"
+                                    value={settingsFormData.wavoipToken || ''}
+                                    onChange={handleSettingsInputChange}
+                                    disabled={isSavingSettings}
+                                    className="bg-deep/50 border-electric/20 text-white placeholder:text-white/50"
+                                />
+                            </div> */}
+
+
+						</div>
+					) : (
+						<div className="text-center text-white/70">
+							Não foi possível carregar as configurações.
+						</div>
+					)}
+
+
+					<div className="flex justify-end gap-3 mt-6">
+						<Button
+							variant="outline"
+							onClick={closeSettingsModal}
+							disabled={isSavingSettings}
+							className="text-white/70 border-white/20 hover:bg-white/10"
+						>
+							Cancelar
+						</Button>
+						<Button
+							variant="gradient"
+							onClick={saveInstanceSettings}
+							disabled={isSavingSettings || !settingsFormData}
+							className={`
+                                bg-gradient-to-r from-electric to-neon-purple
+                                hover:shadow-lg hover:shadow-electric/50
+                                ${isSavingSettings || !settingsFormData ? "opacity-50 cursor-not-allowed" : ""}
+                            `}
+						>
+							{isSavingSettings ? (
+								<div className="flex items-center">
+									<motion.div
+										animate={{ rotate: 360 }}
+										transition={{
+											duration: 1,
+											repeat: Number.POSITIVE_INFINITY,
+											ease: "linear",
+										}}
+										className="w-5 h-5 border-2 border-white border-t-transparent rounded-full mr-2"
+									/>
+									Salvando...
+								</div>
+							) : (
+								"Salvar Configurações"
+							)}
+						</Button>
+					</div>
+				</div>
+			</Modal>
+
+
 		</motion.div>
 	);
 };

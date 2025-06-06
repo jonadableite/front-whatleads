@@ -1,10 +1,10 @@
 // src/components/ui/modal.tsx
-import * as React from "react";
+import { cn } from "@/lib/utils";
 import * as DialogPrimitive from "@radix-ui/react-dialog";
 import { cva, type VariantProps } from "class-variance-authority";
-import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
-import { X, AlertCircle, CheckCircle2, Info, XCircle } from "lucide-react";
+import { AlertCircle, CheckCircle2, Info, X, XCircle } from "lucide-react";
+import * as React from "react";
 
 // Variantes de estilo para diferentes tipos de modal
 const modalVariants = cva(
@@ -109,26 +109,16 @@ const Modal = React.forwardRef<HTMLDivElement, ModalProps>(
 						<div className="flex items-center p-6 border-b border-electric/30">
 							{iconElement}
 							<div>
-								{title && (
-									<DialogPrimitive.Title
-										className="text-2xl font-bold 
-             bg-gradient-to-r from-electric to-blue-500 
-             bg-clip-text text-transparent 
-             animate-gradient-x 
-             bg-[length:200%_200%]"
-									>
-										{title}
-									</DialogPrimitive.Title>
-								)}
-
-
-								{description && (
-									<DialogPrimitive.Description
-										className="text-white/70 mt-1"
-									>
-										{description}
-									</DialogPrimitive.Description>
-								)}
+								<DialogPrimitive.Title
+									className="text-2xl font-bold bg-gradient-to-r from-electric to-blue-500 bg-clip-text text-transparent animate-gradient-x bg-[length:200%_200%]"
+								>
+									{title || ''}
+								</DialogPrimitive.Title>
+								<DialogPrimitive.Description
+									className="text-white/70 mt-1"
+								>
+									{description || ''}
+								</DialogPrimitive.Description>
 							</div>
 							{/* Botão de Fechar */}
 							{showCloseButton && (
