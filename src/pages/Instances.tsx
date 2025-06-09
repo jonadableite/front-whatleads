@@ -311,7 +311,7 @@ const InstanceCard: React.FC<{
 								onClick={() => onOpenAgentModal(instance)}
 								className="w-full bg-purple-500/10 text-purple-400 border-purple-500/20 hover:bg-purple-500/30 hover:border-purple-500/40 transition-all duration-300"
 							>
-								<Bot className="w-5 h-5 mr-2" /> Agente IA
+								<Bot className="w-5 h-5 mr-2" /> Agente
 							</Button>
 						</motion.div>
 					</div>
