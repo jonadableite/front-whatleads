@@ -1,26 +1,23 @@
 // src/pages/Instances.tsx
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Modal } from "@/components/ui/modal"; // Assumindo que este é um modal customizado ou shadcn/ui Dialog
+import { Modal } from "@/components/ui/modal";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Switch } from "@/components/ui/switch";
+import { Textarea } from "@/components/ui/textarea";
 import type { Instance } from "@/interface";
 import { authService } from "@/services/auth.service";
 import axios from "axios";
 import { motion } from "framer-motion";
-import { AlertCircle, Bot, HelpCircle, Loader2, Lock, Plus, Power, Save, Settings, Trash2, Wifi, X } from "lucide-react"; // Adicionado Sparkles
+import { AlertCircle, Bot, HelpCircle, Loader2, Lock, Plus, Power, Save, Settings, Trash2, Wifi, X } from "lucide-react";
 import type React from "react";
 import { useEffect, useState } from "react";
 import { Toaster, toast } from "react-hot-toast";
 import { FaWhatsapp } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
-
-
-// Importar componentes necessários para o modal de agente (assumindo que existem)
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"; // shadcn/ui Dialog
-import { ScrollArea } from "@/components/ui/scroll-area"; // shadcn/ui ScrollArea
-import { Switch } from "@/components/ui/switch"; // shadcn/ui Switch
-import { Textarea } from "@/components/ui/textarea"; // shadcn/ui Textarea
 
 
 // Constantes
@@ -1419,19 +1416,7 @@ const Instances: React.FC = () => {
 										{/* Modelo */}
 										<div>
 											<Label htmlFor="model">Modelo</Label>
-											{/* Assumindo que você tem um componente Select */}
-											{/* <Select value={formData.model} onValueChange={(value) => handleFormChange('model', value)}>
-                    <SelectTrigger className="w-full">
-                      <SelectValue placeholder="Selecione um modelo" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="gpt-4o">GPT-4o</SelectItem>
-                      <SelectItem value="gpt-4-turbo">GPT-4 Turbo</SelectItem>
-                      <SelectItem value="gpt-3.5-turbo">GPT-3.5 Turbo</SelectItem>
-                      // Adicione outros modelos suportados pela sua API
-                    </SelectContent>
-                  </Select> */}
-											{/* Usando Input simples como fallback */}
+
 											<Input
 												id="model"
 												value={formData.model}
