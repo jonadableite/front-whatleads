@@ -1,21 +1,27 @@
-// @ts-nocheck
-
 // src/pages/Instances.tsx
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Modal } from "@/components/ui/modal";
+import { Modal } from "@/components/ui/modal"; // Assumindo que este é um modal customizado ou shadcn/ui Dialog
 import type { Instance } from "@/interface";
 import { authService } from "@/services/auth.service";
 import axios from "axios";
 import { motion } from "framer-motion";
-import { AlertCircle, Plus, Power, Trash2, Wifi, X } from "lucide-react";
+import { AlertCircle, Bot, HelpCircle, Loader2, Lock, Plus, Power, Save, Settings, Trash2, Wifi, X } from "lucide-react"; // Adicionado Sparkles
 import type React from "react";
 import { useEffect, useState } from "react";
 import { Toaster, toast } from "react-hot-toast";
 import { FaWhatsapp } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
+
+
+// Importar componentes necessários para o modal de agente (assumindo que existem)
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"; // shadcn/ui Dialog
+import { ScrollArea } from "@/components/ui/scroll-area"; // shadcn/ui ScrollArea
+import { Switch } from "@/components/ui/switch"; // shadcn/ui Switch
+import { Textarea } from "@/components/ui/textarea"; // shadcn/ui Textarea
+
 
 // Constantes
 const API_BASE_URL =
@@ -25,29 +31,40 @@ const API_EVO_URL =
 const API_KEY =
 	import.meta.env.VITE_PUBLIC_API_KEY || "429683C4C977415CAAFCCE10F7D57E11";
 
+
 // Animações
+// Container principal com um Fade-in e leve scale-up
 const containerVariants = {
-	hidden: { opacity: 0 },
+	hidden: { opacity: 0, scale: 0.98 },
 	visible: {
 		opacity: 1,
+		scale: 1,
 		transition: {
-			staggerChildren: 0.1,
+			staggerChildren: 0.1, // Atraso entre a animação de cada item filho
+			duration: 0.5,
+			ease: "easeOut",
 		},
 	},
 };
 
+
+// Animação para cada item (cartão de instância)
 const itemVariants = {
-	hidden: { y: 20, opacity: 0 },
+	hidden: { y: 30, opacity: 0, scale: 0.9 },
 	visible: {
 		y: 0,
 		opacity: 1,
+		scale: 1,
 		transition: {
-			type: "spring",
-			stiffness: 100,
+			type: "spring", // Animação mais natural
+			stiffness: 120, // Rigidez da mola
+			damping: 15, // Amortecimento
 		},
 	},
 };
 
+
+// Animação de pulso para o status online
 const pulseAnimation = {
 	scale: [1, 1.2, 1],
 	opacity: [0.5, 1, 0.5],
@@ -57,6 +74,27 @@ const pulseAnimation = {
 		ease: "easeInOut",
 	},
 };
+
+
+// Animação de hover para botões e cartões
+const hoverAnimation = {
+	scale: 1.03,
+	boxShadow: "0 0 15px rgba(139, 92, 246, 0.4)", // Sombra com cor neon-purple/electric
+	transition: {
+		duration: 0.2,
+		ease: "easeOut",
+	},
+};
+
+// Animação de clique para botões
+const tapAnimation = {
+	scale: 0.97,
+	transition: {
+		duration: 0.1,
+		ease: "easeOut",
+	},
+};
+
 
 interface InstanceSettings {
 	rejectCall: boolean;
@@ -69,6 +107,31 @@ interface InstanceSettings {
 	wavoipToken?: string;
 }
 
+
+// Interface para as configurações do Agente IA
+interface AgentSettings {
+	id?: string; // Opcional para criação
+	instanceName: string;
+	description: string;
+	model: string;
+	temperature: number;
+	maxTokens: number;
+	topP: number;
+	frequencyPenalty: number;
+	presencePenalty: number;
+	timeout: number;
+	keepOpen: boolean;
+	debounceTime: number;
+	keywordFinish: string;
+	unknownMessage: string;
+	splitMessages: boolean;
+	timePerChar: number;
+	ignoreJids: string[];
+	createdAt?: string;
+	updatedAt?: string;
+}
+
+
 // Componente: Connection Status
 const ConnectionStatus: React.FC<{ connected: boolean }> = ({ connected }) => (
 	<motion.div
@@ -76,14 +139,14 @@ const ConnectionStatus: React.FC<{ connected: boolean }> = ({ connected }) => (
 		animate={{ opacity: 1, scale: 1 }}
 		className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-full backdrop-blur-xl border
       ${connected
-				? "bg-neon-green/10 text-neon-green border-neon-green/20"
-				: "bg-red-500/10 text-red-500 border-red-500/20"
+				? "bg-neon-green/10 text-neon-green border-neon-green/30" // Bordas mais visíveis
+				: "bg-red-500/10 text-red-500 border-red-500/30"
 			}`}
 	>
 		<motion.div
 			animate={connected ? pulseAnimation : {}}
-			className={`w-2 h-2 rounded-full ${connected ? "bg-neon-green" : "bg-red-500"
-				}`}
+			className={`w-2.5 h-2.5 rounded-full ${connected ? "bg-neon-green" : "bg-red-500"
+				}`} // Tamanho do ponto ligeiramente maior
 		/>
 		<span className="text-xs font-medium">
 			{connected ? "Online" : "Offline"}
@@ -91,139 +154,201 @@ const ConnectionStatus: React.FC<{ connected: boolean }> = ({ connected }) => (
 	</motion.div>
 );
 
-// Componente: InstanceCard
+
+// Componente: InstanceCard (com aprimoramento na animação da foto)
 const InstanceCard: React.FC<{
 	instance: Instance;
 	onReconnect: (name: string) => void;
 	onLogout: (name: string) => void;
 	onDelete: (id: string, name: string) => void;
-	onConfigure: (instance: Instance) => void; // Nova prop
+	onConfigureSettings: (instance: Instance) => void;
+	onOpenAgentModal: (instance: Instance) => void;
 	deletingInstance: string | null;
-}> = ({ instance, onReconnect, onLogout, onDelete, onConfigure, deletingInstance }) => { // Adicionar onConfigure aqui
-	const isConnected =
-		instance.connectionStatus === "OPEN" ||
-		instance.connectionStatus === "CONNECTED";
+}> = ({
+	instance,
+	onReconnect,
+	onLogout,
+	onDelete,
+	onConfigureSettings,
+	onOpenAgentModal,
+	deletingInstance,
+}) => {
+		const isConnected =
+			instance.connectionStatus === "OPEN" ||
+			instance.connectionStatus === "CONNECTED";
 
-	const handleDeleteInstance = () => {
-		if (
-			window.confirm(
-				`Tem certeza que deseja excluir a instância ${instance.instanceName}?`,
-			)
-		) {
-			onDelete(instance.id, instance.instanceName);
-		}
-	};
+		// Limpa o ownerJid para exibir apenas o número
+		const cleanOwnerJid = instance.ownerJid
+			? instance.ownerJid.replace('@s.whatsapp.net', '')
+			: 'Sem número';
 
-	return (
-		<motion.div
-			variants={itemVariants}
-			whileHover={{ scale: 1.02 }}
-			className="relative bg-deep/80 backdrop-blur-xl p-6 rounded-xl border border-electric shadow-lg hover:shadow-electric transition-all duration-300"
-		>
-			<div className="absolute inset-0 bg-gradient-to-tr from-electric/5 to-neon-purple/5 opacity-50" />
+		const handleDeleteInstance = () => {
+			if (
+				window.confirm(
+					`Tem certeza que deseja excluir a instância ${instance.instanceName}?`,
+				)
+			) {
+				onDelete(instance.id, instance.instanceName);
+			}
+		};
 
-			<div className="relative z-10 space-y-6">
-				{/* Header da Instância */}
-				<div className="flex justify-between items-center">
-					<div className="flex items-center space-x-4">
-						<div className="relative">
-							{instance.profilePicUrl ? (
-								<img
-									src={instance.profilePicUrl}
-									alt="Profile"
-									className={`w-12 h-12 rounded-full object-cover border-2 ${isConnected ? "border-neon-green" : "border-red-500"
-										}`}
+		return (
+			<motion.div
+				variants={itemVariants}
+				whileHover={hoverAnimation} // Aplicar animação de hover
+				whileTap={tapAnimation} // Aplicar animação de clique
+				className="relative group bg-deep/60 backdrop-blur-2xl p-6 rounded-2xl border border-electric/40 shadow-lg hover:shadow-electric/30 transition-all duration-300 flex flex-col space-y-6 overflow-hidden"
+			>
+				{/* Efeito de fundo sutil com gradiente animado */}
+				<motion.div
+					className="absolute inset-0 bg-gradient-to-tr from-electric/10 to-neon-purple/10 opacity-70"
+					initial={{ backgroundPosition: '0% 0%' }}
+					animate={{ backgroundPosition: '100% 100%' }}
+					transition={{
+						duration: 10,
+						repeat: Number.POSITIVE_INFINITY,
+						ease: "linear",
+						repeatType: "reverse"
+					}}
+					style={{ backgroundSize: '200% 200%' }}
+				/>
+
+				{/* Conteúdo principal com espaçamento vertical entre os blocos */}
+				<div className="relative z-10 flex flex-col space-y-5">
+					{/* Header da Instância - Mantido flex para alinhar nome/foto e status */}
+					<div className="flex justify-between items-center flex-wrap gap-4">
+						<div className="flex items-center space-x-4">
+							{/* Contêiner da Foto de Perfil ou Ícone Padrão */}
+							<div className="relative w-14 h-14 rounded-full overflow-hidden flex items-center justify-center bg-gray-700 border-2 border-transparent group-hover:border-neon-green/50 transition-colors duration-300">
+
+								{/* Arco Neon Gradiente Rotativo - Visível apenas quando conectado */}
+								{isConnected && (
+									<motion.div
+										className="absolute inset-[-5px] rounded-full" // Torna este div ligeiramente maior que o contêiner pai
+										initial={{ rotate: 0 }}
+										animate={{ rotate: 360 }}
+										transition={{ duration: 8, repeat: Number.POSITIVE_INFINITY, ease: "linear" }} // Animação de rotação
+										style={{
+											// Gradiente de Azul para Roxo
+											background: 'linear-gradient(45deg, #3B82F6, #8B5CF6)',
+											padding: '5px', // Controla a espessura do anel
+											// Máscara para criar o efeito de anel (corta o centro)
+											WebkitMask: 'radial-gradient(circle, transparent calc(50% - 5px), black calc(50% - 5px + 1px))',
+											mask: 'radial-gradient(circle, transparent calc(50% - 5px), black calc(50% - 5px + 1px))',
+										}}
+									/>
+								)}
+
+								{/* Foto de Perfil ou Ícone Padrão */}
+								{instance.profilePicUrl ? (
+									<img
+										src={instance.profilePicUrl}
+										alt={`Foto de perfil de ${instance.instanceName}`}
+										className="w-full h-full object-cover relative z-10" // Garante que a imagem fique acima do anel
+									/>
+								) : (
+									<FaWhatsapp className="w-9 h-9 text-green-500/80 relative z-10" /> // Garante que o ícone fique acima do anel
+								)}
+
+								{/* Removido o efeito de brilho sutil no hover para evitar conflito visual */}
+							</div>
+
+							{/* Nome e Número da Instância */}
+							<div className="flex flex-col">
+								<h3 className="text-2xl font-bold text-blue-400">
+									{instance.instanceName}
+								</h3>
+								<p className="text-sm text-gray-400 flex items-center">
+									<FaWhatsapp className="inline-block mr-1 text-green-500/80" /> {cleanOwnerJid}
+								</p>
+							</div>
+						</div>
+						{/* Status de Conexão */}
+						<ConnectionStatus connected={isConnected} />
+					</div>
+
+					{/* Grupo de Botões de Ação (Reconectar/Logout, Config, Agente IA) */}
+					<div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full">
+						{/* Botão de Reconectar ou Logout (condicional) */}
+						{isConnected ? (
+							<motion.div whileTap={tapAnimation} className="w-full">
+								<Button
+									variant="outline"
+									size="lg"
+									onClick={() => onLogout(instance.instanceName)}
+									className="w-full bg-neon-yellow/10 text-neon-yellow border-neon-yellow/20 hover:bg-neon-yellow/30 hover:border-neon-yellow/40 transition-all duration-300"
+								>
+									<Power className="w-5 h-5 mr-2" /> Logout
+								</Button>
+							</motion.div>
+						) : (
+							<motion.div whileTap={tapAnimation} className="w-full">
+								<Button
+									variant="outline"
+									size="lg"
+									onClick={() => onReconnect(instance.instanceName)}
+									className="w-full bg-neon-green/10 text-neon-green border-neon-green/20 hover:bg-neon-green/30 hover:border-neon-green/40 transition-all duration-300"
+								>
+									<Wifi className="w-5 h-5 mr-2" /> Reconectar
+								</Button>
+							</motion.div>
+						)}
+
+						{/* Botão de Configuração */}
+						<motion.div whileTap={tapAnimation} className="w-full">
+							<Button
+								variant="outline"
+								size="lg"
+								onClick={() => onConfigureSettings(instance)}
+								className="w-full bg-blue-500/10 text-blue-400 border-blue-500/20 hover:bg-blue-500/30 hover:border-blue-500/40 transition-all duration-300"
+							>
+								<Settings className="w-5 h-5 mr-2" /> Configurar
+							</Button>
+						</motion.div>
+
+						{/* Botão de Adicionar Agente IA */}
+						<motion.div whileTap={tapAnimation} className="w-full">
+							<Button
+								variant="outline"
+								size="lg"
+								onClick={() => onOpenAgentModal(instance)}
+								className="w-full bg-purple-500/10 text-purple-400 border-purple-500/20 hover:bg-purple-500/30 hover:border-purple-500/40 transition-all duration-300"
+							>
+								<Bot className="w-5 h-5 mr-2" /> Agente IA
+							</Button>
+						</motion.div>
+					</div>
+
+					{/* Botão de Excluir Instância - Separado para controle de espaçamento */}
+					<motion.div whileTap={tapAnimation} className="mt-4">
+						<Button
+							variant="outline"
+							size="lg"
+							onClick={handleDeleteInstance}
+							disabled={deletingInstance === instance.id}
+							className="w-full bg-red-500/10 text-red-500 border-red-500/20 hover:bg-red-500/30 hover:border-red-500/40 transition-all duration-300"
+						>
+							{deletingInstance === instance.id ? (
+								<motion.div
+									animate={{ rotate: 360 }}
+									transition={{
+										duration: 1,
+										repeat: Number.POSITIVE_INFINITY,
+										ease: "linear",
+									}}
+									className="w-5 h-5 border-2 border-red-500 border-t-transparent rounded-full mr-2"
 								/>
 							) : (
-								<div
-									className={`w-12 h-12 rounded-full flex items-center justify-center ${isConnected
-										? "bg-neon-green/10 text-neon-green"
-										: "bg-red-500/20 text-red-500"
-										}`}
-								>
-									<FaWhatsapp className="w-6 h-6" />
-								</div>
+								<Trash2 className="w-5 h-5 mr-2" />
 							)}
-						</div>
-						<div>
-							<h3 className="text-lg font-bold text-white">
-								{instance.instanceName}
-							</h3>
-							<p className="text-sm text-white/70">
-								{instance.ownerJid
-									? instance.ownerJid.replace('@s.whatsapp.net', '')
-									: 'Sem número'
-								}
-							</p>
-						</div>
-					</div>
-					<ConnectionStatus connected={isConnected} />
+							Excluir WhatsApp
+						</Button>
+					</motion.div>
+
 				</div>
-
-				{/* Ações Principais */}
-				<div className="space-y-4">
-					{!isConnected && (
-						<Button
-							variant="outline"
-							size="lg"
-							onClick={() => onReconnect(instance.instanceName)}
-							className="w-full bg-neon-green/10 text-white border-neon-green/20 hover:bg-neon-green/20 hover:border-neon-green/30"
-						>
-							<Wifi className="w-5 h-5 mr-2" /> Reconectar
-						</Button>
-					)}
-
-					{/* Modificar a grid de botões para incluir o Configurar */}
-					<div className="flex items-center justify-center gap-2">
-						<Button
-							variant="outline"
-							size="lg"
-							onClick={() => onLogout(instance.instanceName)}
-							className="bg-neon-yellow/10 text-neon-yellow border-neon-yellow/20 hover:bg-neon-yellow/20 hover:border-neon-yellow/30"
-						>
-							<Power className="w-5 h-5 mr-2" /> Logout
-						</Button>
-						{/* Novo Botão de Configurar */}
-						<Button
-							variant="outline"
-							size="lg"
-							onClick={() => onConfigure(instance)} // Chama a nova prop
-							className="bg-blue-500/10 text-blue-500 border-blue-500/20 hover:bg-blue-500/20 hover:border-blue-500/30`"
-						>
-							<svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="lucide lucide-settings mr-2"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l-.22-.39a2 2 0 0 0-.73-2.73l-.15-.1a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0-.73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z" /><circle cx="12" cy="12" r="3" /></svg>
-							Configurar
-						</Button>
-					</div>
-
-
-					{/* Botão de Excluir Instância */}
-					<Button
-						variant="outline"
-						size="lg"
-						onClick={handleDeleteInstance}
-						disabled={deletingInstance === instance.id}
-						className="w-full bg-red-500/10 text-red-500 border-red-500/20 hover:bg-red-500/20 hover:border-red-500/30"
-					>
-						{deletingInstance === instance.id ? (
-							<motion.div
-								animate={{ rotate: 360 }}
-								transition={{
-									duration: 1,
-									repeat: Number.POSITIVE_INFINITY,
-									ease: "linear",
-								}}
-								className="w-5 h-5 border-2 border-red-500 border-t-transparent rounded-full mr-2"
-							/>
-						) : (
-							<Trash2 className="w-5 h-5 mr-2" />
-						)}
-						Excluir WhatsApp
-					</Button>
-				</div>
-			</div>
-		</motion.div>
-	);
-};
+			</motion.div>
+		);
+	};
 
 // Componente principal: Instances
 const Instances: React.FC = () => {
@@ -245,6 +370,7 @@ const Instances: React.FC = () => {
 		[key: string]: any;
 	}>({});
 
+
 	const [qrCode, setQrCode] = useState<{
 		base64: string;
 		pairingCode?: string;
@@ -260,6 +386,7 @@ const Instances: React.FC = () => {
 		leadsPercentage?: number;
 	}>({});
 
+
 	const [isSettingsModalOpen, setIsSettingsModalOpen] = useState(false);
 	const [instanceToConfigure, setInstanceToConfigure] = useState<Instance | null>(null);
 	const [instanceSettings, setInstanceSettings] = useState<InstanceSettings | null>(null);
@@ -267,11 +394,39 @@ const Instances: React.FC = () => {
 	const [isLoadingSettings, setIsLoadingSettings] = useState(false);
 	const [isSavingSettings, setIsSavingSettings] = useState(false);
 
+	// Estados para o modal de Agente IA
+	const [isAgentModalOpen, setIsAgentModalOpen] = useState(false);
+	const [selectedAgent, setSelectedAgent] = useState<AgentSettings | null>(null); // Para editar um agente existente
+	const [selectedAgentId, setSelectedAgentId] = useState<string | null>(null); // Para buscar agente existente
+	const [formData, setFormData] = useState<AgentSettings>({
+		instanceName: "", // Será preenchido ao abrir o modal
+		description: "",
+		model: "gpt-4o", // Valor padrão
+		temperature: 0.7, // Valor padrão
+		maxTokens: 500, // Valor padrão
+		topP: 1, // Valor padrão
+		frequencyPenalty: 0, // Valor padrão
+		presencePenalty: 0, // Valor padrão
+		timeout: 60, // Valor padrão em segundos
+		keepOpen: false, // Valor padrão
+		debounceTime: 3, // Valor padrão em segundos
+		keywordFinish: "sair", // Valor padrão
+		unknownMessage: "Desculpe, não consegui entender. Pode repetir?", // Valor padrão
+		splitMessages: true, // Valor padrão
+		timePerChar: 50, // Valor padrão em ms
+		ignoreJids: [], // Valor padrão
+	});
+	const [ignoreJidInput, setIgnoreJidInput] = useState("");
+	const [isLoadingAgent, setIsLoadingAgent] = useState(false);
+	const [isSavingAgent, setIsSavingAgent] = useState(false);
+
+
 	const closeQrCodeModal = () => {
 		setShowQrCodeModal(false);
 		setQrCode(null);
 		setQrCodeError(false);
 	};
+
 
 	const handleError = (error: any) => {
 		if (error.response) {
@@ -293,26 +448,23 @@ const Instances: React.FC = () => {
 		}
 	};
 
-	const fetchUserPlan = async () => {
 
-		const currentUser = authService.getUser(); // Verifica se há um usuário logado
+	const fetchUserPlan = async () => {
+		const currentUser = authService.getUser();
 		if (!currentUser || !currentUser.id) {
 			console.warn("Usuário não autenticado ou ID do usuário ausente. Não foi possível buscar o plano.");
-			// Opcional: Limpar estados relacionados ao plano ou redirecionar
+			// Limpar estados relevantes
 			setCurrentPlan("N/A");
 			setInstanceLimit(0);
 			setRemainingSlots(0);
-			setPlanDetails({});
-			return; // Sai da função se não houver usuário logado válido
+			setPlanDetails({}); // Limpa os detalhes completos também
+			return;
 		}
 
 		try {
-			// Obtém o token interno, que é usado para autenticar na sua API principal
 			const token = authService.getTokenInterno();
-
 			if (!token) {
 				console.error("Token interno não encontrado para buscar o plano. O usuário pode precisar fazer login novamente.");
-
 				setCurrentPlan("N/A");
 				setInstanceLimit(0);
 				setRemainingSlots(0);
@@ -320,649 +472,691 @@ const Instances: React.FC = () => {
 				return;
 			}
 
-			// Faz a requisição para buscar o status do plano
 			const response = await axios.get(`${API_BASE_URL}/api/users/plan-status`, {
 				headers: {
-					Authorization: `Bearer ${token}`, // Usa o token interno com o esquema Bearer
+					Authorization: `Bearer ${token}`,
 				},
 			});
 
 			console.log("Informações do plano recuperadas com sucesso:", response.data);
 
-			// Valida a estrutura básica da resposta para evitar erros ao acessar propriedades
+			// Validação mais robusta da estrutura da resposta
 			if (!response.data || !response.data.plan || !response.data.limits || !response.data.usage) {
-				console.error("Estrutura de dados do plano inválida recebida:", response.data);
-				throw new Error("Estrutura de dados do plano inválida recebida");
+				console.error("Estrutura de resposta de plano inesperada:", response.data);
+				toast.error("Erro ao carregar detalhes do plano.");
+				setCurrentPlan("N/A");
+				setInstanceLimit(0);
+				setRemainingSlots(0);
+				setPlanDetails({});
+				return;
 			}
 
-			const planData = response.data; // Para facilitar o acesso
+			const { plan, limits, usage } = response.data;
 
-			// Atualiza os estados do componente com os dados recebidos
-			setCurrentPlan(planData.plan?.name || "Plano Desconhecido");
+			setCurrentPlan(plan.name || "Plano Desconhecido");
+			const limit = limits.maxInstances || 0; // Usar maxInstances conforme API
+			setInstanceLimit(limit);
+			setRemainingSlots(Math.max(0, limit - usage.currentInstances)); // Usar currentInstances conforme API
 
-			const maxInstances = planData.limits?.maxInstances || 0;
-			setInstanceLimit(maxInstances);
-
-			const currentInstances = planData.usage?.currentInstances || 0;
-			setRemainingSlots(maxInstances - currentInstances);
-
-			// Atualiza os detalhes completos do plano, incluindo todos os campos relevantes
-			setPlanDetails({
-				type: planData.plan?.type,
-				isInTrial: planData.plan?.isInTrial,
-				trialEndDate: planData.plan?.trialEndDate,
-				subscriptionStatus: planData.plan?.subscriptionStatus,
-				subscriptionId: planData.plan?.subscriptionId,
-				price: planData.plan?.price,
-				leadsLimit: planData.limits?.maxLeads,
-				campaignsLimit: planData.limits?.maxCampaigns,
-				instancesLimit: planData.limits?.maxInstances,
-				features: planData.limits?.features,
-				currentLeads: planData.usage?.currentLeads,
-				currentCampaigns: planData.usage?.currentCampaigns,
-				currentInstances: planData.usage?.currentInstances,
-				leadsPercentage: planData.usage?.leadsPercentage,
-				campaignsPercentage: planData.usage?.campaignsPercentage,
-				instancesPercentage: planData.usage?.instancesPercentage,
-			});
+			// Armazena detalhes completos do plano, incluindo limits e usage
+			setPlanDetails(response.data);
 
 		} catch (error) {
-			console.error("Erro ao buscar informações do plano:", error);
-			toast.error("Erro ao carregar informações do plano.");
-			setCurrentPlan("Erro");
+			console.error("Erro ao buscar status do plano:", error);
+			handleError(error);
+
+			setCurrentPlan("Erro ao carregar");
 			setInstanceLimit(0);
 			setRemainingSlots(0);
 			setPlanDetails({});
+		} finally {
+			// setLoadingPlan(false);
 		}
 	};
 
 
-
-
 	const fetchInstances = async () => {
+		setLoading(true);
 		try {
-			setLoading(true);
 			const token = authService.getTokenInterno();
-			if (!token) {
-				throw new Error("Token de autenticação interno não encontrado.");
-			}
 			const response = await axios.get(`${API_BASE_URL}/api/instances`, {
-				headers: { Authorization: `Bearer ${token}` },
+				headers: {
+					Authorization: `Bearer ${token}`,
+				},
 			});
-			setInstances(response.data.instances || []);
+			const instancesArray = response.data.instances;
+			setInstances(instancesArray);
 		} catch (error) {
-			toast.error("Erro ao carregar instâncias");
+			handleError(error);
 		} finally {
 			setLoading(false);
 		}
 	};
 
-	// NOVO: Função para buscar as configurações da instância
-	const fetchInstanceSettings = async (instanceName: string) => {
-		setIsLoadingSettings(true);
-		try {
-			const response = await axios.get(
-				`${API_EVO_URL}/settings/find/${instanceName}`,
-				{
-					headers: {
-						apikey: API_KEY, // Usando a API_KEY para a Evolution API
-					},
-				},
-			);
-			// A API retorna "wavoipToken": "" mesmo para booleanos.
-			// Precisamos garantir que os booleanos sejam tratados como tal.
-			const settingsData = {
-				...response.data,
-				rejectCall: Boolean(response.data.rejectCall),
-				groupsIgnore: Boolean(response.data.groupsIgnore),
-				alwaysOnline: Boolean(response.data.alwaysOnline),
-				readMessages: Boolean(response.data.readMessages),
-				syncFullHistory: Boolean(response.data.syncFullHistory),
-				readStatus: Boolean(response.data.readStatus),
-			};
 
-			setInstanceSettings(settingsData);
-			setSettingsFormData(settingsData); // Inicializa o formulário com os dados buscados
-		} catch (error) {
-			console.error("Erro ao buscar configurações da instância:", error);
-			toast.error("Erro ao carregar configurações da instância.");
-			setInstanceSettings(null);
-			setSettingsFormData(null);
-			handleError(error); // Reutiliza o handler de erro
-		} finally {
-			setIsLoadingSettings(false);
-		}
-	};
-
-	// NOVO: Função para salvar as configurações da instância
-	const saveInstanceSettings = async () => {
-		if (!instanceToConfigure || !settingsFormData) return;
-
-		setIsSavingSettings(true);
-		try {
-			const instanceName = instanceToConfigure.instanceName;
-			// Usar o método POST e o caminho correto conforme a documentação da API
-			const response = await axios.post(
-				`${API_EVO_URL}/settings/set/${instanceName}`, // <-- Caminho e método CORRIGIDOS
-				settingsFormData,
-				{
-					headers: {
-						apikey: API_KEY,
-						"Content-Type": "application/json",
-					},
-				}
-			);
-			console.log("Configurações salvas com sucesso:", response.data);
-			toast.success("Configurações salvas com sucesso!");
-			// Atualizar a instância na lista se necessário
-			fetchInstances(); // Ou atualize a instância específica no estado
-			closeSettingsModal();
-		} catch (error) {
-			console.error("Erro ao salvar configurações:", error);
-			toast.error("Erro ao salvar configurações. Verifique o console.");
-		} finally {
-			setIsSavingSettings(false);
-		}
-	};
-
-
-
-
-	// NOVO: Handler para abrir o modal de configurações
-	const handleConfigureInstance = (instance: Instance) => {
-		setInstanceToConfigure(instance);
-		setIsSettingsModalOpen(true);
-		fetchInstanceSettings(instance.instanceName); // Busca as configurações ao abrir o modal
-	};
-
-	// NOVO: Handler para fechar o modal de configurações
-	const closeSettingsModal = () => {
-		setIsSettingsModalOpen(false);
-		setInstanceToConfigure(null);
-		setInstanceSettings(null);
-		setSettingsFormData(null);
-	};
-
-	// NOVO: Handler para mudanças nos inputs do formulário de configurações
-	const handleSettingsInputChange = (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => {
-		const { name, value, type, checked } = e.target;
-		setSettingsFormData((prevData) => ({
-			...prevData!, // Garante que prevData não é null
-			[name]: type === 'checkbox' ? checked : value,
-		}));
-	};
-
-
-	// biome-ignore lint/correctness/useExhaustiveDependencies: <explanation>
-	useEffect(() => {
-		const loadData = async () => {
-			await fetchInstances();
-			await fetchUserPlan();
-		};
-
-		loadData();
-	}, []);
-
-	// Adicione outro useEffect para atualizar os slots quando as instâncias mudarem
-	useEffect(() => {
-		if (instanceLimit > 0) {
-			const remaining = instanceLimit - instances.length;
-			setRemainingSlots(Math.max(0, remaining));
-		}
-	}, [instances.length, instanceLimit]);
-
-	useEffect(() => {
-		if (!isModalOpen) {
-			setNewInstanceName("");
-		}
-	}, [isModalOpen]);
-
-	useEffect(() => {
-		if (!isSettingsModalOpen) {
-			setInstanceToConfigure(null);
-			setInstanceSettings(null);
-			setSettingsFormData(null);
-			setIsLoadingSettings(false);
-			setIsSavingSettings(false);
-		}
-	}, [isSettingsModalOpen]);
-
-
-	const handleCreateInstance = async () => {
+	const createInstance = async () => {
 		if (!newInstanceName.trim()) {
-			toast.error("Nome da instância é obrigatório");
+			toast.error("O nome da instância não pode ser vazio.");
+			return;
+		}
+		if (instances.length >= instanceLimit) {
+			toast.error(`Você atingiu o limite de ${instanceLimit} instâncias para o seu plano.`);
 			return;
 		}
 
-		if (remainingSlots <= 0) {
-			toast.error(`Limite de instâncias atingido para o plano ${currentPlan}`);
-			return;
-		}
 
 		setIsCreatingInstance(true);
-
 		try {
-			const token = authService.getTokenInterno()
-
-			if (!token) {
-				toast.error("Sessão expirada. Faça login novamente.");
-				navigate("/login");
-				return;
-			}
-
+			const token = authService.getTokenInterno();
 			const response = await axios.post(
 				`${API_BASE_URL}/api/instances/create`,
-				{
-					instanceName: newInstanceName,
-					qrcode: true,
-					integration: "WHATSAPP-BAILEYS",
-				},
+				{ instanceName: newInstanceName },
 				{
 					headers: {
 						Authorization: `Bearer ${token}`,
-						"Content-Type": "application/json",
 					},
-				},
-			);
-
-			console.log("Dados recebidos do backend:", response.data);
-
-			// biome-ignore lint/complexity/useOptionalChain: <explanation>
-			if (response.data && response.data.instance) {
-				const newInstance = response.data.instance;
-				setInstances((prev) => [...prev, newInstance]);
-				startPolling(newInstance.id, newInstance.instanceName);
-
-				// Configura o QR Code com os dados recebidos
-				if (response.data.qrcode) {
-					const { qrcode } = response.data;
-					const qrBase64 =
-						qrcode.base64 ||
-						(qrcode.code ? `data:image/png;base64,${qrcode.code}` : null);
-
-					if (qrBase64) {
-						setQrCode({
-							base64: qrBase64,
-							pairingCode: qrcode.pairingCode || null,
-						});
-
-						setShowQrCodeModal(true);
-						setIsModalOpen(false);
-						setNewInstanceName("");
-
-						console.log("QR Code configurado:", {
-							// biome-ignore lint/style/useTemplate: <explanation>
-							base64: qrBase64.substring(0, 100) + "...",
-							pairingCode: qrcode.pairingCode,
-						});
-
-						toast.success(
-							"Instância criada com sucesso! Escaneie o QR Code para conectar.",
-						);
-					} else {
-						console.error("QR Code não encontrado na resposta:", qrcode);
-						toast.error("Erro ao gerar QR Code");
-					}
 				}
-			} else {
-				console.error("Resposta inválida do servidor:", response.data);
-				toast.error("Erro ao processar resposta do servidor");
-			}
-
-			// Atualiza a lista de instâncias
-			await fetchInstances();
-		} catch (error: any) {
-			console.error("Erro ao criar instância:", error);
-			toast.error(
-				error.response?.data?.error ||
-				error.response?.data?.message ||
-				"Erro ao criar instância",
 			);
+
+
+			const newInstance = response.data;
+			setInstances([...instances, newInstance]);
+			setNewInstanceName("");
+			setIsModalOpen(false);
+			toast.success(`Instância "${newInstance.instanceName}" criada com sucesso!`);
+
+
+			// Iniciar polling para o QR Code
+			startPolling(newInstance.instanceName);
+
+
+		} catch (error) {
+			handleError(error);
 		} finally {
 			setIsCreatingInstance(false);
 		}
 	};
 
-	useEffect(() => {
-		if (qrCode) {
-			console.log("QR Code atualizado:", {
-				base64Length: qrCode.base64?.length,
-				// biome-ignore lint/style/useTemplate: <explanation>
-				base64Preview: qrCode.base64?.substring(0, 100) + "...",
-				pairingCode: qrCode.pairingCode,
-			});
+
+	const startPolling = (instanceName: string) => {
+		// Limpar polling anterior para esta instância, se existir
+		if (pollingIntervals[instanceName]) {
+			clearInterval(pollingIntervals[instanceName]);
 		}
-	}, [qrCode]);
 
-	useEffect(() => {
-		console.log("Modal QR Code:", {
-			showModal: showQrCodeModal,
-			hasQRCode: !!qrCode,
-		});
-	}, [showQrCodeModal, qrCode]);
 
-	const startPolling = (instanceId: string, instanceName: string) => {
-		const pollInterval = setInterval(async () => {
+		const intervalId = setInterval(async () => {
 			try {
+				const token = authService.getTokenInterno();
 				const response = await axios.get(
-					`${API_EVO_URL}/instance/connectionState/${instanceName}`,
+					`${API_BASE_URL}/api/instances/status/${instanceName}`,
 					{
 						headers: {
-							apikey: API_KEY,
+							Authorization: `Bearer ${token}`,
 						},
-					},
+					}
 				);
 
-				const currentStatus =
-					response.data?.instance?.connectionStatus ||
-					response.data?.instance?.state;
 
-				if (
-					currentStatus?.toUpperCase() === "OPEN" ||
-					currentStatus?.toUpperCase() === "CONNECTED"
-				) {
-					updateInstanceStatus(instanceId, currentStatus.toUpperCase());
-					clearInterval(pollInterval);
+				const { status, qrcode: currentQrCode, pairingCode } = response.data;
+
+
+				// Atualizar a lista de instâncias com o novo status e QR Code
+				setInstances((prevInstances) =>
+					prevInstances.map((inst) =>
+						inst.instanceName === instanceName
+							? { ...inst, connectionStatus: status, qrcode: currentQrCode, pairingCode: pairingCode }
+							: inst
+					)
+				);
+
+
+				// Se o status for CONNECTED ou se houver um erro no QR Code, parar o polling
+				if (status === "OPEN" || status === "CONNECTED" || status === "DISCONNECTED") {
+					clearInterval(intervalId);
+					setPollingIntervals((prev) => {
+						const newIntervals = { ...prev };
+						delete newIntervals[instanceName];
+						return newIntervals;
+					});
+
+
+					// Fechar o modal de QR Code se estiver aberto para esta instância
+					if (showQrCodeModal && newInstaceName === instanceName) {
+						setShowQrCodeModal(false);
+						setQrCode(null);
+						setQrCodeError(false);
+						toast.success(`Instância "${instanceName}" conectada!`);
+					}
+
+
+				} else if (status === "QRCODE") {
+					// Se estiver no estado QRCODE e houver um QR Code, exibi-lo
+					if (currentQrCode) {
+						setQrCode({ base64: currentQrCode, pairingCode });
+						setNewInstaceName(instanceName);
+						setShowQrCodeModal(true);
+						setQrCodeError(false);
+					} else {
+						// Se o status for QRCODE mas não houver QR Code, pode ser um erro temporário
+						setQrCodeError(true);
+					}
+				} else if (status === "STARTING") {
+					// Opcional: exibir uma mensagem de "Iniciando"
+					console.log(`Instância "${instanceName}" está iniciando...`);
+					setQrCode(null);
+					setQrCodeError(false);
 				}
+
+
 			} catch (error) {
-				console.error("Erro ao verificar status da instância:", error);
+				console.error(`Erro no polling para ${instanceName}:`, error);
+				// Em caso de erro, parar o polling para evitar loops infinitos
+				clearInterval(intervalId);
+				setPollingIntervals((prev) => {
+					const newIntervals = { ...prev };
+					delete newIntervals[instanceName];
+					return newIntervals;
+				});
+				// Opcional: exibir um toast de erro
+				// toast.error(`Falha na comunicação com a instância "${instanceName}".`);
 			}
-		}, 5000); // Verifica a cada 5 segundos
+		}, 5000); // Polling a cada 5 segundos
 
-		setPollingIntervals((prev) => ({ ...prev, [instanceId]: pollInterval }));
+
+		setPollingIntervals((prev) => ({ ...prev, [instanceName]: intervalId }));
 	};
 
-	const updateInstanceStatus = (instanceId: string, status: string) => {
-		setInstances((prevInstances) =>
-			prevInstances.map((instance) =>
-				instance.id === instanceId
-					? { ...instance, connectionStatus: status }
-					: instance,
-			),
-		);
-	};
 
-	const handleDeleteInstance = async (id: string, name: string) => {
-		if (!window.confirm(`Tem certeza que deseja excluir a instância ${name}?`))
-			return;
-
-		setDeletingInstance(id);
-
+	const reconnectInstance = async (instanceName: string) => {
 		try {
-			const token = authService.getTokenInterno()
-			if (!token) {
-				toast.error("Sessão expirada. Faça login novamente.");
-				navigate("/login");
-				return;
-			}
-
-			const response = await axios.delete(
-				`${API_BASE_URL}/api/instances/instance/${id}`,
-				{ headers: { Authorization: `Bearer ${token}` } },
+			const token = authService.getTokenInterno();
+			await axios.post(
+				`${API_BASE_URL}/api/instances/connect/${instanceName}`,
+				{},
+				{
+					headers: {
+						Authorization: `Bearer ${token}`,
+					},
+				}
 			);
-
-			if (response.data.success) {
-				toast.success("Instância excluída com sucesso!");
-				await fetchInstances();
-			} else {
-				toast.error("Erro ao excluir instância.");
-			}
+			toast.success(`Tentando reconectar a instância "${instanceName}".`);
+			// Opcional: iniciar polling após tentar reconectar
+			startPolling(instanceName);
 		} catch (error) {
-			console.error("Erro ao excluir instância:", error);
 			handleError(error);
+			toast.error(`Falha ao tentar reconectar a instância "${instanceName}".`);
+		}
+	};
+
+
+	const logoutInstance = async (instanceName: string) => {
+		try {
+			const token = authService.getTokenInterno();
+			await axios.post(
+				`${API_BASE_URL}/api/instances/logout/${instanceName}`,
+				{},
+				{
+					headers: {
+						Authorization: `Bearer ${token}`,
+					},
+				}
+			);
+			toast.success(`Instância "${instanceName}" desconectada com sucesso.`);
+			fetchInstances(); // Atualiza a lista para refletir o status
+		} catch (error) {
+			handleError(error);
+			toast.error(`Falha ao desconectar a instância "${instanceName}".`);
+		}
+	};
+
+
+	const deleteInstance = async (id: string, name: string) => {
+		setDeletingInstance(id);
+		try {
+			const token = authService.getTokenInterno();
+			await axios.delete(`${API_BASE_URL}/api/instances/${id}`, {
+				headers: {
+					Authorization: `Bearer ${token}`,
+				},
+			});
+			toast.success(`Instância "${name}" excluída com sucesso.`);
+			fetchInstances(); // Atualiza a lista
+		} catch (error) {
+			handleError(error);
+			toast.error(`Falha ao excluir a instância "${name}".`);
 		} finally {
 			setDeletingInstance(null);
 		}
 	};
 
 
+	// Handler para abrir o modal de configurações da Instância
+	const handleOpenSettingsModal = (instance: Instance) => {
+		setInstanceToConfigure(instance);
+		fetchInstanceSettings(instance.instanceName);
+		setIsSettingsModalOpen(true);
+	};
 
-	const handleReconnectInstance = async (instanceName) => {
+
+	// Handler para abrir o modal de configuração do Agente IA
+	const handleOpenAgentModal = (instance: Instance) => {
+		setSelectedInstance(instance); // Define a instância para o modal de agente
+		setSelectedAgent(null); // Reseta para modo criação/busca
+		setSelectedAgentId(null); // Reseta o ID do agente
+		// Resetar formData para valores padrão para criação
+		setFormData({
+			instanceName: instance.instanceName, // Preenche com o nome da instância
+			description: "",
+			model: "gpt-4o",
+			temperature: 0.7,
+			maxTokens: 500,
+			topP: 1,
+			frequencyPenalty: 0,
+			presencePenalty: 0,
+			timeout: 60,
+			keepOpen: false,
+			debounceTime: 3,
+			keywordFinish: "sair",
+			unknownMessage: "Desculpe, não consegui entender. Pode repetir?",
+			splitMessages: true,
+			timePerChar: 50,
+			ignoreJids: [],
+		});
+		setIgnoreJidInput(""); // Limpa o input de ignoreJid
+		fetchAgentSettings(instance.instanceName); // Tenta buscar um agente existente para esta instância
+		setIsAgentModalOpen(true);
+	};
+
+
+	// --- Funções para Configurações da Instância ---
+	const fetchInstanceSettings = async (instanceName: string) => {
+		setIsLoadingSettings(true);
 		try {
-			// Tenta conectar e obter o QR code
+			// Nota: A API de settings parece usar API Key global, não token interno.
+			// Adapte conforme a sua API. Usei API_KEY e API_EVO_URL conforme suas constantes.
 			const response = await axios.get(
-				`${API_BASE_URL}/instance/connect/${instanceName}`,
+				`${API_EVO_URL}/settings/find/${instanceName}`,
 				{
 					headers: {
-						apikey: API_KEY,
+						Apikey: API_KEY, // Usando Apikey conforme seu GET de exemplo
 					},
-				},
-			);
-
-			if (response.status === 200) {
-				const qrCodeData = response.data;
-
-				if (qrCodeData && (qrCodeData.base64 || qrCodeData.code)) {
-					setQrCode({
-						base64:
-							qrCodeData.base64 || `data:image/png;base64,${qrCodeData.code}`,
-						pairingCode: qrCodeData.pairingCode,
-					});
-					setShowQrCodeModal(true);
-					toast.success("Escaneie o QR Code para conectar");
-					startPolling(instanceName, instanceName);
-
-					let attempts = 0;
-					const maxAttempts = 60;
-
-					// Inicia o monitoramento
-					const intervalId = setInterval(async () => {
-						try {
-							attempts++;
-							console.log(`Verificando status (tentativa ${attempts})`);
-
-							const statusResponse = await axios.get(
-								`${API_BASE_URL}/instance/connectionState/${instanceName}`,
-								{
-									headers: {
-										apikey: API_KEY,
-									},
-								},
-							);
-
-							console.log("Status response:", statusResponse.data);
-							const currentStatus =
-								statusResponse.data?.instance?.connectionStatus ||
-								statusResponse.data?.instance?.state;
-
-							console.log("Current status:", currentStatus);
-
-							if (currentStatus === "OPEN") {
-								const token = localStorage.getItem("token");
-								const instanceToUpdate = instances.find(
-									(instance) => instance.instanceName === instanceName,
-								);
-
-								if (instanceToUpdate) {
-									try {
-										const updateResponse = await axios.put(
-											`${API_BASE_URL}/api/instances/instance/${instanceToUpdate.instanceId}/connection-status`,
-											{
-												connectionStatus: "OPEN",
-											},
-											{
-												headers: {
-													Authorization: `Bearer ${token}`,
-												},
-											},
-										);
-
-										console.log("Update response:", updateResponse.data);
-										toast.success("Instância conectada com sucesso!");
-										setShowQrCodeModal(false);
-										await fetchInstances();
-										clearInterval(intervalId);
-									} catch (updateError) {
-										console.error("Erro ao atualizar status:", updateError);
-										console.log(
-											"Update error details:",
-											updateError.response?.data,
-										);
-										toast.error("Erro ao atualizar status da instância");
-									}
-								}
-							} else if (attempts >= maxAttempts) {
-								toast.error("Tempo limite de conexão excedido");
-								clearInterval(intervalId);
-							}
-						} catch (error) {
-							console.error("Erro ao verificar status:", error);
-							if (attempts >= maxAttempts) {
-								clearInterval(intervalId);
-							}
-						}
-					}, 2000);
-					setTimeout(() => {
-						clearInterval(intervalId);
-					}, 120000);
-				} else {
-					console.error("QR code não encontrado na resposta:", qrCodeData);
-					toast.error("Erro ao obter QR code para reconexão");
 				}
-			} else {
-				toast.error("Erro ao tentar reconectar a instância");
-			}
+			);
+			const settings = response.data as InstanceSettings;
+			setInstanceSettings(settings);
+			setSettingsFormData(settings); // Preenche o formulário com os dados atuais
 		} catch (error) {
-			console.error("Erro ao reconectar instância:", error);
+			console.error("Erro ao buscar configurações da instância:", error);
 			handleError(error);
+			setInstanceSettings(null);
+			setSettingsFormData(null);
+		} finally {
+			setIsLoadingSettings(false);
 		}
 	};
 
-	const handleLogoutInstance = async (instanceName) => {
+
+	const handleSettingsFormChange = (field: keyof InstanceSettings, value: any) => {
+		setSettingsFormData((prev) => (prev ? { ...prev, [field]: value } : null));
+	};
+
+
+	const saveInstanceSettings = async () => {
+		if (!instanceToConfigure || !settingsFormData) return;
+
+
+		setIsSavingSettings(true);
 		try {
-			// Primeiro faz logout na API externa
-			await axios.delete(`${API_BASE_URL}/instance/logout/${instanceName}`, {
+			// Nota: A API de settings parece usar API Key global e POST.
+			// Adapte conforme a sua API. Usei API_KEY e API_EVO_URL conforme suas constantes.
+			await axios.post(
+				`${API_EVO_URL}/settings/set/${instanceToConfigure.instanceName}`,
+				settingsFormData,
+				{
+					headers: {
+						Apikey: API_KEY, // Usando Apikey conforme seu POST de exemplo
+						"Content-Type": "application/json",
+					},
+				}
+			);
+			toast.success(
+				`Configurações da instância "${instanceToConfigure.instanceName}" salvas com sucesso!`
+			);
+			setIsSettingsModalOpen(false);
+			setInstanceToConfigure(null);
+			setInstanceSettings(null);
+			setSettingsFormData(null);
+		} catch (error) {
+			console.error("Erro ao salvar configurações da instância:", error);
+			handleError(error);
+			toast.error(
+				`Falha ao salvar configurações da instância "${instanceToConfigure.instanceName}".`
+			);
+		} finally {
+			setIsSavingSettings(false);
+		}
+	};
+
+
+	const cancelSettingsEditing = () => {
+		setIsSettingsModalOpen(false);
+		setInstanceToConfigure(null);
+		setInstanceSettings(null);
+		setSettingsFormData(null);
+	};
+
+
+	// --- Funções para Configuração do Agente IA ---
+	const fetchAgentSettings = async (instanceName: string) => {
+		setIsLoadingAgent(true);
+		try {
+			// Busca todos os agentes para esta instância. Assumimos que só há 0 ou 1 por instância.
+			const token = authService.getTokenInterno();
+			const response = await axios.get(
+				`${API_BASE_URL}/api/evoai/find/${instanceName}`, // Endpoint de busca de agentes por instância
+				{
+					headers: {
+						Authorization: `Bearer ${token}`,
+					},
+				}
+			);
+
+
+			const agents = response.data as AgentSettings[];
+
+
+			if (agents && agents.length > 0) {
+				// Se encontrar um agente, preenche o formulário com os dados dele
+				const agent = agents[0]; // Pega o primeiro (e único esperado) agente
+				setSelectedAgent(agent);
+				setSelectedAgentId(agent.id || null);
+				setFormData(agent); // Preenche o formulário com os dados do agente existente
+				toast.success(`Agente IA encontrado para "${instanceName}".`);
+			} else {
+				// Se não encontrar, mantém o formulário com valores padrão para criação
+				setSelectedAgent(null);
+				setSelectedAgentId(null);
+				toast("Nenhum Agente IA encontrado para esta instância. Crie um novo.", { icon: 'ℹ️' });
+			}
+		} catch (error) {
+			console.error("Erro ao buscar configurações do agente IA:", error);
+			handleError(error);
+			setSelectedAgent(null);
+			setSelectedAgentId(null);
+			// Mantém formData com valores padrão em caso de erro na busca
+		} finally {
+			setIsLoadingAgent(false);
+		}
+	};
+
+
+	const handleFormChange = (field: keyof AgentSettings, value: any) => {
+		setFormData((prev) => ({ ...prev, [field]: value }));
+	};
+
+
+	const addIgnoreJid = () => {
+		const jid = ignoreJidInput.trim();
+		if (jid && !formData.ignoreJids.includes(jid)) {
+			setFormData((prev) => ({
+				...prev,
+				ignoreJids: [...prev.ignoreJids, jid],
+			}));
+			setIgnoreJidInput("");
+		} else if (jid && formData.ignoreJids.includes(jid)) {
+			toast.error("Este número já está na lista.");
+		}
+	};
+
+
+	const removeIgnoreJid = (jidToRemove: string) => {
+		setFormData((prev) => ({
+			...prev,
+			ignoreJids: prev.ignoreJids.filter((jid) => jid !== jidToRemove),
+		}));
+	};
+
+
+	const handleIgnoreJidKeyPress = (e: React.KeyboardEvent<HTMLInputElement>) => {
+		if (e.key === "Enter") {
+			e.preventDefault(); // Previne o envio do formulário
+			addIgnoreJid();
+		}
+	};
+
+
+	const saveAgent = async () => {
+		if (!selectedInstance) {
+			toast.error("Nenhuma instância selecionada para configurar o agente.");
+			return;
+		}
+
+
+		// Validação básica
+		if (!formData.description.trim()) {
+			toast.error("A descrição do agente é obrigatória.");
+			return;
+		}
+		if (!formData.keywordFinish.trim()) {
+			toast.error("A palavra para encerrar é obrigatória.");
+			return;
+		}
+		if (!formData.unknownMessage.trim()) {
+			toast.error("A mensagem para quando não entender é obrigatória.");
+			return;
+		}
+
+
+		setIsSavingAgent(true);
+		try {
+			const token = authService.getTokenInterno();
+			let url = `${API_BASE_URL}/api/evoai`;
+			let method = "POST";
+			let successMessage = `Agente IA para "${selectedInstance.instanceName}" criado com sucesso!`;
+
+
+			if (selectedAgentId) {
+				// Se selectedAgentId existe, estamos atualizando
+				url = `${API_BASE_URL}/api/evoai/update/${selectedAgentId}/${selectedInstance.instanceName}`;
+				method = "PUT";
+				successMessage = `Agente IA para "${selectedInstance.instanceName}" atualizado com sucesso!`;
+			} else {
+				// Se não, estamos criando
+				url = `${API_BASE_URL}/api/evoai/create/${selectedInstance.instanceName}`;
+				method = "POST";
+			}
+
+
+			await axios({
+				method: method,
+				url: url,
+				data: formData, // Envia os dados do formulário
 				headers: {
-					apikey: API_KEY,
+					Authorization: `Bearer ${token}`,
+					"Content-Type": "application/json",
 				},
 			});
 
-			// Após logout bem-sucedido, atualiza o status no banco local
-			const token = localStorage.getItem("token");
-			const instanceToUpdate = instances.find(
-				(instance) => instance.instanceName === instanceName,
-			);
 
-			if (instanceToUpdate) {
-				try {
-					await axios.put(
-						`${API_BASE_URL}/api/instances/instance/${instanceToUpdate.instanceId}/connection-status`,
-						{
-							connectionStatus: "close",
-						},
-						{
-							headers: {
-								Authorization: `Bearer ${token}`,
-							},
-						},
-					);
-
-					toast.success("Instância desconectada com sucesso!");
-					await fetchInstances(); // Recarrega os dados atualizados
-				} catch (updateError) {
-					console.error(
-						"Erro ao atualizar status no banco local:",
-						updateError,
-					);
-					toast.error("Erro ao atualizar status da instância no banco local");
-				}
-			}
+			toast.success(successMessage);
+			setIsAgentModalOpen(false);
+			setSelectedInstance(null);
+			setSelectedAgent(null);
+			setSelectedAgentId(null);
+			// Opcional: Atualizar lista de instâncias ou agentes se necessário
+			// fetchInstances();
 		} catch (error) {
-			console.error("Erro ao desconectar instância:", error);
-			toast.error(
-				error.response?.data?.message || "Erro ao desconectar instância",
-			);
+			console.error("Erro ao salvar agente IA:", error);
+			handleError(error);
+			toast.error(`Falha ao salvar agente IA para "${selectedInstance.instanceName}".`);
+		} finally {
+			setIsSavingAgent(false);
 		}
 	};
 
+
+	const cancelEditing = () => {
+		setIsAgentModalOpen(false);
+		setSelectedInstance(null);
+		setSelectedAgent(null);
+		setSelectedAgentId(null);
+		// Resetar formData para valores padrão ao fechar
+		setFormData({
+			instanceName: "",
+			description: "",
+			model: "gpt-4o",
+			temperature: 0.7,
+			maxTokens: 500,
+			topP: 1,
+			frequencyPenalty: 0,
+			presencePenalty: 0,
+			timeout: 60,
+			keepOpen: false,
+			debounceTime: 3,
+			keywordFinish: "sair",
+			unknownMessage: "Desculpe, não consegui entender. Pode repetir?",
+			splitMessages: true,
+			timePerChar: 50,
+			ignoreJids: [],
+		});
+		setIgnoreJidInput("");
+	};
+
+
+	useEffect(() => {
+		fetchInstances();
+		fetchUserPlan();
+
+
+		// Limpar todos os intervalos de polling ao desmontar o componente
+		return () => {
+			for (const intervalId of Object.values(pollingIntervals)) {
+				clearInterval(intervalId);
+			}
+		};
+	}, []); // Executa apenas uma vez no carregamento inicial
+
+
+	// Efeito para iniciar polling para instâncias que estão em estado QRCODE ou STARTING no carregamento
+	useEffect(() => {
+		instances.forEach(instance => {
+			if (instance.connectionStatus === 'QRCODE' || instance.connectionStatus === 'STARTING') {
+				startPolling(instance.instanceName);
+			}
+		});
+	}, [instances]); // Depende da lista de instâncias
+
+
 	return (
-		<motion.div
-			initial="hidden"
-			animate="visible"
-			variants={containerVariants}
-			className="min-h-screen bg-gradient-to-br from-deep to-neon-purple/10 p-8"
-		>
-			<Toaster position="top-right" />
+		<div className="container mx-auto px-4 py-8">
+			<Toaster position="top-right" reverseOrder={false} />
 
-			{/* Status Bar */}
-			<div className="max-w-7xl mx-auto mb-6">
-				<motion.div
-					variants={itemVariants}
-					className="bg-deep/80 backdrop-blur-xl p-4 rounded-xl border border-electric/20 shadow-lg"
-				>
-					<div className="flex flex-wrap gap-6 justify-between items-center">
-						<div className="flex items-center gap-2">
-							<span className="text-white/60">Plano:</span>
-							<span className="text-electric font-semibold">
-								{typeof currentPlan === 'string' ? currentPlan : 'Plano não definido'}
-							</span>
-						</div>
+			{/* Header da Página */}
+			<div className="flex justify-between items-center mb-8 flex-wrap gap-4"> {/* gap-4 para espaçamento entre os blocos de métrica e o botão */}
+				<div>
+					<h1 className="text-4xl font-extrabold text-white mb-2">
+						Minhas Instâncias
+					</h1>
+					<p className="text-gray-400 text-lg">
+						Gerencie suas conexões do WhatsApp.
+					</p>
+				</div>
 
-						{planDetails?.isInTrial && planDetails.trialEndDate && (
-							<div className="flex items-center gap-2">
-								<span className="text-white/60">Teste até:</span>
-								<span className="text-white font-semibold">
-									{new Date(planDetails.trialEndDate).toLocaleDateString("pt-BR")}
-								</span>
-							</div>
-						)}
+				{/* Bloco de Métricas - Refatorado */}
+				<div className="flex items-center gap-4 bg-deep/60 backdrop-blur-xl px-6 py-3 rounded-xl border border-electric/40 shadow-lg flex-wrap"> {/* flex-wrap para quebrar em telas menores */}
 
-
-						<div className="flex items-center gap-2">
-							<span className="text-white/60">Instâncias:</span>
-							<span className="text-white font-semibold">
-								<span className="text-neon-green">{instances.length}</span>
-								{" / "}
-								<span>{instanceLimit}</span>
-							</span>
-						</div>
-
-						<div className="flex items-center gap-2">
-							<span className="text-white/60">Disponível:</span>
-							<span
-								className={`font-semibold ${remainingSlots > 0 ? "text-neon-green" : "text-red-500"
-									}`}
-							>
-								{remainingSlots}
-							</span>
-						</div>
+					{/* Métrica: Plano */}
+					<div className="flex items-center space-x-2">
+						<span className="text-sm font-medium text-gray-300">Plano:</span>
+						<span className="text-base font-semibold text-neon-purple">
+							{currentPlan}
+						</span>
 					</div>
-				</motion.div>
-			</div>
-			{/* Header */}
-			<div className="flex justify-between max-w-7xl mx-auto mb-8 items-center">
-				<h1 className="text-3xl font-bold text-white">Instâncias WhatsApp</h1>
+
+					{/* Métrica: Instâncias */}
+					<div className="flex items-center space-x-2">
+						<span className="text-sm font-medium text-gray-300">Instâncias:</span>
+						<span className="text-base font-semibold text-neon-green">
+							{/* Usar dados de usage e limits do planDetails */}
+							{planDetails.usage?.currentInstances ?? '-'} / {planDetails.limits?.maxInstances ?? '-'}
+						</span>
+						{/* Opcional: Porcentagem de instâncias, se relevante */}
+						{planDetails.usage?.instancesPercentage !== undefined && (
+							<span className={`font-semibold text-sm ${planDetails.usage.instancesPercentage > 80 ? 'text-red-500' : ''}`}>
+								({planDetails.usage.instancesPercentage.toFixed(0)}%)
+							</span>
+						)}
+					</div>
+
+
+
+
+					{/* Métrica: Trial End Date (Condicional) */}
+					{planDetails.plan?.isInTrial && planDetails.plan?.trialEndDate && (
+						<div className="flex items-center space-x-2 text-sm text-yellow-500">
+							<AlertCircle className="w-4 h-4" />
+							{/* Formatar a data corretamente */}
+							<span>Teste até: {new Date(planDetails.plan.trialEndDate).toLocaleDateString('pt-BR')}</span>
+						</div>
+					)}
+				</div>
 				<Button
-					variant="gradient"
-					size="lg"
-					onClick={() => setIsModalOpen(true)}
-					disabled={remainingSlots <= 0}
+					onClick={() => {
+						if (instances.length >= instanceLimit) {
+							toast.error(`Você atingiu o limite de ${instanceLimit} instância(s) para o seu plano.`);
+						} else {
+							setIsModalOpen(true);
+						}
+					}}
+					disabled={instances.length >= instanceLimit || isCreatingInstance}
 					className={`
-    bg-gradient-to-r from-electric via-neon-purple to-electric
-    hover:shadow-lg hover:shadow-electric/30 transition-all duration-300
-    ${remainingSlots <= 0 ? "opacity-50 cursor-not-allowed" : ""}
-  `}
+        font-semibold py-2 px-6 rounded-lg shadow-md hover:shadow-lg
+        transition-opacity duration-300
+        flex items-center justify-center {/* Adicionado para centralizar ícone e texto */}
+        ${instances.length >= instanceLimit
+							? 'bg-electric cursor-not-allowed opacity-90' // Estilo quando o limite é atingido
+							: isCreatingInstance
+								? 'bg-yellow-600 cursor-wait opacity-70' // Estilo quando está criando
+								: 'bg-gradient-to-r from-electric to-blue-600 hover:opacity-90' // Estilo padrão
+						}
+    `}
 				>
-					<Plus className="w-5 h-5 mr-2" />
-					Nova Instância
-					{remainingSlots <= 0 && " (Limite atingido)"}
+					{/* Conteúdo do botão dinâmico */}
+					{isCreatingInstance ? (
+						<>
+							<Loader2 className="w-5 h-5 mr-2 animate-spin" />
+							Criando...
+						</>
+					) : instances.length >= instanceLimit ? (
+						<>
+							<Lock className="w-5 h-5 mr-2" />
+							Limite Atingido ({instanceLimit})
+						</>
+					) : (
+						<>
+							<Plus className="w-5 h-5 mr-2" />
+							Nova Instância
+						</>
+					)}
 				</Button>
 			</div>
 
-			{/* Grid de Instâncias */}
+
 			{loading ? (
-				<div className="flex justify-center items-center h-64">
-					<motion.div
-						animate={{ rotate: 360 }}
-						transition={{
-							duration: 1,
-							repeat: Number.POSITIVE_INFINITY,
-							ease: "linear",
-						}}
-						className="w-12 h-12 border-4 border-electric border-t-transparent rounded-full
-                shadow-lg shadow-electric/30"
-					/>
-				</div>
+				<div className="text-center text-white/70">Carregando instâncias...</div>
+			) : instances.length === 0 ? (
+				<motion.div
+					initial={{ opacity: 0, scale: 0.9 }}
+					animate={{ opacity: 1, scale: 1 }}
+					className="text-center text-white/70 p-8 border border-dashed border-electric/50 rounded-lg"
+				>
+					<AlertCircle className="w-12 h-12 mx-auto text-electric/70 mb-4" />
+					<p className="text-lg">Nenhuma instância encontrada.</p>
+					<p className="text-sm mt-2">
+						Clique em "Criar Nova Instância" para começar.
+					</p>
+				</motion.div>
 			) : (
 				<motion.div
 					variants={containerVariants}
@@ -974,442 +1168,671 @@ const Instances: React.FC = () => {
 						<InstanceCard
 							key={instance.id}
 							instance={instance}
-							onReconnect={handleReconnectInstance}
-							onLogout={handleLogoutInstance}
-							onDelete={handleDeleteInstance}
-							onConfigure={handleConfigureInstance} // Passa a função de configurar
+							onReconnect={reconnectInstance}
+							onLogout={logoutInstance}
+							onDelete={deleteInstance}
+							onConfigureSettings={handleOpenSettingsModal} // Passa o handler de settings
+							onOpenAgentModal={handleOpenAgentModal} // Passa o handler de agente
 							deletingInstance={deletingInstance}
 						/>
 					))}
 				</motion.div>
 			)}
 
-			{/* Modal de Nova Instância */}
-			{/* ... código existente do Modal de Nova Instância ... */}
-			<Modal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)}>
-				<div className="p-6 bg-deep/80 backdrop-blur-xl rounded-xl border border-electric/20">
-					<h2 className="text-2xl font-bold text-white mb-4">
-						Nova Instância WhatsApp
-					</h2>
 
-					<p className="text-white/70 mb-4">
-						Você está no plano{" "}
-						<span className="text-electric font-semibold">{currentPlan}</span>.
-						Limite de instâncias:{" "}
-						<span className="text-electric font-semibold">{instanceLimit}</span>
-						. Disponível:{" "}
-						<span
-							className={`${remainingSlots > 0 ? "text-neon-green" : "text-red-500"
-								}`}
-						>
-							{remainingSlots}
-						</span>
-						.
-					</p>
-
+			{/* Modal de Criação de Instância */}
+			<Modal
+				isOpen={isModalOpen}
+				onClose={() => setIsModalOpen(false)}
+				title="Criar Nova Instância"
+			>
+				<div className="p-4">
+					<Label htmlFor="instanceName" className="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
+						Nome da Instância
+					</Label>
 					<Input
-						placeholder="Nome da instância (ex: Vendas, Suporte)"
+						id="instanceName"
+						type="text"
 						value={newInstanceName}
 						onChange={(e) => setNewInstanceName(e.target.value)}
-						disabled={isCreatingInstance}
-						className="mb-4 bg-deep/50 border-electric/20 text-white placeholder:text-white/50"
+						placeholder="Ex: MinhaEmpresa"
+						className="mb-4"
 					/>
-
-					<div className="flex justify-end gap-3">
-						<Button
-							variant="outline"
-							onClick={() => setIsModalOpen(false)}
-							disabled={isCreatingInstance}
-							className="text-white/70 border-white/20 hover:bg-white/10"
-						>
-							Cancelar
-						</Button>
-						<Button
-							variant="gradient"
-							onClick={async () => await handleCreateInstance()}
-							disabled={
-								isCreatingInstance ||
-								!newInstanceName.trim() ||
-								remainingSlots <= 0
-							}
-							className={`
-                bg-gradient-to-r from-electric to-neon-purple
-                hover:shadow-lg hover:shadow-electric/50
-                ${isCreatingInstance ||
-									!newInstanceName.trim() ||
-									remainingSlots <= 0
-									? "opacity-50 cursor-not-allowed"
-									: ""
-								}
-              `}
-						>
-							{isCreatingInstance ? (
-								<div className="flex items-center">
-									<motion.div
-										animate={{ rotate: 360 }}
-										transition={{
-											duration: 1,
-											repeat: Number.POSITIVE_INFINITY,
-											ease: "linear",
-										}}
-										className="w-5 h-5 border-2 border-white border-t-transparent rounded-full mr-2"
-									/>
-									Criando...
-								</div>
-							) : (
-								"Criar Instância"
-							)}
-						</Button>
-					</div>
+					<Button
+						onClick={createInstance}
+						disabled={isCreatingInstance || !newInstanceName.trim() || remainingSlots <= 0}
+						className="w-full bg-gradient-to-r from-electric to-neon-purple hover:opacity-90 text-white"
+					>
+						{isCreatingInstance ? (
+							<>
+								<div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+								Criando...
+							</>
+						) : (
+							"Criar Instância"
+						)}
+					</Button>
+					{remainingSlots <= 0 && (
+						<p className="text-sm text-red-500 mt-2 text-center">
+							Você atingiu o limite de instâncias do seu plano.
+						</p>
+					)}
 				</div>
 			</Modal>
 
 
-			{/* Modal do QR Code */}
-			{showQrCodeModal && qrCode?.base64 && (
-				<motion.div
-					initial={{ opacity: 0 }}
-					animate={{ opacity: 1 }}
-					exit={{ opacity: 0 }}
-					className="fixed inset-0 z-[100] flex items-center justify-center bg-black/80 backdrop-blur-lg p-4"
-				>
-					<motion.div
-						initial={{ y: 20, opacity: 0, scale: 0.95 }}
-						animate={{ y: 0, opacity: 1, scale: 1 }}
-						exit={{ y: 20, opacity: 0, scale: 0.95 }}
-						className="bg-deep/90 backdrop-blur-xl p-8 rounded-2xl shadow-2xl border border-electric/20 w-full max-w-md relative"
-					>
-						{/* Botão Fechar */}
-						{/* biome-ignore lint/a11y/useButtonType: <explanation> */}
-						<button
-							onClick={closeQrCodeModal}
-							className="absolute top-4 right-4 p-2 rounded-full bg-white/10 hover:bg-white/20 transition-colors"
-						>
-							<X className="w-5 h-5 text-white" />
-						</button>
-
-						{/* Cabeçalho */}
-						<div className="text-center mb-6">
-							<h2 className="text-2xl font-bold text-white mb-2">
-								Conectar WhatsApp
-							</h2>
-							<p className="text-white/70">
-								Escaneie o QR Code com seu WhatsApp
-							</p>
-						</div>
-
-						{/* Container do QR Code */}
-						<div className="bg-white p-4 rounded-xl shadow-inner mb-6">
-							{!qrCodeError ? (
-								<img
-									src={qrCode.base64}
-									alt="QR Code"
-									className="w-full aspect-square object-contain"
-									onError={() => {
-										console.error("Erro ao carregar QR code");
-										setQrCodeError(true);
-									}}
-								/>
-							) : (
-								<div className="flex flex-col items-center justify-center h-64 text-red-500">
-									<AlertCircle className="w-12 h-12 mb-2" />
-									<p>Erro ao carregar QR code. Tente novamente.</p>
-								</div>
-							)}
-						</div>
-
-						{/* Instruções */}
-						<div className="space-y-4 mb-6">
-							<p className="text-white/80 text-sm">
-								1. Abra o WhatsApp no seu celular
-							</p>
-							<p className="text-white/80 text-sm">
-								2. Toque em Menu ou Configurações e selecione Aparelhos
-								Conectados
-							</p>
-							<p className="text-white/80 text-sm">
-								3. Aponte seu celular para esta tela para capturar o código
-							</p>
-						</div>
-
-						{/* Botão Fechar */}
-						<motion.button
-							onClick={closeQrCodeModal}
-							whileHover={{ scale: 1.02 }}
-							whileTap={{ scale: 0.98 }}
-							className="w-full py-3 px-4 bg-gradient-to-r from-electric to-neon-purple rounded-lg
-                 text-white font-medium shadow-lg hover:shadow-electric/25
-                 transition-all duration-300"
-						>
-							Fechar
-						</motion.button>
-					</motion.div>
-				</motion.div>
-			)}
-
-
-			{/* Modal de Configurações da Instância */}
+			{/* Modal de QR Code */}
 			<Modal
-				isOpen={isSettingsModalOpen}
-				onClose={closeSettingsModal}
-				title={`Configurações da Instância: ${instanceToConfigure?.instanceName}`} // Título já estava presente
-				description="Ajuste as configurações avançadas para esta instância do WhatsApp." // Adicionando a descrição para acessibilidade
-				className="w-full max-w-2xl" // Mantendo a classe de tamanho
+				isOpen={showQrCodeModal}
+				onClose={closeQrCodeModal}
+				title={`Conectar Instância: ${newInstaceName}`}
 			>
-				{/* O conteúdo interno do modal permanece o mesmo */}
-				<div className="p-6 bg-deep/80 backdrop-blur-xl rounded-xl border border-electric/20">
-					{/* O h2 abaixo é visual, o título para leitores de tela é a prop 'title' do Modal */}
-					<h2 className="text-2xl font-bold text-white mb-4">
-						Configurações da Instância:{" "}
-						<span className="text-electric">{instanceToConfigure?.instanceName}</span>
-					</h2>
-
-
-					{isLoadingSettings ? (
-						<div className="flex justify-center items-center h-40">
-							<motion.div
-								animate={{ rotate: 360 }}
-								transition={{
-									duration: 1,
-									repeat: Number.POSITIVE_INFINITY,
-									ease: "linear",
-								}}
-								className="w-8 h-8 border-4 border-electric border-t-transparent rounded-full"
+				<div className="p-4 text-center">
+					{qrCodeError ? (
+						<div className="text-red-500 mb-4">
+							<AlertCircle className="w-10 h-10 mx-auto mb-2" />
+							<p>Erro ao gerar QR Code ou código de pareamento.</p>
+							<p className="text-sm">Tente reconectar a instância mais tarde.</p>
+						</div>
+					) : qrCode?.base64 ? (
+						<>
+							<p className="mb-4 text-gray-700 dark:text-gray-300">
+								Escaneie o QR Code no seu celular para conectar o WhatsApp:
+							</p>
+							<img
+								src={`data:image/png;base64,${qrCode.base64}`}
+								alt="QR Code"
+								className="mx-auto mb-4 w-64 h-64 object-contain border rounded-lg p-2 bg-white"
 							/>
-						</div>
-					) : settingsFormData ? (
-						<div className="space-y-4">
-							{/* rejectCall */}
-							<div className="flex items-center space-x-2">
-								<Checkbox
-									id="rejectCall"
-									name="rejectCall"
-									checked={settingsFormData.rejectCall}
-									onCheckedChange={(checked) =>
-										handleSettingsInputChange({
-											target: {
-												name: "rejectCall",
-												value: String(checked), // Checkbox value is boolean, convert to string for generic handler
-												type: "checkbox",
-												checked: Boolean(checked) // Pass the boolean value
-											}
-										} as React.ChangeEvent<HTMLInputElement>)
-									}
-									disabled={isSavingSettings}
-									className="border-electric data-[state=checked]:bg-electric data-[state=checked]:text-deep"
-								/>
-								<Label htmlFor="rejectCall" className="text-white/80">
-									Rejeitar Chamadas
-								</Label>
-							</div>
-
-
-							{/* msgCall */}
-							<div className="space-y-2">
-								<Label htmlFor="msgCall" className="text-white/80">
-									Mensagem para Chamadas Rejeitadas
-								</Label>
-								<Input
-									id="msgCall"
-									name="msgCall"
-									value={settingsFormData.msgCall}
-									onChange={handleSettingsInputChange}
-									disabled={isSavingSettings}
-									className="bg-deep/50 border-electric/20 text-white placeholder:text-white/50"
-								/>
-							</div>
-
-
-							{/* groupsIgnore */}
-							<div className="flex items-center space-x-2">
-								<Checkbox
-									id="groupsIgnore"
-									name="groupsIgnore"
-									checked={settingsFormData.groupsIgnore}
-									onCheckedChange={(checked) =>
-										handleSettingsInputChange({
-											target: {
-												name: "groupsIgnore",
-												value: String(checked),
-												type: "checkbox",
-												checked: Boolean(checked)
-											}
-										} as React.ChangeEvent<HTMLInputElement>)
-									}
-									disabled={isSavingSettings}
-									className="border-electric data-[state=checked]:bg-electric data-[state=checked]:text-deep"
-								/>
-								<Label htmlFor="groupsIgnore" className="text-white/80">
-									Ignorar Grupos
-								</Label>
-							</div>
-
-
-							{/* alwaysOnline */}
-							<div className="flex items-center space-x-2">
-								<Checkbox
-									id="alwaysOnline"
-									name="alwaysOnline"
-									checked={settingsFormData.alwaysOnline}
-									onCheckedChange={(checked) =>
-										handleSettingsInputChange({
-											target: {
-												name: "alwaysOnline",
-												value: String(checked),
-												type: "checkbox",
-												checked: Boolean(checked)
-											}
-										} as React.ChangeEvent<HTMLInputElement>)
-									}
-									disabled={isSavingSettings}
-									className="border-electric data-[state=checked]:bg-electric data-[state=checked]:text-deep"
-								/>
-								<Label htmlFor="alwaysOnline" className="text-white/80">
-									Sempre Online
-								</Label>
-							</div>
-
-
-							{/* readMessages */}
-							<div className="flex items-center space-x-2">
-								<Checkbox
-									id="readMessages"
-									name="readMessages"
-									checked={settingsFormData.readMessages}
-									onCheckedChange={(checked) =>
-										handleSettingsInputChange({
-											target: {
-												name: "readMessages",
-												value: String(checked),
-												type: "checkbox",
-												checked: Boolean(checked)
-											}
-										} as React.ChangeEvent<HTMLInputElement>)
-									}
-									disabled={isSavingSettings}
-									className="border-electric data-[state=checked]:bg-electric data-[state=checked]:text-deep"
-								/>
-								<Label htmlFor="readMessages" className="text-white/80">
-									Marcar Mensagens como Lidas
-								</Label>
-							</div>
-
-
-							{/* syncFullHistory */}
-							<div className="flex items-center space-x-2">
-								<Checkbox
-									id="syncFullHistory"
-									name="syncFullHistory"
-									checked={settingsFormData.syncFullHistory}
-									onCheckedChange={(checked) =>
-										handleSettingsInputChange({
-											target: {
-												name: "syncFullHistory",
-												value: String(checked),
-												type: "checkbox",
-												checked: Boolean(checked)
-											}
-										} as React.ChangeEvent<HTMLInputElement>)
-									}
-									disabled={isSavingSettings}
-									className="border-electric data-[state=checked]:bg-electric data-[state=checked]:text-deep"
-								/>
-								<Label htmlFor="syncFullHistory" className="text-white/80">
-									Sincronizar Histórico Completo
-								</Label>
-							</div>
-
-
-							{/* readStatus */}
-							<div className="flex items-center space-x-2">
-								<Checkbox
-									id="readStatus"
-									name="readStatus"
-									checked={settingsFormData.readStatus}
-									onCheckedChange={(checked) =>
-										handleSettingsInputChange({
-											target: {
-												name: "readStatus",
-												value: String(checked),
-												type: "checkbox",
-												checked: Boolean(checked)
-											}
-										} as React.ChangeEvent<HTMLInputElement>)
-									}
-									disabled={isSavingSettings}
-									className="border-electric data-[state=checked]:bg-electric data-[state=checked]:text-deep"
-								/>
-								<Label htmlFor="readStatus" className="text-white/80">
-									Marcar Status como Vistos
-								</Label>
-							</div>
-
-
-							{/* wavoipToken (se aplicável e se quiser exibir/editar) */}
-							{/* <div className="space-y-2">
-                                <Label htmlFor="wavoipToken" className="text-white/80">WA VOIP Token</Label>
-                                <Input
-                                    id="wavoipToken"
-                                    name="wavoipToken"
-                                    value={settingsFormData.wavoipToken || ''}
-                                    onChange={handleSettingsInputChange}
-                                    disabled={isSavingSettings}
-                                    className="bg-deep/50 border-electric/20 text-white placeholder:text-white/50"
-                                />
-                            </div> */}
-
-
-						</div>
+							{qrCode.pairingCode && (
+								<p className="text-sm text-gray-600 dark:text-gray-400 mt-2">
+									Ou use o código de pareamento:{" "}
+									<span className="font-bold text-electric">
+										{qrCode.pairingCode}
+									</span>
+								</p>
+							)}
+						</>
 					) : (
-						<div className="text-center text-white/70">
-							Não foi possível carregar as configurações.
+						<div className="text-center text-gray-700 dark:text-gray-300">
+							<div className="animate-spin rounded-full h-8 w-8 border-b-2 border-electric mx-auto mb-4"></div>
+							<p>Aguardando QR Code ou código de pareamento...</p>
 						</div>
 					)}
+				</div>
+			</Modal>
 
 
-					<div className="flex justify-end gap-3 mt-6">
+			{/* Modal de Configurações da Instância (existente) */}
+			<Dialog open={isSettingsModalOpen} onOpenChange={setIsSettingsModalOpen}>
+				<DialogContent className="sm:max-w-[425px] dark:bg-[#0c0b13] dark:text-white">
+					<DialogHeader>
+						<DialogTitle>
+							Configurações da Instância: {instanceToConfigure?.instanceName}
+						</DialogTitle>
+					</DialogHeader>
+					<div className="p-4 space-y-4">
+						{isLoadingSettings ? (
+							<div className="text-center">Carregando configurações...</div>
+						) : settingsFormData ? (
+							<>
+								<div className="flex items-center space-x-2 text-sm text-gray-400 mb-2">
+									<Checkbox
+										id="rejectCall"
+										checked={settingsFormData.rejectCall}
+										onCheckedChange={(checked) =>
+											handleSettingsFormChange("rejectCall", checked)
+										}
+									/>
+									<Label htmlFor="rejectCall">Rejeitar Chamadas</Label>
+								</div>
+								{settingsFormData.rejectCall && (
+									<div>
+										<Label htmlFor="msgCall">Mensagem ao Rejeitar Chamada</Label>
+										<Input
+											id="msgCall"
+											value={settingsFormData.msgCall}
+											onChange={(e) =>
+												handleSettingsFormChange("msgCall", e.target.value)
+											}
+										/>
+									</div>
+								)}
+								<div className="flex items-center space-x-2 text-sm text-gray-400 mb-2">
+									<Checkbox
+										id="groupsIgnore"
+										checked={settingsFormData.groupsIgnore}
+										onCheckedChange={(checked) =>
+											handleSettingsFormChange("groupsIgnore", checked)
+										}
+									/>
+									<Label htmlFor="groupsIgnore">Ignorar Grupos</Label>
+								</div>
+								<div className="flex items-center space-x-2 text-sm text-gray-400 mb-2">
+									<Checkbox
+										id="alwaysOnline"
+										checked={settingsFormData.alwaysOnline}
+										onCheckedChange={(checked) =>
+											handleSettingsFormChange("alwaysOnline", checked)
+										}
+									/>
+									<Label htmlFor="alwaysOnline">Sempre Online</Label>
+								</div>
+								<div className="flex items-center space-x-2 text-sm text-gray-400 mb-2">
+									<Checkbox
+										id="readMessages"
+										checked={settingsFormData.readMessages}
+										onCheckedChange={(checked) =>
+											handleSettingsFormChange("readMessages", checked)
+										}
+									/>
+									<Label htmlFor="readMessages">Marcar Mensagens como Lidas</Label>
+								</div>
+								<div className="flex items-center space-x-2 text-sm text-gray-400 mb-2">
+									<Checkbox
+										id="readStatus"
+										checked={settingsFormData.readStatus}
+										onCheckedChange={(checked) =>
+											handleSettingsFormChange("readStatus", checked)
+										}
+									/>
+									<Label htmlFor="readStatus">Marcar Status como Lidos</Label>
+								</div>
+								{/* Adicionar outros campos conforme necessário */}
+							</>
+						) : (
+							<div className="text-center text-red-500">
+								Erro ao carregar configurações.
+							</div>
+						)}
+					</div>
+					<div className="flex justify-end gap-2 mt-4 text-sm text-gray-500">
 						<Button
+							onClick={cancelSettingsEditing}
 							variant="outline"
-							onClick={closeSettingsModal}
 							disabled={isSavingSettings}
-							className="text-white/70 border-white/20 hover:bg-white/10"
 						>
 							Cancelar
 						</Button>
 						<Button
-							variant="gradient"
 							onClick={saveInstanceSettings}
-							disabled={isSavingSettings || !settingsFormData}
-							className={`
-                                bg-gradient-to-r from-electric to-neon-purple
-                                hover:shadow-lg hover:shadow-electric/50
-                                ${isSavingSettings || !settingsFormData ? "opacity-50 cursor-not-allowed" : ""}
-                            `}
+							disabled={!settingsFormData || isSavingSettings}
+							className="bg-gradient-to-r from-electric to-blue-700  hover:opacity-90"
 						>
 							{isSavingSettings ? (
-								<div className="flex items-center">
-									<motion.div
-										animate={{ rotate: 360 }}
-										transition={{
-											duration: 1,
-											repeat: Number.POSITIVE_INFINITY,
-											ease: "linear",
-										}}
-										className="w-5 h-5 border-2 border-white border-t-transparent rounded-full mr-2"
-									/>
+								<>
+									<div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
 									Salvando...
-								</div>
+								</>
 							) : (
 								"Salvar Configurações"
 							)}
 						</Button>
 					</div>
-				</div>
-			</Modal>
+				</DialogContent>
+			</Dialog>
 
 
-		</motion.div>
+			{/* Modal de Configuração do Agente IA (adaptado do seu código) */}
+			<Dialog open={isAgentModalOpen} onOpenChange={setIsAgentModalOpen}>
+				<DialogContent className="sm:max-w-[600px] dark:bg-[#0c0b13] dark:text-white flex flex-col h-[90vh]">
+					<DialogHeader className="shrink-0">
+						<DialogTitle>
+							{selectedAgentId ? "Editar" : "Conectar"} Agente IA para{" "}
+							{selectedInstance?.instanceName}
+						</DialogTitle>
+					</DialogHeader>
+					{isLoadingAgent ? (
+						<div className="flex-1 flex items-center justify-center">
+							<div className="animate-spin rounded-full h-8 w-8 border-b-2 border-electric"></div>
+							<span className="ml-2">Carregando agente...</span>
+						</div>
+					) : (
+						<div className="flex-1 overflow-hidden flex flex-col">
+							<ScrollArea className="flex-1 pr-4"> {/* Adiciona padding à direita para a scrollbar */}
+								<div className="space-y-6 pb-4"> {/* Adiciona padding inferior */}
+									{/* Descrição do Agente */}
+									<div>
+										<div className="flex items-center gap-2 mb-2">
+											<Label htmlFor="description">Descrição do Agente *</Label>
+											<div className="group relative">
+												<HelpCircle className="w-4 h-4 text-gray-400 cursor-help" />
+												<div className="absolute bottom-6 left-0 hidden group-hover:block bg-black text-white text-xs rounded p-2 whitespace-normal max-w-xs z-50">
+													Instruções para o agente (prompt de sistema)
+												</div>
+											</div>
+										</div>
+										<Textarea
+											id="description"
+											value={formData.description}
+											onChange={(e) => handleFormChange("description", e.target.value)}
+											placeholder="Você é um assistente virtual..."
+											rows={6}
+											className="mt-1"
+										/>
+									</div>
+
+
+									{/* Configurações do Modelo */}
+									<div className="space-y-4 p-4 bg-gray-50 dark:bg-[#16151D]/50 rounded-lg">
+										<h4 className="text-lg font-semibold text-white/90">Configurações do Modelo</h4>
+										{/* Modelo */}
+										<div>
+											<Label htmlFor="model">Modelo</Label>
+											{/* Assumindo que você tem um componente Select */}
+											{/* <Select value={formData.model} onValueChange={(value) => handleFormChange('model', value)}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Selecione um modelo" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="gpt-4o">GPT-4o</SelectItem>
+                      <SelectItem value="gpt-4-turbo">GPT-4 Turbo</SelectItem>
+                      <SelectItem value="gpt-3.5-turbo">GPT-3.5 Turbo</SelectItem>
+                      // Adicione outros modelos suportados pela sua API
+                    </SelectContent>
+                  </Select> */}
+											{/* Usando Input simples como fallback */}
+											<Input
+												id="model"
+												value={formData.model}
+												onChange={(e) => handleFormChange("model", e.target.value)}
+												placeholder="Ex: gpt-4o"
+												className="mt-1"
+											/>
+										</div>
+										{/* Temperatura */}
+										<div>
+											<div className="flex items-center gap-2 mb-2">
+												<Label htmlFor="temperature">Temperatura</Label>
+												<div className="group relative">
+													<HelpCircle className="w-4 h-4 text-gray-400 cursor-help" />
+													<div className="absolute bottom-6 left-0 hidden group-hover:block bg-black text-white text-xs rounded p-2 whitespace-normal max-w-xs z-50">
+														Controla a aleatoriedade da resposta (0 = determinístico, 1 = criativo)
+													</div>
+												</div>
+											</div>
+											<Input
+												id="temperature"
+												type="number"
+												step="0.1"
+												min="0"
+												max="2"
+												value={formData.temperature}
+												onChange={(e) =>
+													handleFormChange("temperature", Number.parseFloat(e.target.value) || 0)
+												}
+												className="mt-1"
+											/>
+										</div>
+										{/* Max Tokens */}
+										<div>
+											<div className="flex items-center gap-2 mb-2">
+												<Label htmlFor="maxTokens">Máximo de Tokens</Label>
+												<div className="group relative">
+													<HelpCircle className="w-4 h-4 text-gray-400 cursor-help" />
+													<div className="absolute bottom-6 left-0 hidden group-hover:block bg-black text-white text-xs rounded p-2 whitespace-normal max-w-xs z-50">
+														Limite de tamanho da resposta gerada pelo modelo
+													</div>
+												</div>
+											</div>
+											<Input
+												id="maxTokens"
+												type="number"
+												min="1"
+												value={formData.maxTokens}
+												onChange={(e) =>
+													handleFormChange("maxTokens", Number.parseInt(e.target.value) || 0)
+												}
+												className="mt-1"
+											/>
+										</div>
+										{/* Top P */}
+										<div>
+											<div className="flex items-center gap-2 mb-2">
+												<Label htmlFor="topP">Top P</Label>
+												<div className="group relative">
+													<HelpCircle className="w-4 h-4 text-gray-400 cursor-help" />
+													<div className="absolute bottom-6 left-0 hidden group-hover:block bg-black text-white text-xs rounded p-2 whitespace-normal max-w-xs z-50">
+														Controla a diversidade da resposta usando amostragem de núcleo
+													</div>
+												</div>
+											</div>
+											<Input
+												id="topP"
+												type="number"
+												step="0.1"
+												min="0"
+												max="1"
+												value={formData.topP}
+												onChange={(e) =>
+													handleFormChange("topP", Number.parseFloat(e.target.value) || 0)
+												}
+												className="mt-1"
+											/>
+										</div>
+										{/* Frequency Penalty */}
+										<div>
+											<div className="flex items-center gap-2 mb-2">
+												<Label htmlFor="frequencyPenalty">Frequency Penalty</Label>
+												<div className="group relative">
+													<HelpCircle className="w-4 h-4 text-gray-400 cursor-help" />
+													<div className="absolute bottom-6 left-0 hidden group-hover:block bg-black text-white text-xs rounded p-2 whitespace-normal max-w-xs z-50">
+														Reduz a probabilidade de repetir tokens já usados
+													</div>
+												</div>
+											</div>
+											<Input
+												id="frequencyPenalty"
+												type="number"
+												step="0.1"
+												min="-2"
+												max="2"
+												value={formData.frequencyPenalty}
+												onChange={(e) =>
+													handleFormChange("frequencyPenalty", Number.parseFloat(e.target.value) || 0)
+												}
+												className="mt-1"
+											/>
+										</div>
+										{/* Presence Penalty */}
+										<div>
+											<div className="flex items-center gap-2 mb-2">
+												<Label htmlFor="presencePenalty">Presence Penalty</Label>
+												<div className="group relative">
+													<HelpCircle className="w-4 h-4 text-gray-400 cursor-help" />
+													<div className="absolute bottom-6 left-0 hidden group-hover:block bg-black text-white text-xs rounded p-2 whitespace-normal max-w-xs z-50">
+														Reduz a probabilidade de falar sobre novos tópicos
+													</div>
+												</div>
+											</div>
+											<Input
+												id="presencePenalty"
+												type="number"
+												step="0.1"
+												min="-2"
+												max="2"
+												value={formData.presencePenalty}
+												onChange={(e) =>
+													handleFormChange("presencePenalty", Number.parseFloat(e.target.value) || 0)
+												}
+												className="mt-1"
+											/>
+										</div>
+										{/* Timeout */}
+										<div>
+											<div className="flex items-center gap-2 mb-2">
+												<Label htmlFor="timeout">Timeout (segundos)</Label>
+												<div className="group relative">
+													<HelpCircle className="w-4 h-4 text-gray-400 cursor-help" />
+													<div className="absolute bottom-6 left-0 hidden group-hover:block bg-black text-white text-xs rounded p-2 whitespace-normal max-w-xs z-50">
+														Tempo em segundos para encerrar a conversa por inatividade
+													</div>
+												</div>
+											</div>
+											<Input
+												id="timeout"
+												type="number"
+												min="0"
+												value={formData.timeout}
+												onChange={(e) =>
+													handleFormChange("timeout", Number.parseInt(e.target.value) || 0)
+												}
+												className="mt-1"
+											/>
+										</div>
+										{/* Keep Open */}
+										<div>
+											<div className="flex items-center justify-between">
+												<div className="flex items-center space-x-2">
+													<Switch
+														id="keepOpen"
+														checked={formData.keepOpen}
+														onCheckedChange={(checked) =>
+															handleFormChange("keepOpen", checked)
+														}
+													/>
+													<Label htmlFor="keepOpen" className="font-normal">
+														Manter Aberto
+													</Label>
+												</div>
+												<div className="group relative">
+													<HelpCircle className="w-4 h-4 text-gray-400 cursor-help" />
+													<div className="absolute bottom-6 right-0 hidden group-hover:block bg-black text-white text-xs rounded p-2 whitespace-normal max-w-xs z-50">
+														Se ativo, a conversa nunca expira automaticamente
+													</div>
+												</div>
+											</div>
+										</div>
+										{/* Tempo de Debounce */}
+										<div>
+											<div className="flex items-center gap-2 mb-2">
+												<Label htmlFor="debounceTime">
+													Tempo de Debounce (segundos)
+												</Label>
+												<div className="group relative">
+													<HelpCircle className="w-4 h-4 text-gray-400 cursor-help" />
+													<div className="absolute bottom-6 left-0 hidden group-hover:block bg-black text-white text-xs rounded p-2 whitespace-normal max-w-xs z-50">
+														Aguarda este tempo antes de processar para evitar
+														múltiplas respostas seguidas
+													</div>
+												</div>
+											</div>
+											<Input
+												id="debounceTime"
+												type="number"
+												min="0"
+												value={formData.debounceTime}
+												onChange={(e) =>
+													handleFormChange(
+														"debounceTime",
+														Number.parseInt(e.target.value) || 0,
+													)
+												}
+												className="mt-1"
+											/>
+										</div>
+									</div>
+
+
+									{/* Mensagens */}
+									<div className="space-y-4">
+										<div>
+											<div className="flex items-center gap-2 mb-2">
+												<Label htmlFor="keywordFinish">
+													Palavra para Encerrar *
+												</Label>
+												<div className="group relative">
+													<HelpCircle className="w-4 h-4 text-gray-400 cursor-help" />
+													<div className="absolute bottom-6 left-0 hidden group-hover:block bg-black text-white text-xs rounded p-2 whitespace-normal max-w-xs z-50">
+														Palavra que o usuário pode digitar para sair da
+														conversa com o agente
+													</div>
+												</div>
+											</div>
+											<Input
+												id="keywordFinish"
+												value={formData.keywordFinish}
+												onChange={(e) =>
+													handleFormChange("keywordFinish", e.target.value)
+												}
+												placeholder="Ex: sair, tchau, encerrar"
+												className="mt-1"
+											/>
+										</div>
+
+
+										<div>
+											<div className="flex items-center gap-2 mb-2">
+												<Label htmlFor="unknownMessage">
+													Mensagem Quando Não Entender *
+												</Label>
+												<div className="group relative">
+													<HelpCircle className="w-4 h-4 text-gray-400 cursor-help" />
+													<div className="absolute bottom-6 left-0 hidden group-hover:block bg-black text-white text-xs rounded p-2 whitespace-normal max-w-xs z-50">
+														Mensagem enviada quando o agente não consegue
+														processar a solicitação
+													</div>
+												</div>
+											</div>
+											<Textarea
+												id="unknownMessage"
+												value={formData.unknownMessage}
+												onChange={(e) =>
+													handleFormChange("unknownMessage", e.target.value)
+												}
+												placeholder="Desculpe, não consegui entender. Pode repetir?"
+												rows={2}
+												className="mt-1"
+											/>
+										</div>
+									</div>
+
+
+									{/* Divisão de Mensagens */}
+									<div className="space-y-4 p-4 bg-gray-50 dark:bg-[#16151D]/50 rounded-lg">
+										<div className="flex items-center justify-between">
+											<div className="flex items-center space-x-2">
+												<Switch
+													id="splitMessages"
+													checked={formData.splitMessages}
+													onCheckedChange={(checked) =>
+														handleFormChange("splitMessages", checked)
+													}
+												/>
+												<Label htmlFor="splitMessages" className="font-normal">
+													Dividir Mensagens
+												</Label>
+											</div>
+											<div className="group relative">
+												<HelpCircle className="w-4 h-4 text-gray-400 cursor-help" />
+												<div className="absolute bottom-6 right-0 hidden group-hover:block bg-black text-white text-xs rounded p-2 whitespace-normal max-w-xs z-50">
+													Quebra mensagens muito longas em várias mensagens
+													menores
+												</div>
+											</div>
+										</div>
+
+
+										{formData.splitMessages && (
+											<div>
+												<div className="flex items-center gap-2 mb-2">
+													<Label htmlFor="timePerChar">
+														Velocidade de Digitação (ms por caractere)
+													</Label>
+													<div className="group relative">
+														<HelpCircle className="w-4 h-4 text-gray-400 cursor-help" />
+														<div className="absolute bottom-6 left-0 hidden group-hover:block bg-black text-white text-xs rounded p-2 whitespace-normal max-w-xs z-50">
+															Simula velocidade de digitação humana. Quanto
+															maior o número, mais devagar (0 = instantâneo)
+														</div>
+													</div>
+												</div>
+												<Input
+													id="timePerChar"
+													type="number"
+													min="0"
+													value={formData.timePerChar}
+													onChange={(e) =>
+														handleFormChange(
+															"timePerChar",
+															Number.parseInt(e.target.value) || 0,
+														)
+													}
+													className="mt-1"
+												/>
+											</div>
+										)}
+									</div>
+
+
+									{/* Números a Ignorar */}
+									<div>
+										<div className="flex items-center gap-2 mb-2">
+											<Label>Números para Ignorar</Label>
+											<div className="group relative">
+												<HelpCircle className="w-4 h-4 text-gray-400 cursor-help" />
+												<div className="absolute bottom-6 left-0 hidden group-hover:block bg-black text-white text-xs rounded p-2 whitespace-normal max-w-xs z-50">
+													Lista de números que o agente deve ignorar
+													completamente
+												</div>
+											</div>
+										</div>
+										<div className="flex gap-2 mt-2">
+											<Input
+												value={ignoreJidInput}
+												onChange={(e) => setIgnoreJidInput(e.target.value)}
+												placeholder="Digite um número... (ex: 5511999999999)"
+												onKeyPress={handleIgnoreJidKeyPress}
+												className="flex-1"
+											/>
+											<Button onClick={addIgnoreJid} size="sm" type="button">
+												Adicionar
+											</Button>
+										</div>
+										{formData.ignoreJids.length > 0 && (
+											<div className="flex flex-wrap gap-2 mt-2">
+												{formData.ignoreJids.map((jid) => (
+													<div
+														key={jid}
+														className="flex items-center gap-1 bg-gray-100 dark:bg-[#16151D] px-2 py-1 rounded text-sm"
+													>
+														<span>{jid}</span>
+														<Button
+															onClick={() => removeIgnoreJid(jid)}
+															size="sm"
+															variant="ghost"
+															className="h-4 w-4 p-0 hover:bg-gray-200 dark:hover:bg-gray-700"
+														>
+															<X className="w-3 h-3" />
+														</Button>
+													</div>
+												))}
+											</div>
+										)}
+									</div>
+								</div>
+							</ScrollArea>
+
+
+							{/* Form Actions */}
+							<div className="flex justify-end gap-2 mt-4 pt-4 border-t bg-white dark:bg-[#0c0b13] sticky bottom-0">
+								<Button
+									onClick={cancelEditing}
+									disabled={isSavingAgent} // Usar isSavingAgent aqui
+									variant="outline"
+								>
+									Cancelar
+								</Button>
+								<Button
+									onClick={saveAgent}
+									disabled={
+										isSavingAgent || // Usar isSavingAgent aqui
+										!formData.description.trim() ||
+										!formData.keywordFinish.trim() ||
+										!formData.unknownMessage.trim()
+									}
+									className="bg-gradient-to-r from-[#9137C6] to-[#E64FA5] hover:opacity-90"
+								>
+									{isSavingAgent ? ( // Usar isSavingAgent aqui
+										<>
+											<div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+											Salvando...
+										</>
+									) : (
+										<>
+											<Save className="w-4 h-4 mr-2" />
+											{selectedAgentId ? "Atualizar" : "Conectar"} Agente
+										</>
+									)}
+								</Button>
+							</div>
+						</div>
+					)}
+				</DialogContent>
+			</Dialog>
+		</div>
 	);
 };
+
 
 export default Instances;

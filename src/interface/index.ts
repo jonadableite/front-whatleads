@@ -393,6 +393,11 @@ export interface CampaignsResponse {
 }
 
 export interface Instance {
+	number: string;
+	integration: ReactNode;
+	qrCode: boolean;
+	evoAi: any;
+	ownerJid: any;
 	instanceId: any;
 	id: string;
 	instanceName: string;
