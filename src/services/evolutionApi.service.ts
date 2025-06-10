@@ -1,16 +1,23 @@
 // src/services/evolutionApi.service.ts
 import axios from "axios";
-import {
+import type {
+  ChangeStatusPayload,
+  ChangeStatusResponse,
+  CreateBotPayload,
+  CreateBotResponse,
+  GetBotsResponse,
+  Settings,
+  UpdateBotPayload,
+  UpdateBotResponse
+} from "../types/bot";
+import type {
   CreateInstanceBackendResponse,
   IConnectionStateResponse,
   IConnectResponse,
   ICreateInstancePayload,
-  IEvoAI,
-  IEvoAISession,
-  IEvoAISettings,
   InstancesResponse,
   ISettingsResponse
-} from "../types";
+} from "../types/instance";
 import { authService } from "./auth.service";
 
 const EVOLUTION_API_URL =
@@ -179,111 +186,105 @@ export const createInstance = async (
     throw error;
   }
 };
-// Funções de serviço para EvoAI
+
+// Funcções de serviço para agentes na Evolution API
 
 /**
- * Busca todos os EvoAIs de uma instância específica.
- * GET /evoai/find/:instanceName
+ * Busca todos os bots de uma instância específica.
+ * GET /bot/find/:instanceName
  */
-export const fetchEvoAIs = async (
+export const fetchBots = async (
   instanceName: string,
-): Promise<IEvoAI[]> => {
-  const response = await evolutionApi.get(`/evoai/find/${instanceName}`);
+): Promise<GetBotsResponse> => {
+  const response = await evolutionApi.get<GetBotsResponse>(
+    `/bot/find/${instanceName}`,
+  );
   return response.data;
 };
 
 /**
- * Cria um novo EvoAI na instância.
- * POST /evoai/create/:instanceName
- * @param payload O corpo da requisição para criar o EvoAI. Defina a interface IEvoAICreatePayload se necessário.
+ * Cria um novo bot na instância.
+ * POST /bot/create/:instanceName
  */
-export const createEvoAI = async (
+export const createBot = async (
   instanceName: string,
-  payload: any, // Substituir 'any' por uma interface específica (IEvoAICreatePayload)
-): Promise<IEvoAI> => {
-  const response = await evolutionApi.post(`/evoai/create/${instanceName}`, payload);
-  return response.data; // Assumindo que retorna o EvoAI criado
-};
-
-/**
- * Atualiza um EvoAI específico.
- * PUT /evoai/update/:evoaiId/:instanceName
- * @param evoaiId O ID do EvoAI a ser atualizado.
- * @param instanceName O nome da instância.
- * @param payload O corpo da requisição para atualizar o EvoAI. Defina a interface IEvoAIUpdatePayload se necessário.
- */
-export const updateEvoAI = async (
-  evoaiId: string,
-  instanceName: string,
-  payload: any, // Substituir 'any' por uma interface específica (IEvoAIUpdatePayload)
-): Promise<IEvoAI> => {
-  const response = await evolutionApi.put(`/evoai/update/${evoaiId}/${instanceName}`, payload);
-  return response.data; // Assumindo que retorna o EvoAI atualizado
-};
-
-/**
- * Deleta um EvoAI específico.
- * DELETE /evoai/delete/:evoaiId/:instanceName
- * @param evoaiId O ID do EvoAI a ser deletado.
- * @param instanceName O nome da instância.
- */
-export const deleteEvoAI = async (
-  evoaiId: string,
-  instanceName: string,
-): Promise<any> => { // Ajuste o tipo de retorno se a API retornar algo específico na deleção
-  const response = await evolutionApi.delete(`/evoai/delete/${evoaiId}/${instanceName}`);
+  payload: CreateBotPayload,
+): Promise<CreateBotResponse> => {
+  const response = await evolutionApi.post<CreateBotResponse>(
+    `/bot/create/${instanceName}`,
+    payload,
+  );
   return response.data;
 };
 
 /**
- * Salva configurações padrão para EvoAI.
- * POST /evoai/settings/:instanceName
- * @param payload As configurações a serem salvas. Defina a interface IEvoAISettingsPayload se necessário.
+ * Atualiza um bot específico.
+ * PUT /bot/update/:botId/:instanceName
  */
-export const saveEvoAISettings = async (
+export const updateBot = async (
+  botId: string,
   instanceName: string,
-  payload: IEvoAISettings, // Substituir por interface específica
-): Promise<IEvoAISettings> => { // Ajuste o tipo de retorno se a API retornar algo diferente
-  const response = await evolutionApi.post(`/evoai/settings/${instanceName}`, payload);
+  payload: UpdateBotPayload,
+): Promise<UpdateBotResponse> => {
+  const response = await evolutionApi.put<UpdateBotResponse>(
+    `/bot/update/${botId}/${instanceName}`,
+    payload,
+  );
   return response.data;
 };
 
 /**
- * Obtém configurações padrão salvas para EvoAI.
- * GET /evoai/fetchSettings/:instanceName
+ * Deleta um bot específico.
+ * DELETE /bot/delete/:botId/:instanceName
  */
-export const fetchEvoAISettings = async (
+export const deleteBot = async (
+  botId: string,
   instanceName: string,
-): Promise<IEvoAISettings> => { // Ajuste o tipo de retorno se a API retornar algo diferente
-  const response = await evolutionApi.get(`/evoai/fetchSettings/${instanceName}`);
+): Promise<void> => {
+  await evolutionApi.delete(
+    `/bot/delete/${botId}/${instanceName}`,
+  );
+};
+
+/**
+ * Salva configurações padrão para bots.
+ * POST /bot/settings/:instanceName
+ */
+export const saveBotSettings = async (
+  instanceName: string,
+  payload: Settings,
+): Promise<Settings> => {
+  const response = await evolutionApi.post<Settings>(
+    `/bot/settings/${instanceName}`,
+    payload,
+  );
   return response.data;
 };
 
 /**
- * Altera o status de uma sessão de EvoAI.
- * POST /evoai/changeStatus/:instanceName
- * @param payload O corpo da requisição para alterar o status. Defina a interface IEvoAIChangeStatusPayload se necessário.
- * Ex: { sessionId: string, status: 'opened' | 'paused' | 'closed' }
+ * Obtém configurações padrão salvas para bots.
+ * GET /bot/fetchSettings/:instanceName
  */
-export const changeEvoAISessionStatus = async (
+export const fetchBotSettings = async (
   instanceName: string,
-  payload: any, // Substituir por interface específica (IEvoAIChangeStatusPayload)
-): Promise<any> => { // Ajuste o tipo de retorno
-  const response = await evolutionApi.post(`/evoai/changeStatus/${instanceName}`, payload);
+): Promise<Settings> => {
+  const response = await evolutionApi.get<Settings>(
+    `/bot/fetchSettings/${instanceName}`,
+  );
   return response.data;
 };
 
 /**
- * Obtém sessões atreladas a um EvoAI específico.
- * GET /evoai/fetchSessions/:evoaiId/:instanceName
- * @param evoaiId O ID do EvoAI.
- * @param instanceName O nome da instância.
+ * Altera o status de um bot.
+ * POST /bot/changeStatus/:instanceName
  */
-export const fetchEvoAISessions = async (
-  evoaiId: string,
+export const changeBotStatus = async (
   instanceName: string,
-): Promise<IEvoAISession[]> => { // Ajuste o tipo de retorno se a API retornar algo diferente
-  const response = await evolutionApi.get(`/evoai/fetchSessions/${evoaiId}/${instanceName}`);
-  return response.data; // Assumindo que retorna um array de sessões
+  payload: ChangeStatusPayload,
+): Promise<ChangeStatusResponse> => {
+  const response = await evolutionApi.post<ChangeStatusResponse>(
+    `/bot/changeStatus/${instanceName}`,
+    payload,
+  );
+  return response.data;
 };
-
