@@ -3,11 +3,11 @@ import { authService } from "@/services/auth.service";
 import axios from "axios";
 import { toast } from "react-hot-toast"; // Se estiver usando react-hot-toast
 
-const API_URL = import.meta.env.VITE_API_URL || "https://api.whatlead.com.br";
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:9000";
 const API_KEY = "429683C4C977415CAAFCCE10F7D57E11";
 
 const apiExternal = axios.create({
-	baseURL: "https://evo.whatlead.com.br",
+	baseURL: "http://localhost:8080",
 });
 
 apiExternal.interceptors.request.use((config) => {

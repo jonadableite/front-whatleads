@@ -1,5 +1,5 @@
 // src/pages/Instances.tsx
-import AgentConfigModal from "@/components/AgentConfigModal";
+import { AIAgentDialog } from "@/components/AgentConfigModal";
 import { Button } from "@/components/ui/button";
 import { Checkbox } from "@/components/ui/checkbox";
 import {
@@ -13,16 +13,13 @@ import { Label } from "@/components/ui/label";
 import { Modal } from "@/components/ui/modal";
 import type { Instance } from "@/interface";
 import { authService } from "@/services/auth.service";
-import {
-  createBot,
-  fetchBots,
-  updateBot,
-} from "@/services/evolutionApi.service";
+import { fetchBots } from "@/services/evolutionApi.service";
 import axios from "axios";
 import { motion } from "framer-motion";
+
 import {
   AlertCircle,
-  Bot,
+  Bot as BotIcon,
   Loader2,
   Lock,
   Plus,
@@ -36,6 +33,7 @@ import { useEffect, useState } from "react";
 import { Toaster, toast } from "react-hot-toast";
 import { FaWhatsapp } from "react-icons/fa";
 import { useNavigate } from "react-router-dom";
+import { Bot } from "../types/bot";
 
 // Constantes
 const API_BASE_URL = import.meta.env.VITE_API_URL || "http://localhost:9000";
@@ -104,6 +102,8 @@ const tapAnimation = {
   },
 };
 
+const MotionButton = motion(Button);
+
 interface InstanceSettings {
   rejectCall: boolean;
   msgCall: string;
@@ -116,26 +116,14 @@ interface InstanceSettings {
 }
 
 // Interface para as configurações do Agente IA
-interface AgentSettings {
-  id?: string; // Opcional para criação
-  instanceName: string;
-  description: string;
-  model: string;
-  temperature: number;
-  maxTokens: number;
-  topP: number;
-  frequencyPenalty: number;
-  presencePenalty: number;
-  timeout: number;
-  keepOpen: boolean;
-  debounceTime: number;
-  keywordFinish: string;
-  unknownMessage: string;
-  splitMessages: boolean;
-  timePerChar: number;
-  ignoreJids: string[];
-  createdAt?: string;
-  updatedAt?: string;
+interface InstanceSettingsFormData {
+  rejectCall: boolean;
+  msgCall: string;
+  groupsIgnore: boolean;
+  alwaysOnline: boolean;
+  readMessages: boolean;
+  readStatus: boolean;
+
 }
 
 // Componente: Connection Status
@@ -144,17 +132,15 @@ const ConnectionStatus: React.FC<{ connected: boolean }> = ({ connected }) => (
     initial={{ opacity: 0, scale: 0.8 }}
     animate={{ opacity: 1, scale: 1 }}
     className={`inline-flex items-center gap-2 px-4 py-1.5 rounded-full backdrop-blur-xl border
-      ${
-        connected
-          ? "bg-neon-green/10 text-neon-green border-neon-green/30" // Bordas mais visíveis
-          : "bg-red-500/10 text-red-500 border-red-500/30"
+      ${connected
+        ? "bg-neon-green/10 text-neon-green border-neon-green/30" // Bordas mais visíveis
+        : "bg-red-500/10 text-red-500 border-red-500/30"
       }`}
   >
     <motion.div
       animate={connected ? pulseAnimation : {}}
-      className={`w-2.5 h-2.5 rounded-full ${
-        connected ? "bg-neon-green" : "bg-red-500"
-      }`} // Tamanho do ponto ligeiramente maior
+      className={`w-2.5 h-2.5 rounded-full ${connected ? "bg-neon-green" : "bg-red-500"
+        }`} // Tamanho do ponto ligeiramente maior
     />
     <span className="text-xs font-medium">
       {connected ? "Online" : "Offline"}
@@ -180,186 +166,186 @@ const InstanceCard: React.FC<{
   onOpenAgentModal,
   deletingInstance,
 }) => {
-  const isConnected =
-    instance.connectionStatus === "OPEN" ||
-    instance.connectionStatus === "CONNECTED";
+    const isConnected =
+      instance.connectionStatus === "OPEN" ||
+      instance.connectionStatus === "CONNECTED";
 
-  // Limpa o ownerJid para exibir apenas o número
-  const cleanOwnerJid = instance.ownerJid
-    ? instance.ownerJid.replace("@s.whatsapp.net", "")
-    : "Sem número";
+    // Limpa o ownerJid para exibir apenas o número
+    const cleanOwnerJid = instance.ownerJid
+      ? instance.ownerJid.replace("@s.whatsapp.net", "")
+      : "Sem número";
 
-  const handleDeleteInstance = () => {
-    if (
-      window.confirm(
-        `Tem certeza que deseja excluir a instância ${instance.instanceName}?`
-      )
-    ) {
-      onDelete(instance.id, instance.instanceName);
-    }
-  };
+    const handleDeleteInstance = () => {
+      if (
+        window.confirm(
+          `Tem certeza que deseja excluir a instância ${instance.instanceName}?`
+        )
+      ) {
+        onDelete(instance.id, instance.instanceName);
+      }
+    };
 
-  return (
-    <motion.div
-      variants={itemVariants}
-      whileHover={hoverAnimation} // Aplicar animação de hover
-      whileTap={tapAnimation} // Aplicar animação de clique
-      className="relative group bg-deep/60 backdrop-blur-2xl p-6 rounded-2xl border border-electric/40 shadow-lg hover:shadow-electric/30 transition-all duration-300 flex flex-col space-y-6 overflow-hidden"
-    >
-      {/* Efeito de fundo sutil com gradiente animado */}
+    return (
       <motion.div
-        className="absolute inset-0 bg-gradient-to-tr from-electric/10 to-neon-purple/10 opacity-70"
-        initial={{ backgroundPosition: "0% 0%" }}
-        animate={{ backgroundPosition: "100% 100%" }}
-        transition={{
-          duration: 10,
-          repeat: Number.POSITIVE_INFINITY,
-          ease: "linear",
-          repeatType: "reverse",
-        }}
-        style={{ backgroundSize: "200% 200%" }}
-      />
+        variants={itemVariants}
+        whileHover={hoverAnimation} // Aplicar animação de hover
+        whileTap={tapAnimation} // Aplicar animação de clique
+        className="relative group bg-deep/60 backdrop-blur-2xl p-6 rounded-2xl border border-electric/40 shadow-lg hover:shadow-electric/30 transition-all duration-300 flex flex-col space-y-6 overflow-hidden"
+      >
+        {/* Efeito de fundo sutil com gradiente animado */}
+        <motion.div
+          className="absolute inset-0 bg-gradient-to-tr from-electric/10 to-neon-purple/10 opacity-70"
+          initial={{ backgroundPosition: "0% 0%" }}
+          animate={{ backgroundPosition: "100% 100%" }}
+          transition={{
+            duration: 10,
+            repeat: Number.POSITIVE_INFINITY,
+            ease: "linear",
+            repeatType: "reverse",
+          }}
+          style={{ backgroundSize: "200% 200%" }}
+        />
 
-      {/* Conteúdo principal com espaçamento vertical entre os blocos */}
-      <div className="relative z-10 flex flex-col space-y-5">
-        {/* Header da Instância - Mantido flex para alinhar nome/foto e status */}
-        <div className="flex justify-between items-center flex-wrap gap-4">
-          <div className="flex items-center space-x-4">
-            {/* Contêiner da Foto de Perfil ou Ícone Padrão */}
-            <div className="relative w-14 h-14 rounded-full overflow-hidden flex items-center justify-center bg-gray-700 border-2 border-transparent group-hover:border-neon-green/50 transition-colors duration-300">
-              {/* Arco Neon Gradiente Rotativo - Visível apenas quando conectado */}
-              {isConnected && (
+        {/* Conteúdo principal com espaçamento vertical entre os blocos */}
+        <div className="relative z-10 flex flex-col space-y-5">
+          {/* Header da Instância - Mantido flex para alinhar nome/foto e status */}
+          <div className="flex justify-between items-center flex-wrap gap-4">
+            <div className="flex items-center space-x-4">
+              {/* Contêiner da Foto de Perfil ou Ícone Padrão */}
+              <div className="relative w-14 h-14 rounded-full overflow-hidden flex items-center justify-center bg-gray-700 border-2 border-transparent group-hover:border-neon-green/50 transition-colors duration-300">
+                {/* Arco Neon Gradiente Rotativo - Visível apenas quando conectado */}
+                {isConnected && (
+                  <motion.div
+                    className="absolute inset-[-5px] rounded-full" // Torna este div ligeiramente maior que o contêiner pai
+                    initial={{ rotate: 0 }}
+                    animate={{ rotate: 360 }}
+                    transition={{
+                      duration: 8,
+                      repeat: Number.POSITIVE_INFINITY,
+                      ease: "linear",
+                    }} // Animação de rotação
+                    style={{
+                      // Gradiente de Azul para Roxo
+                      background: "linear-gradient(45deg, #3B82F6, #8B5CF6)",
+                      padding: "5px", // Controla a espessura do anel
+                      // Máscara para criar o efeito de anel (corta o centro)
+                      WebkitMask:
+                        "radial-gradient(circle, transparent calc(50% - 5px), black calc(50% - 5px + 1px))",
+                      mask: "radial-gradient(circle, transparent calc(50% - 5px), black calc(50% - 5px + 1px))",
+                    }}
+                  />
+                )}
+
+                {/* Foto de Perfil ou Ícone Padrão */}
+                {instance.profilePicUrl ? (
+                  <img
+                    src={instance.profilePicUrl}
+                    alt={`Foto de perfil de ${instance.instanceName}`}
+                    className="w-full h-full object-cover relative z-10" // Garante que a imagem fique acima do anel
+                  />
+                ) : (
+                  <FaWhatsapp className="w-9 h-9 text-green-500/80 relative z-10" /> // Garante que o ícone fique acima do anel
+                )}
+
+                {/* Removido o efeito de brilho sutil no hover para evitar conflito visual */}
+              </div>
+
+              {/* Nome e Número da Instância */}
+              <div className="flex flex-col">
+                <h3 className="text-2xl font-bold text-blue-400">
+                  {instance.instanceName}
+                </h3>
+                <p className="text-sm text-gray-400 flex items-center">
+                  <FaWhatsapp className="inline-block mr-1 text-green-500/80" />{" "}
+                  {cleanOwnerJid}
+                </p>
+              </div>
+            </div>
+            {/* Status de Conexão */}
+            <ConnectionStatus connected={isConnected} />
+          </div>
+
+          {/* Grupo de Botões de Ação (Reconectar/Logout, Config, Agente IA) */}
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 w-full">
+            {/* Botão de Reconectar ou Logout (condicional) */}
+            {isConnected ? (
+              <motion.div whileTap={tapAnimation} className="w-full">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => onLogout(instance.instanceName)}
+                  className="w-full bg-neon-yellow/10 text-neon-yellow border-neon-yellow/20 hover:bg-neon-yellow/30 hover:border-neon-yellow/40 transition-all duration-300"
+                >
+                  <Power className="w-5 h-5 mr-2" /> Logout
+                </Button>
+              </motion.div>
+            ) : (
+              <motion.div whileTap={tapAnimation} className="w-full">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => onReconnect(instance.instanceName)}
+                  className="w-full bg-neon-green/10 text-neon-green border-neon-green/20 hover:bg-neon-green/30 hover:border-neon-green/40 transition-all duration-300"
+                >
+                  <Wifi className="w-5 h-5 mr-2" /> Reconectar
+                </Button>
+              </motion.div>
+            )}
+
+            {/* Botão de Configuração */}
+            <motion.div whileTap={tapAnimation} className="w-full">
+              <MotionButton
+                onClick={() => onConfigureSettings(instance)}
+                size="sm"
+                variant="outline"
+                className="w-full bg-blue-500/10 text-blue-400 border-blue-500/20 hover:bg-blue-500/30 hover:border-blue-500/40 transition-all duration-300"
+              >
+                <Settings className="w-5 h-5 mr-2" /> Configurar
+              </MotionButton>
+            </motion.div>
+
+            {/* Botão de Adicionar Agente IA */}
+            <motion.div whileTap={tapAnimation} className="w-full">
+              <MotionButton
+                onClick={() => onOpenAgentModal(instance)}
+                size="sm"
+                variant="outline"
+                className="w-full bg-purple-500/10 text-purple-400 border-purple-500/20 hover:bg-purple-500/30 hover:border-purple-500/40 transition-all duration-300"
+              >
+                <BotIcon className="w-5 h-5 mr-2" /> Agente
+              </MotionButton>
+            </motion.div>
+          </div>
+
+          {/* Botão de Excluir Instância - Separado para controle de espaçamento */}
+          <motion.div whileTap={tapAnimation} className="mt-4">
+            <Button
+              variant="outline"
+              size="lg"
+              onClick={handleDeleteInstance}
+              disabled={deletingInstance === instance.id}
+              className="w-full bg-red-500/10 text-red-500 border-red-500/20 hover:bg-red-500/30 hover:border-red-500/40 transition-all duration-300"
+            >
+              {deletingInstance === instance.id ? (
                 <motion.div
-                  className="absolute inset-[-5px] rounded-full" // Torna este div ligeiramente maior que o contêiner pai
-                  initial={{ rotate: 0 }}
                   animate={{ rotate: 360 }}
                   transition={{
-                    duration: 8,
+                    duration: 1,
                     repeat: Number.POSITIVE_INFINITY,
                     ease: "linear",
-                  }} // Animação de rotação
-                  style={{
-                    // Gradiente de Azul para Roxo
-                    background: "linear-gradient(45deg, #3B82F6, #8B5CF6)",
-                    padding: "5px", // Controla a espessura do anel
-                    // Máscara para criar o efeito de anel (corta o centro)
-                    WebkitMask:
-                      "radial-gradient(circle, transparent calc(50% - 5px), black calc(50% - 5px + 1px))",
-                    mask: "radial-gradient(circle, transparent calc(50% - 5px), black calc(50% - 5px + 1px))",
                   }}
-                />
-              )}
-
-              {/* Foto de Perfil ou Ícone Padrão */}
-              {instance.profilePicUrl ? (
-                <img
-                  src={instance.profilePicUrl}
-                  alt={`Foto de perfil de ${instance.instanceName}`}
-                  className="w-full h-full object-cover relative z-10" // Garante que a imagem fique acima do anel
+                  className="w-5 h-5 border-2 border-red-500 border-t-transparent rounded-full mr-2"
                 />
               ) : (
-                <FaWhatsapp className="w-9 h-9 text-green-500/80 relative z-10" /> // Garante que o ícone fique acima do anel
+                <Trash2 className="w-5 h-5 mr-2" />
               )}
-
-              {/* Removido o efeito de brilho sutil no hover para evitar conflito visual */}
-            </div>
-
-            {/* Nome e Número da Instância */}
-            <div className="flex flex-col">
-              <h3 className="text-2xl font-bold text-blue-400">
-                {instance.instanceName}
-              </h3>
-              <p className="text-sm text-gray-400 flex items-center">
-                <FaWhatsapp className="inline-block mr-1 text-green-500/80" />{" "}
-                {cleanOwnerJid}
-              </p>
-            </div>
-          </div>
-          {/* Status de Conexão */}
-          <ConnectionStatus connected={isConnected} />
-        </div>
-
-        {/* Grupo de Botões de Ação (Reconectar/Logout, Config, Agente IA) */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 w-full">
-          {/* Botão de Reconectar ou Logout (condicional) */}
-          {isConnected ? (
-            <motion.div whileTap={tapAnimation} className="w-full">
-              <Button
-                variant="outline"
-                size="lg"
-                onClick={() => onLogout(instance.instanceName)}
-                className="w-full bg-neon-yellow/10 text-neon-yellow border-neon-yellow/20 hover:bg-neon-yellow/30 hover:border-neon-yellow/40 transition-all duration-300"
-              >
-                <Power className="w-5 h-5 mr-2" /> Logout
-              </Button>
-            </motion.div>
-          ) : (
-            <motion.div whileTap={tapAnimation} className="w-full">
-              <Button
-                variant="outline"
-                size="lg"
-                onClick={() => onReconnect(instance.instanceName)}
-                className="w-full bg-neon-green/10 text-neon-green border-neon-green/20 hover:bg-neon-green/30 hover:border-neon-green/40 transition-all duration-300"
-              >
-                <Wifi className="w-5 h-5 mr-2" /> Reconectar
-              </Button>
-            </motion.div>
-          )}
-
-          {/* Botão de Configuração */}
-          <motion.div whileTap={tapAnimation} className="w-full">
-            <Button
-              variant="outline"
-              size="lg"
-              onClick={() => onConfigureSettings(instance)}
-              className="w-full bg-blue-500/10 text-blue-400 border-blue-500/20 hover:bg-blue-500/30 hover:border-blue-500/40 transition-all duration-300"
-            >
-              <Settings className="w-5 h-5 mr-2" /> Configurar
-            </Button>
-          </motion.div>
-
-          {/* Botão de Adicionar Agente IA */}
-          <motion.div whileTap={tapAnimation} className="w-full">
-            <Button
-              variant="outline"
-              size="lg"
-              onClick={() => onOpenAgentModal(instance)}
-              className="w-full bg-purple-500/10 text-purple-400 border-purple-500/20 hover:bg-purple-500/30 hover:border-purple-500/40 transition-all duration-300"
-            >
-              <Bot className="w-5 h-5 mr-2" /> Agente
+              Excluir WhatsApp
             </Button>
           </motion.div>
         </div>
-
-        {/* Botão de Excluir Instância - Separado para controle de espaçamento */}
-        <motion.div whileTap={tapAnimation} className="mt-4">
-          <Button
-            variant="outline"
-            size="lg"
-            onClick={handleDeleteInstance}
-            disabled={deletingInstance === instance.id}
-            className="w-full bg-red-500/10 text-red-500 border-red-500/20 hover:bg-red-500/30 hover:border-red-500/40 transition-all duration-300"
-          >
-            {deletingInstance === instance.id ? (
-              <motion.div
-                animate={{ rotate: 360 }}
-                transition={{
-                  duration: 1,
-                  repeat: Number.POSITIVE_INFINITY,
-                  ease: "linear",
-                }}
-                className="w-5 h-5 border-2 border-red-500 border-t-transparent rounded-full mr-2"
-              />
-            ) : (
-              <Trash2 className="w-5 h-5 mr-2" />
-            )}
-            Excluir WhatsApp
-          </Button>
-        </motion.div>
-      </div>
-    </motion.div>
-  );
-};
+      </motion.div>
+    );
+  };
 
 // Componente principal: Instances
 const Instances: React.FC = () => {
@@ -407,29 +393,62 @@ const Instances: React.FC = () => {
   const [isSavingSettings, setIsSavingSettings] = useState(false);
 
   // Estados para o modal de Agente IA
+  const [agents, setAgents] = useState<Bot[]>([]);
   const [isAgentModalOpen, setIsAgentModalOpen] = useState(false);
   const [selectedAgent, setSelectedAgent] = useState<AgentSettings | null>(
     null
   ); // Para editar um agente existente
   const [selectedAgentId, setSelectedAgentId] = useState<string | null>(null); // Para buscar agente existente
-  const [formData, setFormData] = useState<AgentSettings>({
-    instanceName: "", // Será preenchido ao abrir o modal
-    description: "",
-    model: "gpt-4o", // Valor padrão
-    temperature: 0.7, // Valor padrão
-    maxTokens: 500, // Valor padrão
-    topP: 1, // Valor padrão
-    frequencyPenalty: 0, // Valor padrão
-    presencePenalty: 0, // Valor padrão
-    timeout: 60, // Valor padrão em segundos
-    keepOpen: false, // Valor padrão
-    debounceTime: 3, // Valor padrão em segundos
-    keywordFinish: "sair", // Valor padrão
-    unknownMessage: "Desculpe, não consegui entender. Pode repetir?", // Valor padrão
-    splitMessages: true, // Valor padrão
-    timePerChar: 50, // Valor padrão em ms
-    ignoreJids: [], // Valor padrão
-  });
+  // Fetch instances and bots on component mount
+  useEffect(() => {
+    const loadData = async () => {
+      setIsLoading(true);
+      setError(null);
+      try {
+        const token = authService.getToken();
+        if (!token) {
+          navigate("/login");
+          return;
+        }
+
+        // Fetch Instances
+        const instancesResponse = await axios.get(
+          `${API_EVO_URL}/instance/fetchInstances`,
+          {
+            headers: { apikey: API_KEY, Authorization: `Bearer ${token}` },
+          }
+        );
+        setInstances(instancesResponse.data);
+
+        // Fetch Bots/Agents
+        const botsResponse = await fetchBots(token); // Assuming fetchBots takes token
+        setAgents(botsResponse); // Store the fetched bots
+      } catch (err) {
+        console.error("Error loading data:", err);
+        setError("Falha ao carregar dados. Tente novamente.");
+        // Optionally, check for 401 and redirect to login
+        if (axios.isAxiosError(err) && err.response?.status === 401) {
+          authService.logout(); // Clear invalid token
+          navigate("/login");
+        }
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    loadData();
+  }, [navigate]); // Add navigate to dependency array
+
+  // Modify onOpenAgentModal to find the existing agent
+  const onOpenAgentModal = (instance: Instance) => {
+    setSelectedInstance(instance);
+    // Find if an agent already exists for this instance
+    const existingAgent = agents.find(
+      (agent) => agent.instanceName === instance.instanceName
+    );
+    setSelectedAgentId(existingAgent ? existingAgent.id : null); // Set the existing agent's ID or null
+    setIsAgentModalOpen(true);
+  };
   const [ignoreJidInput, setIgnoreJidInput] = useState("");
   const [isLoadingAgent, setIsLoadingAgent] = useState(false);
   const [isSavingAgent, setIsSavingAgent] = useState(false);
@@ -627,11 +646,11 @@ const Instances: React.FC = () => {
           prevInstances.map((inst) =>
             inst.instanceName === instanceName
               ? {
-                  ...inst,
-                  connectionStatus: status,
-                  qrcode: currentQrCode,
-                  pairingCode: pairingCode,
-                }
+                ...inst,
+                connectionStatus: status,
+                qrcode: currentQrCode,
+                pairingCode: pairingCode,
+              }
               : inst
           )
         );
@@ -759,32 +778,17 @@ const Instances: React.FC = () => {
 
   // Handler para abrir o modal de configuração do Agente IA
   const handleOpenAgentModal = (instance: Instance) => {
-    setSelectedInstance(instance); // Define a instância para o modal de agente
-    setSelectedAgent(null); // Reseta para modo criação/busca
-    setSelectedAgentId(null); // Reseta o ID do agente
-    // Resetar formData para valores padrão para criação
-    setFormData({
-      instanceName: instance.instanceName, // Preenche com o nome da instância
-      description: "",
-      model: "gpt-4o",
-      temperature: 0.7,
-      maxTokens: 500,
-      topP: 1,
-      frequencyPenalty: 0,
-      presencePenalty: 0,
-      timeout: 60,
-      keepOpen: false,
-      debounceTime: 3,
-      keywordFinish: "sair",
-      unknownMessage: "Desculpe, não consegui entender. Pode repetir?",
-      splitMessages: true,
-      timePerChar: 50,
-      ignoreJids: [],
-    });
-    setIgnoreJidInput(""); // Limpa o input de ignoreJid
-    fetchAgentSettings(instance.instanceName); // Tenta buscar um agente existente para esta instância
-    setIsAgentModalOpen(true);
+    // Encontrar o agente associado a esta instância, se existir
+    const associatedAgent = agents.find(
+      (agent) => agent.instanceId === instance.id
+    );
+
+    setSelectedInstance(instance); // Define a instância selecionada
+    // Define o ID do agente associado (se encontrado) ou null (se não existir)
+    setSelectedAgentId(associatedAgent ? associatedAgent.id : null);
+    setIsAgentModalOpen(true); // Abre o modal
   };
+
 
   // --- Funções para Configurações da Instância ---
   const fetchInstanceSettings = async (instanceName: string) => {
@@ -866,30 +870,30 @@ const Instances: React.FC = () => {
   const fetchAgentSettings = async (instanceName: string) => {
     setIsLoadingAgent(true);
     try {
-      // Busca todos os agentes para esta instância. Assumimos que só há 0 ou 1 por instância.
-      const token = authService.getTokenInterno();
-      const response = await axios.get(
-        `${API_EVO_URL}/api/evoai/find/${instanceName}`, // Endpoint de busca de agentes por instância
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        }
-      );
+      // Chame a função do serviço para buscar os dados dos agentes.
+      // fetchBots já usa a instância 'evolutionApi' com o header 'apikey'
+      // e retorna Bot[].
+      const agents: Bot[] = await fetchBots(instanceName); // O tipo retornado já é Bot[]
 
-      const agents = response.data as AgentSettings[];
+      // A partir daqui, a lógica de processamento dos dados e atualização do estado
+      // na página permanece a mesma, mas usando o tipo Bot.
 
       if (agents && agents.length > 0) {
         // Se encontrar um agente, preenche o formulário com os dados dele
         const agent = agents[0]; // Pega o primeiro (e único esperado) agente
         setSelectedAgent(agent);
         setSelectedAgentId(agent.id || null);
+        // Certifique-se de que seu estado 'formData' e a função setFormData
+        // são compatíveis com o tipo 'Bot' ou um subconjunto dele.
+        // Se o formulário usa um tipo diferente, você precisará mapear 'agent' para esse tipo.
         setFormData(agent); // Preenche o formulário com os dados do agente existente
         toast.success(`Agente IA encontrado para "${instanceName}".`);
       } else {
         // Se não encontrar, mantém o formulário com valores padrão para criação
         setSelectedAgent(null);
         setSelectedAgentId(null);
+        // Se o formulário precisa de um estado inicial padrão, defina-o aqui
+        // setFormData({ ...valores padrão ... });
         toast(
           "Nenhum Agente IA encontrado para esta instância. Crie um novo.",
           { icon: "ℹ️" }
@@ -897,10 +901,13 @@ const Instances: React.FC = () => {
       }
     } catch (error) {
       console.error("Erro ao buscar configurações do agente IA:", error);
+      // Assumindo que handleError é uma função para tratar erros
+      // Pode ser necessário ajustar handleError para aceitar o tipo de erro correto
       handleError(error);
       setSelectedAgent(null);
       setSelectedAgentId(null);
       // Mantém formData com valores padrão em caso de erro na busca
+      // setFormData({ ...valores padrão ... });
     } finally {
       setIsLoadingAgent(false);
     }
@@ -1096,11 +1103,10 @@ const Instances: React.FC = () => {
             {/* Opcional: Porcentagem de instâncias, se relevante */}
             {planDetails.usage?.instancesPercentage !== undefined && (
               <span
-                className={`font-semibold text-sm ${
-                  planDetails.usage.instancesPercentage > 80
-                    ? "text-red-500"
-                    : ""
-                }`}
+                className={`font-semibold text-sm ${planDetails.usage.instancesPercentage > 80
+                  ? "text-red-500"
+                  : ""
+                  }`}
               >
                 ({planDetails.usage.instancesPercentage.toFixed(0)}%)
               </span>
@@ -1135,13 +1141,12 @@ const Instances: React.FC = () => {
         font-semibold py-2 px-6 rounded-lg shadow-md hover:shadow-lg
         transition-opacity duration-300
         flex items-center justify-center {/* Adicionado para centralizar ícone e texto */}
-        ${
-          instances.length >= instanceLimit
-            ? "bg-electric cursor-not-allowed opacity-90" // Estilo quando o limite é atingido
-            : isCreatingInstance
-            ? "bg-yellow-600 cursor-wait opacity-70" // Estilo quando está criando
-            : "bg-gradient-to-r from-electric to-blue-600 hover:opacity-90" // Estilo padrão
-        }
+        ${instances.length >= instanceLimit
+              ? "bg-electric cursor-not-allowed opacity-90" // Estilo quando o limite é atingido
+              : isCreatingInstance
+                ? "bg-yellow-600 cursor-wait opacity-70" // Estilo quando está criando
+                : "bg-gradient-to-r from-electric to-blue-600 hover:opacity-90" // Estilo padrão
+            }
     `}
         >
           {/* Conteúdo do botão dinâmico */}
@@ -1406,17 +1411,19 @@ const Instances: React.FC = () => {
       </Dialog>
 
       {/* Modal de Configuração do Agente IA (adaptado do seu código) */}
-      <AgentConfigModal
+      <AIAgentDialog
         isOpen={isAgentModalOpen}
-        onClose={() => setIsAgentModalOpen(false)}
-        selectedAgentId={selectedAgentId}
-        instanceName={selectedInstance?.instanceName || ""}
-        createAgent={createBot}
-        updateAgent={updateBot}
-        fetchAgent={fetchBots}
+        onOpenChange={(open: boolean) => {
+          setIsAgentModalOpen(false);
+          setSelectedInstance(null); // Clear selected instance
+          setSelectedAgentId(null); // Clear selected agent ID
+        }}
+        instance={selectedInstance}
+        selectedAgentId={selectedAgentId} // Pass the selected agent ID
       />
     </div>
   );
 };
+
 
 export default Instances;

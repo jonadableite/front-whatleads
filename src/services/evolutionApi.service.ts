@@ -1,11 +1,11 @@
 // src/services/evolutionApi.service.ts
+import { EvoAI } from "@/interface";
 import axios from "axios";
 import type {
   ChangeStatusPayload,
   ChangeStatusResponse,
   CreateBotPayload,
   CreateBotResponse,
-  GetBotsResponse,
   Settings,
   UpdateBotPayload,
   UpdateBotResponse
@@ -16,7 +16,7 @@ import type {
   IConnectResponse,
   ICreateInstancePayload,
   InstancesResponse,
-  ISettingsResponse
+  ISettingsResponse,
 } from "../types/instance";
 import { authService } from "./auth.service";
 
@@ -25,7 +25,6 @@ const EVOLUTION_API_URL =
 const VITE_API_URL = import.meta.env.VITE_API_URL || "http://localhost:9000";
 const API_KEY =
   import.meta.env.VITE_PUBLIC_API_KEY || "429683C4C977415CAAFCCE10F7D57E11";
-
 
 // Axios instance configurada para a Evolution API
 export const evolutionApi = axios.create({
@@ -59,7 +58,6 @@ backendApi.interceptors.request.use(
   (error) => Promise.reject(error)
 );
 
-
 // Funções de serviço para a Evolution API
 
 /**
@@ -67,7 +65,7 @@ backendApi.interceptors.request.use(
  * GET /settings/find/:instanceName
  */
 export const getSettings = async (
-  instanceName: string,
+  instanceName: string
 ): Promise<ISettingsResponse> => {
   const response = await evolutionApi.get(`/settings/find/${instanceName}`);
   return response.data;
@@ -79,11 +77,11 @@ export const getSettings = async (
  */
 export const setSettings = async (
   instanceName: string,
-  settings: Partial<ISettingsResponse>,
+  settings: Partial<ISettingsResponse>
 ): Promise<ISettingsResponse> => {
   const response = await evolutionApi.post(
     `/settings/set/${instanceName}`,
-    settings,
+    settings
   );
   return response.data;
 };
@@ -93,14 +91,13 @@ export const setSettings = async (
  * GET /instance/connectionState/:instanceName
  */
 export const getConnectionState = async (
-  instanceName: string,
+  instanceName: string
 ): Promise<IConnectionStateResponse> => {
   const response = await evolutionApi.get(
-    `/instance/connectionState/${instanceName}`,
+    `/instance/connectionState/${instanceName}`
   );
   return response.data;
 };
-
 
 /**
  * Lista todas as instâncias do usuário autenticado.
@@ -109,12 +106,24 @@ export const getConnectionState = async (
 export const fetchUserInstances = async (): Promise<InstancesResponse> => {
   try {
     const response = await backendApi.get<InstancesResponse>("/api/instances/");
-    return response.data;
-  } catch (error: any) {
-    console.error("Erro ao listar instâncias:", error?.response?.data || error);
+    const fetchedInstances = response.data.instances; // Supondo que a estrutura seja { instances: [...] }
+
+    // --- ADICIONE ESTE FILTRO AQUI ---
+    // Filtra elementos que são null ou undefined
+    const validInstances = fetchedInstances.filter(instance => instance != null);
+
+    // Se a sua interface InstancesResponse espera um objeto com a propriedade 'instances':
+    return { ...response.data, instances: validInstances };
+    // Se a sua interface espera apenas o array:
+    // return validInstances as InstancesResponse; // Ajuste o tipo conforme necessário
+    // ----------------------------------
+
+  } catch (error) {
+    console.error("Erro ao buscar instâncias:", error);
     throw error;
   }
 };
+
 
 /**
  * Inicia o processo de conexão para uma instância (geralmente retorna QR Code ou Pairing Code).
@@ -123,11 +132,8 @@ export const fetchUserInstances = async (): Promise<InstancesResponse> => {
  */
 export const connectInstance = async (
   instanceName: string,
-  number?: string,
 ): Promise<IConnectResponse> => {
-  const response = await evolutionApi.get(`/instance/connect/${instanceName}`, {
-    params: { number }, // Adiciona o número como query param se fornecido
-  });
+  const response = await evolutionApi.get(`/instance/connect/${instanceName}`);
   return response.data;
 };
 
@@ -141,6 +147,17 @@ export const restartInstance = async (instanceName: string): Promise<any> => {
   return response.data;
 };
 
+
+/**
+ * Desconecta uma instância.
+ * POST /instance/logout/:instanceName
+ */
+
+export const logoutInstance = async (instanceName: string): Promise<any> => {
+  const response = await evolutionApi.delete(`/instance/logout/${instanceName}`);
+  return response.data;
+}
+
 /**
  * Define o status de presença de uma instância.
  * POST /instance/setPresence/:instanceName
@@ -148,11 +165,11 @@ export const restartInstance = async (instanceName: string): Promise<any> => {
  */
 export const setPresence = async (
   instanceName: string,
-  presence: "available" | "unavailable",
+  presence: "available" | "unavailable"
 ): Promise<any> => {
   const response = await evolutionApi.post(
     `/instance/setPresence/${instanceName}`,
-    { presence },
+    { presence }
   );
   return response.data;
 };
@@ -162,7 +179,7 @@ export const setPresence = async (
  * DELETE /api/instances/:id
  */
 export const deleteInstance = async (
-  instanceId: string,
+  instanceId: string
 ): Promise<{ message: string }> => {
   const response = await backendApi.delete(`/api/instances/${instanceId}`);
   return response.data;
@@ -191,100 +208,106 @@ export const createInstance = async (
 
 /**
  * Busca todos os bots de uma instância específica.
- * GET /bot/find/:instanceName
+ * GET /evoai/find/:instanceName
  */
 export const fetchBots = async (
-  instanceName: string,
-): Promise<GetBotsResponse> => {
-  const response = await evolutionApi.get<GetBotsResponse>(
-    `/bot/find/${instanceName}`,
-  );
-  return response.data;
+  instanceName: string
+): Promise<EvoAI[]> => {
+  console.log(`[evolutionApi.service] Chamando GET /evoai/find/${instanceName}`);
+  try {
+    const response = await evolutionApi.get(
+      `/evoai/find/${instanceName}`
+    );
+    console.log(`[evolutionApi.service] Resposta de /evoai/find/${instanceName}:`, response.data); // Log da resposta
+    return response.data;
+  } catch (error) {
+    console.error(`[evolutionApi.service] Erro ao buscar bots para ${instanceName}:`, error); // Log de erro
+    throw error;
+  }
 };
+
 
 /**
  * Cria um novo bot na instância.
- * POST /bot/create/:instanceName
+ * POST /evoai/create/:instanceName
  */
 export const createBot = async (
   instanceName: string,
-  payload: CreateBotPayload,
+  payload: CreateBotPayload
 ): Promise<CreateBotResponse> => {
   const response = await evolutionApi.post<CreateBotResponse>(
-    `/bot/create/${instanceName}`,
-    payload,
+    `/evoai/create/${instanceName}`,
+    payload
   );
   return response.data;
 };
 
 /**
  * Atualiza um bot específico.
- * PUT /bot/update/:botId/:instanceName
+ * PUT /evoai/update/:botId/:instanceName
  */
 export const updateBot = async (
   botId: string,
   instanceName: string,
-  payload: UpdateBotPayload,
+  payload: UpdateBotPayload
 ): Promise<UpdateBotResponse> => {
   const response = await evolutionApi.put<UpdateBotResponse>(
-    `/bot/update/${botId}/${instanceName}`,
-    payload,
+    `/evoai/update/${botId}/${instanceName}`,
+    payload
   );
   return response.data;
 };
 
 /**
  * Deleta um bot específico.
- * DELETE /bot/delete/:botId/:instanceName
+ * DELETE /evoai/delete/:botId/:instanceName
  */
 export const deleteBot = async (
   botId: string,
-  instanceName: string,
+  instanceName: string
 ): Promise<void> => {
-  await evolutionApi.delete(
-    `/bot/delete/${botId}/${instanceName}`,
-  );
+  await evolutionApi.delete(`/evoai/delete/${botId}/${instanceName}`);
 };
 
 /**
  * Salva configurações padrão para bots.
- * POST /bot/settings/:instanceName
+ * POST /evoai/settings/:instanceName
  */
 export const saveBotSettings = async (
   instanceName: string,
-  payload: Settings,
+  payload: Settings
 ): Promise<Settings> => {
   const response = await evolutionApi.post<Settings>(
-    `/bot/settings/${instanceName}`,
-    payload,
+    `/evoai/settings/${instanceName}`,
+    payload
   );
   return response.data;
 };
 
 /**
  * Obtém configurações padrão salvas para bots.
- * GET /bot/fetchSettings/:instanceName
+ * GET /evoai/fetchSettings/:instanceName
  */
 export const fetchBotSettings = async (
-  instanceName: string,
+  instanceName: string
 ): Promise<Settings> => {
   const response = await evolutionApi.get<Settings>(
-    `/bot/fetchSettings/${instanceName}`,
+    `/evoai/fetchSettings/${instanceName}`
   );
   return response.data;
 };
 
 /**
  * Altera o status de um bot.
- * POST /bot/changeStatus/:instanceName
+ * POST /evoai/changeStatus/:instanceName
  */
 export const changeBotStatus = async (
   instanceName: string,
-  payload: ChangeStatusPayload,
+  payload: ChangeStatusPayload
 ): Promise<ChangeStatusResponse> => {
   const response = await evolutionApi.post<ChangeStatusResponse>(
-    `/bot/changeStatus/${instanceName}`,
-    payload,
+    `/evoai/changeStatus/${instanceName}`,
+    payload
   );
   return response.data;
 };

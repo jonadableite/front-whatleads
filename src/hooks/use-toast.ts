@@ -1,21 +1,30 @@
-//hooks/use-toast.ts
+// hooks/use-toast.ts
 
 // Inspired by react-hot-toast library
-import * as React from "react"
+import * as React from "react";
 
-import type {
-  ToastProps,
-} from "@/components/ui/toast"
+// Remova esta importação, pois definiremos ToastProps localmente
+// import type { ToastProps } from "@/components/ui/toast"
 
-const TOAST_LIMIT = 5
-const TOAST_REMOVE_DELAY = 3000
-
-type ToasterToast = ToastProps & {
-  id: string
-  title?: React.ReactNode
-  description?: React.ReactNode
-  action?: React.ReactNode
+// Defina a interface ToastProps com as propriedades que o hook espera gerenciar
+// Inclua 'variant' aqui
+interface ToastProps {
+  id: string; // O hook gera o ID
+  open: boolean; // O hook gerencia o estado de aberto/fechado
+  onOpenChange: (open: boolean) => void; // O hook lida com a mudança de estado
+  title?: React.ReactNode;
+  description?: React.ReactNode;
+  action?: React.ReactNode;
+  // Adicione a propriedade 'variant' com os tipos esperados
+  variant?: "default" | "destructive" | "success" | "warning" | "info"; // Exemplo de variantes
+  // Adicione quaisquer outras propriedades que seu componente de toast real espera
+  // Ex: className, duration, etc.
 }
+
+
+// O tipo usado internamente pelo estado do reducer
+// Agora é o mesmo que ToastProps, pois ToastProps inclui id, open, onOpenChange
+type ToasterToast = ToastProps;
 
 // eslint-disable-next-line @typescript-eslint/no-unused-vars
 const actionTypes = {
@@ -26,6 +35,12 @@ const actionTypes = {
 } as const
 
 let count = 0
+
+// Defina o limite máximo de toasts exibidos simultaneamente
+const TOAST_LIMIT = 5;
+
+// Defina o tempo de remoção do toast em milissegundos (exemplo: 1000ms = 1s)
+const TOAST_REMOVE_DELAY = 1000;
 
 function genId() {
   count = (count + 1) % Number.MAX_VALUE
@@ -87,7 +102,7 @@ export const reducer = (state: State, action: Action): State => {
       return {
         ...state,
         toasts: state.toasts.map((t) =>
-          t.id === action.toast.id ? { ...t, ...action.toast } : t
+          t.id === action.toast.id ? { ...t, ...action.toast as ToasterToast } : t // Cast para garantir tipo correto na mesclagem
         ),
       }
 
@@ -141,28 +156,31 @@ function dispatch(action: Action) {
   })
 }
 
-type Toast = Omit<ToasterToast, "id">
+// O tipo para o argumento passado para a função `toast`
+// Ele omite as propriedades que são gerenciadas internamente pelo hook (`id`, `open`, `onOpenChange`)
+type Toast = Omit<ToasterToast, "id" | "open" | "onOpenChange">
 
 function toast({ ...props }: Toast) {
   const id = genId()
 
-  const update = (props: ToasterToast) =>
+  // O tipo para a função update deve ser Partial<Omit<ToasterToast, "id">>
+  const update = (props: Partial<Omit<ToasterToast, "id">>) =>
     dispatch({
       type: "UPDATE_TOAST",
-      toast: { ...props, id },
+      toast: { ...props, id } as Partial<ToasterToast>, // Cast para Partial<ToasterToast>
     })
   const dismiss = () => dispatch({ type: "DISMISS_TOAST", toastId: id })
 
   dispatch({
     type: "ADD_TOAST",
     toast: {
-      ...props,
+      ...props, // 'variant' agora é uma propriedade conhecida aqui se for passada
       id,
       open: true,
       onOpenChange: (open) => {
         if (!open) dismiss()
       },
-    },
+    } as ToasterToast, // Cast para garantir que o objeto criado corresponda ao tipo ToasterToast
   })
 
   return {
@@ -183,7 +201,7 @@ function useToast() {
         listeners.splice(index, 1)
       }
     }
-  }, [state])
+  }, [state]) // Dependência [state] pode não ser necessária aqui, listeners manipulam memoryState
 
   return {
     ...state,
@@ -192,5 +210,6 @@ function useToast() {
   }
 }
 
-export { toast, useToast }
+export { toast, useToast };
+
 

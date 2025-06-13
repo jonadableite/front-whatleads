@@ -5,7 +5,7 @@ import {
   DialogContent,
   DialogDescription,
   DialogHeader,
-  DialogTitle
+  DialogTitle,
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
@@ -15,20 +15,28 @@ import {
   SelectContent,
   SelectItem,
   SelectTrigger,
-  SelectValue
+  SelectValue,
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
-import { yupResolver } from "@hookform/resolvers/yup";
-import { HelpCircle, Save, X } from "lucide-react";
-import React, { KeyboardEvent, useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
-import * as yup from "yup";
-import { toast } from "./ui/toast";
+import { toast } from "@/hooks/use-toast";
+import { listAgents } from "@/services/agentService"; // Mantém a importação para agentes do backend
+// Importa as funções do novo serviço para a Evolution API
+import {
+  createBot,
+  deleteBot,
+  fetchBots,
+  updateBot,
+} from "@/services/evolutionApi.service"; // Ajuste o caminho conforme a estrutura do seu projeto
 
-// --- Interfaces ---
 
-interface AgentFormData {
+import type { Agent } from "@/types/agent";
+import { Edit, HelpCircle, Plus, Save, Trash2, X } from "lucide-react";
+import { useCallback, useEffect, useState } from "react";
+
+
+// Tipos para Evolution API (Compatíveis com os payloads do serviço)
+interface EvoAIConfig {
   enabled: boolean;
   description: string;
   agentUrl: string;
@@ -44,705 +52,877 @@ interface AgentFormData {
   ignoreJids: string[];
   splitMessages: boolean;
   timePerChar: number;
-  triggerType: "all" | "keyword" | "none";
-  triggerOperator: "contains" | "equals" | "startsWith" | "endsWith" | "regex";
+  triggerType: "all" | "keyword";
+  triggerOperator: "contains" | "equals" | "startsWith" | "endsWith";
   triggerValue: string;
 }
 
-// --- Schema de Validação com Yup ---
-const agentConfigSchema = yup.object().shape({
-  enabled: yup.boolean().required("Campo obrigatório"),
-  description: yup.string().required("Descrição é obrigatória").min(3, "Mínimo 3 caracteres"),
-  agentUrl: yup.string().url("URL inválida").required("URL do Agente é obrigatória"),
-  apiKey: yup.string().required("API Key é obrigatória"),
-  expire: yup.number().min(0, "Deve ser no mínimo 0").required("Tempo de expiração é obrigatório"),
-  keywordFinish: yup.string().required("Palavra para encerrar é obrigatória"),
-  delayMessage: yup.number().min(0, "Deve ser no mínimo 0").required("Delay da mensagem é obrigatório"),
-  unknownMessage: yup.string().required("Mensagem quando não entender é obrigatória"),
-  listeningFromMe: yup.boolean().required("Campo obrigatório"),
-  stopBotFromMe: yup.boolean().required("Campo obrigatório"),
-  keepOpen: yup.boolean().required("Campo obrigatório"),
-  debounceTime: yup.number().min(0, "Deve ser no mínimo 0").required("Tempo de debounce é obrigatório"),
-  ignoreJids: yup.array(yup.string().matches(/^\d+$/, "Número inválido (apenas dígitos)")).required(), // Valida array de strings (apenas dígitos)
-  splitMessages: yup.boolean().required("Campo obrigatório"),
-  timePerChar: yup.number().min(0, "Deve ser no mínimo 0").required("Tempo por caractere é obrigatório"),
-  triggerType: yup.string().oneOf(["all", "keyword", "none"], "Tipo de gatilho inválido").required("Tipo de gatilho é obrigatório"),
-  triggerOperator: yup.string().oneOf(["contains", "equals", "startsWith", "endsWith", "regex"], "Operador de gatilho inválido").required("Operador de gatilho é obrigatório"),
-  triggerValue: yup.string().when("triggerType", { // triggerValue é obrigatório apenas se triggerType for 'keyword'
-    is: "keyword",
-    then: (schema) => schema.required("Valor do gatilho é obrigatório quando o tipo é 'keyword'"),
-    otherwise: (schema) => schema.notRequired(),
-  }),
-});
 
-// --- Propriedades do Componente ---
-interface AgentConfigModalProps {
-  isOpen: boolean;
-  onClose: () => void;
-  selectedAgentId: string | null; // ID do agente sendo editado, null para criar novo
-  instanceName: string; // O nome da instância para a qual o agente está sendo configurado
-  // Funções para interagir com a API backend (passadas do componente pai)
-  createAgent: (instanceName: string, data: AgentFormData) => Promise<any>;
-  updateAgent: (agentId: string, instanceName: string, data: AgentFormData) => Promise<any>;
-  fetchAgent: (agentId: string, instanceName: string) => Promise<AgentFormData>; // Função para buscar dados do agente para edição
+// Interface para representar um bot retornado pela Evolution API (compatível com GetBotsResponse item)
+interface EvoAI {
+  id: string;
+  name?: string; // O serviço pode não retornar 'name', mas 'description' é usado para exibição
+  description: string; // Campo usado pela API para nome/descrição
+  enabled: boolean;
+  agentUrl: string;
+  apiKey: string;
+  expire: number;
+  keywordFinish: string;
+  delayMessage: number;
+  unknownMessage: string;
+  listeningFromMe: boolean;
+  stopBotFromMe: boolean;
+  keepOpen: boolean;
+  debounceTime: number;
+  ignoreJids: string[];
+  splitMessages: boolean;
+  timePerChar: number;
+  triggerType: "all" | "keyword";
+  triggerOperator: "contains" | "equals" | "startsWith" | "endsWith";
+  triggerValue: string;
+  updatedAt: string;
 }
 
-const AgentConfigModal: React.FC<AgentConfigModalProps> = ({
-  isOpen,
-  onClose,
-  selectedAgentId,
+
+// Interface para o formulário, inclui campos da EvoAIConfig
+interface EvoAIFormData extends EvoAIConfig {
+  name: string; // Nome do agente backend (para exibição e link)
+  description: string; // Campo usado pela API para nome/descrição
+}
+
+
+interface AIAgentDialogProps {
+  instanceName: string;
+  onUpdate: () => void;
+  isOpen: boolean;
+  onOpenChange: (open: boolean) => void;
+}
+
+
+const defaultFormData: EvoAIFormData = {
+  // EvoAI Config (campos enviados para a Evolution API)
+  enabled: true,
+  description: "", // Usado para o "Nome" ou identificação do bot na EvoAI
+  agentUrl: "",
+  apiKey: "",
+  expire: 0,
+  keywordFinish: "sair",
+  delayMessage: 1,
+  unknownMessage: "Desculpe, não consegui entender sua solicitação.",
+  listeningFromMe: false,
+  stopBotFromMe: true,
+  keepOpen: false,
+  debounceTime: 0,
+  ignoreJids: [],
+  splitMessages: false,
+  timePerChar: 0,
+  triggerType: "all",
+  triggerOperator: "contains",
+  triggerValue: "",
+};
+
+
+// Componente para tooltip responsivo
+const HelpTooltip = ({ content }: { content: string }) => (
+  <div className="group relative inline-flex">
+    <HelpCircle className="w-4 h-4 text-gray-400 cursor-help" />
+    <div className="absolute bottom-6 left-1/2 transform -translate-x-1/2 hidden group-hover:block bg-black text-white text-xs rounded p-2 whitespace-nowrap z-50 max-w-xs text-center">
+      {content}
+      <div className="absolute top-full left-1/2 transform -translate-x-1/2 border-4 border-transparent border-t-black"></div>
+    </div>
+  </div>
+);
+
+
+export function AIAgentDialog({
   instanceName,
-  createAgent,
-  updateAgent,
-  fetchAgent,
-}) => {
-  const [isLoadingAgent, setIsLoadingAgent] = useState(false);
+  isOpen,
+  onOpenChange,
+  onUpdate,
+}: AIAgentDialogProps) {
+  // Estados
+  const [agents, setAgents] = useState<Agent[]>([]); // Agentes do backend do usuário
+  const [availableAgents, setAvailableAgents] = useState<EvoAI[]>([]); // Bots configurados na Evolution API para esta instância
+  const [selectedAgent, setSelectedAgent] = useState<EvoAI | null>(null); // Bot da Evolution API selecionado para edição
+  const [selectedAgentId, setSelectedAgentId] = useState<string>(""); // ID do agente backend selecionado para criar um novo bot
+  const [formData, setFormData] = useState<EvoAIFormData>(defaultFormData);
+  const [loading, setLoading] = useState(false);
   const [ignoreJidInput, setIgnoreJidInput] = useState("");
+  const [isCreatingNew, setIsCreatingNew] = useState(false);
 
-  const {
-    register,
-    handleSubmit,
-    formState,
-    reset,
-    setValue,
-    watch,
-    // control, // Pode ser necessário para alguns componentes controlados, mas register e setValue/watch geralmente bastam
-  } = useForm<AgentFormData>({
-    resolver: yupResolver(agentConfigSchema),
-    defaultValues: {
-      enabled: true,
-      description: "",
-      agentUrl: "",
-      apiKey: "",
-      expire: 10,
-      keywordFinish: "sair",
-      delayMessage: 1,
-      unknownMessage: "Desculpe, não consegui entender sua solicitação.",
-      listeningFromMe: false,
-      stopBotFromMe: true,
-      keepOpen: false,
-      debounceTime: 0,
-      ignoreJids: [],
-      splitMessages: true,
-      timePerChar: 2,
-      triggerType: "all",
-      triggerOperator: "contains",
-      triggerValue: "",
-    },
-  });
 
-  const { errors, isSubmitting, isValid } = formState;
+  // Obter informações do usuário
+  const user =
+    typeof window !== "undefined"
+      ? JSON.parse(localStorage.getItem("user") || "{}")
+      : {};
+  const clientId = user?.client_id || "";
 
-  // Observa campos necessários para renderização condicional ou lógica
-  const [splitMessages, triggerType] = watch(['splitMessages', 'triggerType']);
-  const ignoreJids = watch('ignoreJids'); // Observa o array para renderização
 
-  // --- Efeitos ---
+  // Carregar agentes do usuário (do backend)
+  const loadUserAgents = useCallback(async () => {
+    if (!clientId) return;
 
-  // Efeito para carregar dados do agente quando o modal abre para edição
+
+    try {
+      console.log("Carregando agentes do usuário...");
+      const response = await listAgents(clientId, 0, 100); // Usa listAgents do agentService
+      console.log("Agentes carregados:", response);
+      setAgents(response.data || []);
+    } catch (error) {
+      console.error("Erro ao carregar agentes:", error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível carregar seus agentes",
+        variant: "destructive",
+      });
+    }
+  }, [clientId]);
+
+
+  // Carregar EvoAIs da instância (da Evolution API usando fetchBots)
+  const loadAvailableAgents = useCallback(async () => {
+    if (!instanceName) return;
+
+    setLoading(true);
+    try {
+      console.log("Carregando agentes da instância:", instanceName);
+      const response = await fetchBots(instanceName);
+      console.log("Resposta bruta da API (fetchBots):", response); // Log da resposta bruta
+
+      const agentsData = response || [];
+      console.log("Dados dos agentes após verificação (fetchBots):", agentsData); // Log após verificação inicial
+
+      // Log antes da filtragem/mapeamento
+      console.log("Dados antes da filtragem/mapeamento:", agentsData);
+
+      const filteredAgents = Array.isArray(agentsData)
+        ? agentsData.filter(
+          (agent: any) =>
+            agent.triggerType === "all" || agent.triggerType === "keyword"
+        )
+        : [];
+
+      // Log após a filtragem
+      console.log("Dados após a filtragem:", filteredAgents);
+
+
+      setAvailableAgents(
+        filteredAgents.map((agent: any) => ({
+          ...agent,
+          triggerType:
+            agent.triggerType === "all" || agent.triggerType === "keyword"
+              ? agent.triggerType
+              : "all",
+          triggerOperator:
+            agent.triggerOperator === "contains" ||
+              agent.triggerOperator === "equals" ||
+              agent.triggerOperator === "startsWith" ||
+              agent.triggerOperator === "endsWith"
+              ? agent.triggerOperator
+              : "contains",
+        }))
+      );
+
+      // Log do estado final
+      console.log("Estado availableAgents atualizado:", availableAgents); // Note: this will log the *previous* state due to closure
+
+    } catch (error) {
+      console.error("Erro ao carregar agentes da instância:", error);
+      toast({
+        title: "Erro",
+        description: "Não foi possível carregar os agentes da instância",
+        variant: "destructive",
+      });
+      setAvailableAgents([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [availableAgents, instanceName]); // Adicione availableAgents aqui se quiser ver o estado atualizado no log subsequente
+
+
+
+  // Carregar dados quando abrir o dialog
   useEffect(() => {
     if (isOpen) {
-      if (selectedAgentId) {
-        setIsLoadingAgent(true);
-        fetchAgent(selectedAgentId, instanceName)
-          .then((data) => {
-            reset(data); // Popula o formulário com os dados buscados
-            toast.success(
-              `Configurações do agente "${data.description}" carregadas com sucesso.`
-            );
-          })
-          .catch((error) => {
-            console.error("Erro ao carregar agente:", error);
-            toast.error(
-              "Não foi possível carregar as configurações do agente."
-            );
-            // Opcionalmente, feche o modal ou desabilite o formulário em caso de erro
-            onClose();
-          })
-          .finally(() => {
-            setIsLoadingAgent(false);
-          });
+      loadUserAgents();
+      loadAvailableAgents();
+      // Reseta os estados ao abrir
+      setSelectedAgent(null);
+      setIsCreatingNew(false);
+      setFormData(defaultFormData);
+      setSelectedAgentId("");
+      setIgnoreJidInput(""); // Resetar input de ignoreJids
+    }
+  }, [isOpen, loadUserAgents, loadAvailableAgents]);
+
+
+  // Handlers
+  const handleFormChange = useCallback(
+    (field: keyof EvoAIFormData, value: any) => {
+      setFormData((prev) => ({ ...prev, [field]: value }));
+    },
+    []
+  );
+
+
+  const handleAgentSelection = useCallback(
+    (agentId: string) => {
+      const agent = agents.find((a) => a.id === agentId);
+      if (agent) {
+        setSelectedAgentId(agentId);
+        // Constrói a agentUrl com base no ID do agente backend selecionado
+        const agentUrl = `${process.env.VITE_API_AI_URL}/api/v1/a2a/${agentId}`;
+
+
+        // Inicializa o formulário com os valores padrão e sobrescreve com os dados do agente backend
+        setFormData({
+          ...defaultFormData,
+          name: agent.name,
+          model: agent.model,
+          agentUrl: agentUrl,
+          description: agent.name,
+        });
+        setIsCreatingNew(true); // Entra no modo de criação
+        setSelectedAgent(null); // Garante que não está editando um existente
+      }
+    },
+    [agents]
+  );
+
+
+  const editAgent = useCallback(
+    (agent: EvoAI) => {
+      setSelectedAgent(agent);
+      setIsCreatingNew(false); // Não está criando um novo, está editando
+      setSelectedAgentId(""); // Limpa o ID do agente backend selecionado
+      setFormData({
+        ...defaultFormData, // Começa com os defaults
+        ...agent, // Sobrescreve com os dados do bot da EvoAI
+        // Campos que podem não vir da EvoAI, mas são necessários para o formulário
+        // Se a EvoAI retornar 'description', usá-lo como 'name' no formulário
+        name: agent.description || "",
+        // Campos do agente backend não são editáveis aqui, então usamos defaults ou vazios
+        systemMessage: "",
+        model: "gpt-3.5-turbo",
+        temperature: 0.7,
+        maxTokens: 2000,
+        topP: 1,
+        triggerKeywords: [],
+        onlyBusinessHours: false,
+        businessHoursStart: "09:00",
+        businessHoursEnd: "18:00",
+        welcomeMessage: "",
+        fallbackMessage: "",
+      });
+      setIgnoreJidInput(agent.ignoreJids.join(", ")); // Preenche o input de ignoreJids
+    },
+    []
+  );
+
+
+  const addIgnoreJid = useCallback(() => {
+    const jid = ignoreJidInput.trim();
+    if (jid && !formData.ignoreJids.includes(jid)) {
+      setFormData((prev) => ({
+        ...prev,
+        ignoreJids: [...prev.ignoreJids, jid],
+      }));
+      setIgnoreJidInput("");
+    }
+  }, [ignoreJidInput, formData.ignoreJids]);
+
+
+  const removeIgnoreJid = useCallback(
+    (jidToRemove: string) => {
+      setFormData((prev) => ({
+        ...prev,
+        ignoreJids: prev.ignoreJids.filter((jid) => jid !== jidToRemove),
+      }));
+    },
+    []
+  );
+
+
+  const saveAgent = useCallback(async () => {
+    if (!instanceName) {
+      toast({
+        title: "Erro",
+        description: "Nome da instância não fornecido.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+
+    setLoading(true);
+    try {
+      const payload: EvoAIConfig = {
+        enabled: formData.enabled,
+        description: formData.description,
+        agentUrl: formData.agentUrl,
+        apiKey: formData.apiKey,
+        expire: Number(formData.expire), // Garante que é um número
+        keywordFinish: formData.keywordFinish,
+        delayMessage: Number(formData.delayMessage), // Garante que é um número
+        unknownMessage: formData.unknownMessage,
+        listeningFromMe: formData.listeningFromMe,
+        stopBotFromMe: formData.stopBotFromMe,
+        keepOpen: formData.keepOpen,
+        debounceTime: Number(formData.debounceTime), // Garante que é um número
+        ignoreJids: formData.ignoreJids,
+        splitMessages: formData.splitMessages,
+        timePerChar: Number(formData.timePerChar), // Garante que é um número
+        triggerType: formData.triggerType,
+        triggerOperator: formData.triggerOperator,
+        triggerValue: formData.triggerValue,
+      };
+
+
+      let response;
+      if (selectedAgent) {
+        // Atualizar agente existente
+        console.log("Atualizando agente:", selectedAgent.id, payload);
+        response = await updateBot(selectedAgent.id, instanceName, payload);
+        toast({
+          title: "Sucesso",
+          description: "Agente atualizado com sucesso!",
+        });
       } else {
-        // Reseta o formulário para valores padrão ao criar um novo agente
-        reset({
-          enabled: true,
-          description: "",
-          agentUrl: "",
-          apiKey: "",
-          expire: 10,
-          keywordFinish: "sair",
-          delayMessage: 1,
-          unknownMessage: "Desculpe, não consegui entender sua solicitação.",
-          listeningFromMe: false,
-          stopBotFromMe: true,
-          keepOpen: false,
-          debounceTime: 0,
-          ignoreJids: [],
-          splitMessages: true,
-          timePerChar: 2,
-          triggerType: "all",
-          triggerOperator: "contains",
-          triggerValue: "",
+        // Criar novo agente
+        console.log("Criando novo agente:", payload);
+        response = await createBot(instanceName, payload);
+        toast({
+          title: "Sucesso",
+          description: "Agente conectado com sucesso!",
         });
       }
-    } else {
-      // Reseta o formulário quando o modal fecha para limpar dados anteriores
-      reset();
-      setIgnoreJidInput(""); // Limpa também o input de novos JIDs
-    }
-  }, [isOpen, selectedAgentId, instanceName, fetchAgent, reset]); // Adicionado reset às dependências conforme recomendação do linter
 
-  // --- Handlers ---
 
-  const handleAddIgnoreJid = () => {
-    const jid = ignoreJidInput.trim();
-    if (!jid) {
-      // Opcional: mostrar toast se o input estiver vazio
-      toast.info("Por favor, digite um número para adicionar.");
-      return;
-    }
-
-    // Validação básica do formato do JID (apenas dígitos)
-    const jidRegex = /^\d+$/;
-    if (!jidRegex.test(jid)) {
-      toast.error("O número deve conter apenas dígitos.");
-      return;
-    }
-
-    if (ignoreJids.includes(jid)) {
-      toast.info(`O número ${jid} já está na lista de ignorados.`);
-      setIgnoreJidInput(""); // Limpa o input mesmo se já existir
-      return;
-    }
-
-    const updatedJids = [...ignoreJids, jid];
-    setValue("ignoreJids", updatedJids, { shouldValidate: true }); // Atualiza o estado do formulário e dispara validação
-    setIgnoreJidInput(""); // Limpa o campo de input
-  };
-
-  const handleRemoveIgnoreJid = (jidToRemove: string) => {
-    const updatedJids = ignoreJids.filter((jid) => jid !== jidToRemove);
-    setValue("ignoreJids", updatedJids, { shouldValidate: true }); // Atualiza o estado do formulário e dispara validação
-  };
-
-  const handleIgnoreJidKeyPress = (event: KeyboardEvent<HTMLInputElement>) => {
-    if (event.key === "Enter") {
-      event.preventDefault(); // Previne o submit do formulário
-      handleAddIgnoreJid();
-    }
-  };
-
-  const onSubmit = async (data: AgentFormData) => {
-    try {
-      if (selectedAgentId) {
-        // Atualiza agente existente
-        await updateAgent(selectedAgentId, instanceName, data);
-        toast.success(
-          `Configurações do agente "${data.description}" atualizadas com sucesso.`
-        );
-      } else {
-        // Cria novo agente
-        await createAgent(instanceName, data);
-        toast.success(
-          `Agente IA adicionado com sucesso à instância "${instanceName}".`
-        );
-      }
-      onClose(); // Fecha o modal em caso de sucesso
+      console.log("Resposta da API:", response);
+      onUpdate(); // Notifica o componente pai para atualizar a lista de instâncias
+      onOpenChange(false); // Fecha o modal
     } catch (error: any) {
       console.error("Erro ao salvar agente:", error);
-      const errorMessage = error.response?.data?.error || error.message || "Ocorreu um erro ao salvar as configurações do agente.";
-      toast.error(errorMessage);
+      toast({
+        title: "Erro",
+        description:
+          error.response?.data?.message || "Ocorreu um erro ao salvar o agente.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
     }
-  };
+  }, [
+    formData,
+    instanceName,
+    selectedAgent,
+    onUpdate,
+    onOpenChange,
+  ]);
 
-  const cancelEditing = () => {
-    // Opcionalmente, confirme com o usuário se o formulário tem alterações não salvas
-    const isDirty = Object.keys(formState.dirtyFields).length > 0;
-    if (isDirty && !window.confirm("Você tem alterações não salvas. Deseja descartar?")) {
+
+  const handleDeleteAgent = useCallback(async () => {
+    if (!selectedAgent || !instanceName) {
+      toast({
+        title: "Erro",
+        description: "Nenhum agente selecionado para deletar ou instância inválida.",
+        variant: "destructive",
+      });
       return;
     }
-    onClose();
-  };
+
+
+    setLoading(true);
+    try {
+      console.log("Deletando agente:", selectedAgent.id);
+      await deleteBot(selectedAgent.id, instanceName);
+      toast({
+        title: "Sucesso",
+        description: "Agente desconectado com sucesso!",
+      });
+      onUpdate(); // Notifica o componente pai
+      onOpenChange(false); // Fecha o modal
+    } catch (error: any) {
+      console.error("Erro ao deletar agente:", error);
+      toast({
+        title: "Erro",
+        description:
+          error.response?.data?.message ||
+          "Ocorreu um erro ao desconectar o agente.",
+        variant: "destructive",
+      });
+    } finally {
+      setLoading(false);
+    }
+  }, [selectedAgent, instanceName, onUpdate, onOpenChange]);
+
+
+  const cancelEditing = useCallback(() => {
+    setSelectedAgent(null);
+    setIsCreatingNew(false);
+    setFormData(defaultFormData);
+    setSelectedAgentId("");
+    setIgnoreJidInput("");
+  }, []);
+
+
+  const isEditing = selectedAgent !== null;
+
 
   return (
-    // Use onOpenChange para controlar a visibilidade do Dialog
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      {/* <DialogTrigger asChild>
-          {/* Seu botão ou elemento que abre o modal aqui }
-          <Button variant="outline">Configurar Agente</Button>
-      </DialogTrigger> */}
-      <DialogContent className="sm:max-w-lg max-h-[90vh] flex flex-col"> {/* Adicionado flex e max-h para controlar a altura e rolagem */}
+    <Dialog open={isOpen} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[600px] max-h-[90vh] flex flex-col">
         <DialogHeader>
-          <DialogTitle>{selectedAgentId ? "Editar Configurações do Agente" : "Conectar Novo Agente"}</DialogTitle>
+          <DialogTitle>Configurar Agente de IA para {instanceName}</DialogTitle>
           <DialogDescription>
-            {selectedAgentId
-              ? "Ajuste as configurações do agente existente para esta instância."
-              : `Conecte um novo agente de IA à instância "${instanceName}".`}
+            {isCreatingNew
+              ? "Selecione um agente do seu painel para conectar a esta instância ou configure manualmente."
+              : isEditing
+                ? `Editando configuração do bot: ${selectedAgent?.description || selectedAgent?.id}`
+                : "Gerencie os agentes de IA conectados a esta instância."}
           </DialogDescription>
         </DialogHeader>
 
-        {isLoadingAgent ? (
-          <div className="flex justify-center items-center h-64">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-gray-900 dark:border-gray-100"></div>
-            <span className="ml-2">Carregando configurações...</span>
+
+        {/* Lista de agentes existentes ou formulário */}
+        {!selectedAgent && !isCreatingNew ? (
+          <div className="flex flex-col gap-4 py-4 overflow-y-auto">
+            {loading ? (
+              <p>Carregando agentes...</p>
+            ) : availableAgents.length === 0 ? (
+              <p>Nenhum agente de IA configurado para esta instância.</p>
+            ) : (
+              availableAgents.map((agent) => (
+                <div
+                  key={agent.id}
+                  className="flex items-center justify-between p-4 border rounded-md"
+                >
+                  <div>
+                    <p className="font-semibold">{agent.description || agent.id}</p>
+                    <p className="text-sm text-gray-500">{agent.agentUrl}</p>
+                  </div>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => editAgent(agent)}
+                    >
+                      <Edit className="mr-2 h-4 w-4" /> Editar
+                    </Button>
+                    {/* Botão de deletar só aparece na lista, não no formulário de edição */}
+                    <Button
+                      variant="destructive"
+                      size="sm"
+                      onClick={handleDeleteAgent} // Usa o handler de delete
+                      disabled={loading}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                </div>
+              ))
+            )}
+            <div className="flex justify-center mt-4">
+              <Button onClick={() => setIsCreatingNew(true)}>
+                <Plus className="mr-2 h-4 w-4" /> Conectar Novo Agente
+              </Button>
+            </div>
           </div>
         ) : (
-          // ScrollArea para o conteúdo do formulário
-          <ScrollArea className="flex-grow pr-4 -mr-4"> {/* Ajuste para a barra de rolagem */}
-            <div className="space-y-6 py-4"> {/* Adicionado padding interno */}
-              {/* Configurações Gerais */}
-              <div className="space-y-4 p-4 bg-gray-50 dark:bg-[#16151D]/50 rounded-lg">
-                <h3 className="text-lg font-semibold mb-2">Configurações Gerais</h3>
-                {/* Enabled */}
-                <div>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
-                      <Switch
-                        id="enabled"
-                        checked={watch('enabled')} // Use watch para componentes controlados
-                        onCheckedChange={(checked) => setValue('enabled', checked)} // Use setValue
-                      />
-                      <Label htmlFor="enabled" className="font-normal">
-                        Agente Ativo
-                      </Label>
-                    </div>
-                    <div className="group relative">
-                      <HelpCircle className="w-4 h-4 text-gray-400 cursor-help" />
-                      <div className="absolute bottom-6 right-0 hidden group-hover:block bg-black text-white text-xs rounded p-2 whitespace-normal max-w-xs z-50">
-                        Ativa ou desativa o agente para esta instância.
-                      </div>
-                    </div>
+          /* Formulário de criação/edição */
+          <div className="grid gap-4 py-4 flex-grow overflow-hidden">
+            <ScrollArea className="h-full pr-4">
+              <div className="grid gap-4">
+                {/* Seleção do agente backend (apenas na criação) */}
+                {!isEditing && (
+                  <div className="grid grid-cols-4 items-center gap-4">
+                    <Label htmlFor="backendAgent" className="text-right">
+                      Agentes IA
+                    </Label>
+                    <Select
+                      onValueChange={handleAgentSelection}
+                      value={selectedAgentId}
+                      disabled={loading || isEditing}
+                    >
+                      <SelectTrigger className="col-span-3">
+                        <SelectValue placeholder="Selecione um agente do seu painel" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {agents.map((agent) => (
+                          <SelectItem key={agent.id} value={agent.id}>
+                            {agent.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
                   </div>
-                </div>
-                {/* Description */}
-                <div>
-                  <Label htmlFor="description">Descrição *</Label>
+                )}
+
+
+                {/* Campos do formulário (EvoAI Config) */}
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="description" className="text-right">
+                    Nome/Descrição Bot
+                    <HelpTooltip content="Nome ou descrição para identificar este bot na Evolution API." />
+                  </Label>
                   <Input
                     id="description"
-                    {...register("description")} // Use register
-                    placeholder="Ex: Agente de Vendas, Suporte IA"
-                    className="mt-1"
+                    value={formData.description}
+                    onChange={(e) =>
+                      handleFormChange("description", e.target.value)
+                    }
+                    className="col-span-3"
+                    disabled={loading}
                   />
-                  {errors.description && <p className="text-red-500 text-sm mt-1">{errors.description.message}</p>}
                 </div>
-                {/* Agent URL */}
-                <div>
-                  <Label htmlFor="agentUrl">URL do Agente (API) *</Label>
+
+
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="agentUrl" className="text-right">
+                    Agent URL
+                    <HelpTooltip content="URL do seu agente de IA (backend) que a Evolution API irá chamar." />
+                  </Label>
                   <Input
                     id="agentUrl"
-                    type="url"
-                    {...register("agentUrl")} // Use register
-                    placeholder="Ex: https://sua-api-de-agente.com/webhook"
-                    className="mt-1"
+                    value={formData.agentUrl}
+                    onChange={(e) => handleFormChange("agentUrl", e.target.value)}
+                    className="col-span-3"
+                    disabled={loading || isCreatingNew} // Desabilita se estiver criando via seleção de agente backend
                   />
-                  {errors.agentUrl && <p className="text-red-500 text-sm mt-1">{errors.agentUrl.message}</p>}
                 </div>
-                {/* API Key */}
-                <div>
-                  <Label htmlFor="apiKey">API Key *</Label>
+
+
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="apiKey" className="text-right">
+                    API Key
+                    <HelpTooltip content="Chave de API para autenticar a Evolution API no seu agente backend." />
+                  </Label>
                   <Input
                     id="apiKey"
-                    type="password" // Use type password para chave sensível
-                    {...register("apiKey")} // Use register
-                    placeholder="Digite a API Key do seu agente"
-                    className="mt-1"
+                    value={formData.apiKey}
+                    onChange={(e) => handleFormChange("apiKey", e.target.value)}
+                    className="col-span-3"
+                    disabled={loading}
                   />
-                  {errors.apiKey && <p className="text-red-500 text-sm mt-1">{errors.apiKey.message}</p>}
                 </div>
-              </div>
 
-              {/* Configurações de Comportamento */}
-              <div className="space-y-4 p-4 bg-gray-50 dark:bg-[#16151D]/50 rounded-lg">
-                <h3 className="text-lg font-semibold mb-2">Comportamento do Agente</h3>
-                {/* Trigger Type */}
-                <div>
-                  <div className="flex items-center gap-2 mb-2">
-                    <Label htmlFor="triggerType">Gatilho *</Label>
-                    <div className="group relative">
-                      <HelpCircle className="w-4 h-4 text-gray-400 cursor-help" />
-                      <div className="absolute bottom-6 left-0 hidden group-hover:block bg-black text-white text-xs rounded p-2 whitespace-normal max-w-xs z-50">
-                        Define quando o agente deve responder: "all" (sempre), "keyword" (apenas se a mensagem contiver a palavra-chave), "none" (nunca inicia, apenas continua conversas existentes).
-                      </div>
-                    </div>
-                  </div>
+
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="expire" className="text-right">
+                    Expirar (min)
+                    <HelpTooltip content="Tempo em minutos que a sessão do bot permanece ativa após a última interação. 0 para nunca expirar." />
+                  </Label>
+                  <Input
+                    id="expire"
+                    type="number"
+                    value={formData.expire}
+                    onChange={(e) =>
+                      handleFormChange("expire", Number(e.target.value))
+                    }
+                    className="col-span-3"
+                    disabled={loading}
+                  />
+                </div>
+
+
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="keywordFinish" className="text-right">
+                    Palavra-chave Finalizar
+                    <HelpTooltip content="Palavra-chave que o usuário pode usar para finalizar a conversa com o bot." />
+                  </Label>
+                  <Input
+                    id="keywordFinish"
+                    value={formData.keywordFinish}
+                    onChange={(e) =>
+                      handleFormChange("keywordFinish", e.target.value)
+                    }
+                    className="col-span-3"
+                    disabled={loading}
+                  />
+                </div>
+
+
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="delayMessage" className="text-right">
+                    Delay Mensagem (seg)
+                    <HelpTooltip content="Atraso em segundos antes de enviar a resposta do bot." />
+                  </Label>
+                  <Input
+                    id="delayMessage"
+                    type="number"
+                    value={formData.delayMessage}
+                    onChange={(e) =>
+                      handleFormChange("delayMessage", Number(e.target.value))
+                    }
+                    className="col-span-3"
+                    disabled={loading}
+                  />
+                </div>
+
+
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="unknownMessage" className="text-right">
+                    Mensagem Desconhecida
+                    <HelpTooltip content="Mensagem enviada quando o bot não consegue processar a solicitação do usuário." />
+                  </Label>
+                  <Textarea
+                    id="unknownMessage"
+                    value={formData.unknownMessage}
+                    onChange={(e) =>
+                      handleFormChange("unknownMessage", e.target.value)
+                    }
+                    className="col-span-3"
+                    disabled={loading}
+                  />
+                </div>
+
+
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="triggerType" className="text-right">
+                    Tipo de Gatilho
+                    <HelpTooltip content="Define quando o bot será ativado. 'all' para todas as mensagens, 'keyword' para ativar por palavra-chave." />
+                  </Label>
                   <Select
-                    value={triggerType} // Use watch
-                    onValueChange={(value: "all" | "keyword" | "none") => setValue('triggerType', value, { shouldValidate: true })} // Use setValue
+                    onValueChange={(value: "all" | "keyword") =>
+                      handleFormChange("triggerType", value)
+                    }
+                    value={formData.triggerType}
+                    disabled={loading}
                   >
-                    <SelectTrigger className="w-full">
+                    <SelectTrigger className="col-span-3">
                       <SelectValue placeholder="Selecione o tipo de gatilho" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="all">Qualquer Mensagem</SelectItem>
-                      <SelectItem value="keyword">Palavra-Chave Específica</SelectItem>
-                      <SelectItem value="none">Desativado (Apenas Continua Conversas)</SelectItem>
+                      <SelectItem value="all">Todas as Mensagens</SelectItem>
+                      <SelectItem value="keyword">Palavra-chave</SelectItem>
                     </SelectContent>
                   </Select>
-                  {errors.triggerType && <p className="text-red-500 text-sm mt-1">{errors.triggerType.message}</p>}
                 </div>
 
-                {/* Trigger Value (Condicional) */}
-                {triggerType === "keyword" && (
+
+                {formData.triggerType === "keyword" && (
                   <>
-                    {/* Trigger Operator */}
-                    <div>
-                      <div className="flex items-center gap-2 mb-2">
-                        <Label htmlFor="triggerOperator">Operador do Gatilho *</Label>
-                        <div className="group relative">
-                          <HelpCircle className="w-4 h-4 text-gray-400 cursor-help" />
-                          <div className="absolute bottom-6 left-0 hidden group-hover:block bg-black text-white text-xs rounded p-2 whitespace-normal max-w-xs z-50">
-                            Como a palavra-chave será comparada: "contains" (contém), "equals" (igual), "startsWith" (começa com), "endsWith" (termina com), "regex" (expressão regular).
-                          </div>
-                        </div>
-                      </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                      <Label htmlFor="triggerOperator" className="text-right">
+                        Operador Gatilho
+                        <HelpTooltip content="Define como a palavra-chave de gatilho será comparada com a mensagem do usuário." />
+                      </Label>
                       <Select
-                        value={watch('triggerOperator')} // Use watch
-                        onValueChange={(value: "contains" | "equals" | "startsWith" | "endsWith" | "regex") => setValue('triggerOperator', value, { shouldValidate: true })} // Use setValue
+                        onValueChange={(
+                          value: "contains" | "equals" | "startsWith" | "endsWith"
+                        ) => handleFormChange("triggerOperator", value)}
+                        value={formData.triggerOperator}
+                        disabled={loading}
                       >
-                        <SelectTrigger className="w-full">
+                        <SelectTrigger className="col-span-3">
                           <SelectValue placeholder="Selecione o operador" />
                         </SelectTrigger>
                         <SelectContent>
                           <SelectItem value="contains">Contém</SelectItem>
-                          <SelectItem value="equals">Igual</SelectItem>
+                          <SelectItem value="equals">Igual a</SelectItem>
                           <SelectItem value="startsWith">Começa com</SelectItem>
                           <SelectItem value="endsWith">Termina com</SelectItem>
-                          <SelectItem value="regex">Regex</SelectItem> {/* Adicionado regex */}
                         </SelectContent>
                       </Select>
-                      {errors.triggerOperator && <p className="text-red-500 text-sm mt-1">{errors.triggerOperator.message}</p>}
                     </div>
-                    {/* Trigger Value */}
-                    <div>
-                      <div className="flex items-center gap-2 mb-2">
-                        <Label htmlFor="triggerValue">Valor do Gatilho *</Label>
-                        <div className="group relative">
-                          <HelpCircle className="w-4 h-4 text-gray-400 cursor-help" />
-                          <div className="absolute bottom-6 left-0 hidden group-hover:block bg-black text-white text-xs rounded p-2 whitespace-normal max-w-xs z-50">
-                            A palavra-chave ou expressão regular que ativará o agente.
-                          </div>
-                        </div>
-                      </div>
+                    <div className="grid grid-cols-4 items-center gap-4">
+                      <Label htmlFor="triggerValue" className="text-right">
+                        Valor Gatilho
+                        <HelpTooltip content="A palavra-chave ou frase que ativará o bot (quando o tipo de gatilho for 'keyword')." />
+                      </Label>
                       <Input
                         id="triggerValue"
-                        {...register("triggerValue")} // Use register
-                        placeholder="Ex: ola, atendimento, ^menu$"
-                        className="mt-1"
+                        value={formData.triggerValue}
+                        onChange={(e) =>
+                          handleFormChange("triggerValue", e.target.value)
+                        }
+                        className="col-span-3"
+                        disabled={loading}
                       />
-                      {errors.triggerValue && <p className="text-red-500 text-sm mt-1">{errors.triggerValue.message}</p>}
                     </div>
                   </>
                 )}
 
-                {/* Expire (Tempo de Expiração) */}
-                <div>
-                  <div className="flex items-center gap-2 mb-2">
-                    <Label htmlFor="expire">Tempo de Expiração (segundos)</Label> {/* Nome do label ajustado */}
-                    <div className="group relative">
-                      <HelpCircle className="w-4 h-4 text-gray-400 cursor-help" />
-                      <div className="absolute bottom-6 left-0 hidden group-hover:block bg-black text-white text-xs rounded p-2 whitespace-normal max-w-xs z-50">
-                        Tempo em segundos sem interação para a conversa expirar automaticamente. Use 0 para não expirar (a menos que "Manter Aberto" esteja ativo).
-                      </div>
-                    </div>
-                  </div>
-                  <Input
-                    id="expire" // ID ajustado
-                    type="number"
-                    min="0"
-                    {...register("expire", { valueAsNumber: true })} // Use register, parse como número
-                    placeholder="Ex: 600 (10 minutos)"
-                    className="mt-1"
-                  />
-                  {errors.expire && <p className="text-red-500 text-sm mt-1">{errors.expire.message}</p>}
-                </div>
 
-                {/* Keep Open */}
-                <div>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
-                      <Switch
-                        id="keepOpen"
-                        checked={watch('keepOpen')} // Use watch
-                        onCheckedChange={(checked) => setValue('keepOpen', checked)} // Use setValue
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="ignoreJids" className="text-right">
+                    Ignorar Contatos
+                    <HelpTooltip content="Lista de JIDs (ex: 5511999999999@s.whatsapp.net) que o bot deve ignorar. Adicione um por um." />
+                  </Label>
+                  <div className="col-span-3 flex flex-col gap-2">
+                    <div className="flex gap-2">
+                      <Input
+                        id="ignoreJids"
+                        value={ignoreJidInput}
+                        onChange={(e) => setIgnoreJidInput(e.target.value)}
+                        placeholder="Ex: 5511999999999@s.whatsapp.net"
+                        disabled={loading}
                       />
-                      <Label htmlFor="keepOpen" className="font-normal">
-                        Manter Aberto
-                      </Label>
+                      <Button
+                        type="button"
+                        onClick={addIgnoreJid}
+                        disabled={loading || !ignoreJidInput.trim()}
+                      >
+                        Adicionar
+                      </Button>
                     </div>
-                    <div className="group relative">
-                      <HelpCircle className="w-4 h-4 text-gray-400 cursor-help" />
-                      <div className="absolute bottom-6 right-0 hidden group-hover:block bg-black text-white text-xs rounded p-2 whitespace-normal max-w-xs z-50">
-                        Se ativo, a conversa nunca expira automaticamente, ignorando o "Tempo de Expiração".
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Tempo de Debounce */}
-                <div>
-                  <div className="flex items-center gap-2 mb-2">
-                    <Label htmlFor="debounceTime">Tempo de Debounce (ms)</Label> {/* Ajustado para ms */}
-                    <div className="group relative">
-                      <HelpCircle className="w-4 h-4 text-gray-400 cursor-help" />
-                      <div className="absolute bottom-6 left-0 hidden group-hover:block bg-black text-white text-xs rounded p-2 whitespace-normal max-w-xs z-50">
-                        Aguarda este tempo em milissegundos antes de processar a última mensagem recebida para evitar múltiplas respostas seguidas.
-                      </div>
-                    </div>
-                  </div>
-                  <Input
-                    id="debounceTime"
-                    type="number"
-                    min="0"
-                    {...register("debounceTime", { valueAsNumber: true })} // Use register, parse como número
-                    placeholder="Ex: 300 (0.3 segundos)"
-                    className="mt-1"
-                  />
-                  {errors.debounceTime && <p className="text-red-500 text-sm mt-1">{errors.debounceTime.message}</p>}
-                </div>
-
-                {/* Delay Message */}
-                <div>
-                  <div className="flex items-center gap-2 mb-2">
-                    <Label htmlFor="delayMessage">Delay da Mensagem Inicial (ms)</Label> {/* Adicionado "Inicial" */}
-                    <div className="group relative">
-                      <HelpCircle className="w-4 h-4 text-gray-400 cursor-help" />
-                      <div className="absolute bottom-6 left-0 hidden group-hover:block bg-black text-white text-xs rounded p-2 whitespace-normal max-w-xs z-50">
-                        Atraso em milissegundos antes de enviar a primeira mensagem de resposta do agente após ser ativado.
-                      </div>
-                    </div>
-                  </div>
-                  <Input
-                    id="delayMessage"
-                    type="number"
-                    min="0"
-                    {...register("delayMessage", { valueAsNumber: true })} // Use register, parse como número
-                    placeholder="Ex: 1000 (1 segundo)"
-                    className="mt-1"
-                  />
-                  {errors.delayMessage && <p className="text-red-500 text-sm mt-1">{errors.delayMessage.message}</p>}
-                </div>
-
-                {/* Listening From Me */}
-                <div>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
-                      <Switch
-                        id="listeningFromMe"
-                        checked={watch('listeningFromMe')} // Use watch
-                        onCheckedChange={(checked) => setValue('listeningFromMe', checked)} // Use setValue
-                      />
-                      <Label htmlFor="listeningFromMe" className="font-normal">
-                        Ouvir Minhas Mensagens
-                      </Label>
-                    </div>
-                    <div className="group relative">
-                      <HelpCircle className="w-4 h-4 text-gray-400 cursor-help" />
-                      <div className="absolute bottom-6 right-0 hidden group-hover:block bg-black text-white text-xs rounded p-2 whitespace-normal max-w-xs z-50">
-                        Se ativo, o agente também processará as mensagens enviadas por você (o dono da instância) para os contatos.
-                      </div>
-                    </div>
-                  </div>
-                </div>
-
-                {/* Stop Bot From Me */}
-                <div>
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center space-x-2">
-                      <Switch
-                        id="stopBotFromMe"
-                        checked={watch('stopBotFromMe')} // Use watch
-                        onCheckedChange={(checked) => setValue('stopBotFromMe', checked)} // Use setValue
-                      />
-                      <Label htmlFor="stopBotFromMe" className="font-normal">
-                        Parar Bot Com Minhas Mensagens
-                      </Label>
-                    </div>
-                    <div className="group relative">
-                      <HelpCircle className="w-4 h-4 text-gray-400 cursor-help" />
-                      <div className="absolute bottom-6 right-0 hidden group-hover:block bg-black text-white text-xs rounded p-2 whitespace-normal max-w-xs z-50">
-                        Se ativo, uma mensagem enviada por você (o dono da instância) para um contato em conversa com o agente encerrará a sessão do agente com aquele contato.
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Mensagens */}
-              <div className="space-y-4 p-4 bg-gray-50 dark:bg-[#16151D]/50 rounded-lg">
-                <h3 className="text-lg font-semibold mb-2">Mensagens e Respostas</h3>
-                {/* Keyword Finish */}
-                <div>
-                  <div className="flex items-center gap-2 mb-2">
-                    <Label htmlFor="keywordFinish">Palavra para Encerrar *</Label>
-                    <div className="group relative">
-                      <HelpCircle className="w-4 h-4 text-gray-400 cursor-help" />
-                      <div className="absolute bottom-6 left-0 hidden group-hover:block bg-black text-white text-xs rounded p-2 whitespace-normal max-w-xs z-50">
-                        Palavra ou frase que o usuário pode digitar para sair da conversa com o agente.
-                      </div>
-                    </div>
-                  </div>
-                  <Input
-                    id="keywordFinish"
-                    {...register("keywordFinish")} // Use register
-                    placeholder="Ex: sair, tchau, encerrar"
-                    className="mt-1"
-                  />
-                  {errors.keywordFinish && <p className="text-red-500 text-sm mt-1">{errors.keywordFinish.message}</p>}
-                </div>
-                {/* Unknown Message */}
-                <div>
-                  <div className="flex items-center gap-2 mb-2">
-                    <Label htmlFor="unknownMessage">Mensagem Quando Não Entender *</Label>
-                    <div className="group relative">
-                      <HelpCircle className="w-4 h-4 text-gray-400 cursor-help" />
-                      <div className="absolute bottom-6 left-0 hidden group-hover:block bg-black text-white text-xs rounded p-2 whitespace-normal max-w-xs z-50">
-                        Mensagem enviada quando o agente não consegue processar ou entender a solicitação do usuário.
-                      </div>
-                    </div>
-                  </div>
-                  <Textarea
-                    id="unknownMessage"
-                    {...register("unknownMessage")} // Use register
-                    placeholder="Desculpe, não consegui entender. Pode repetir?"
-                    rows={2}
-                    className="mt-1"
-                  />
-                  {errors.unknownMessage && <p className="text-red-500 text-sm mt-1">{errors.unknownMessage.message}</p>}
-                </div>
-              </div>
-
-              {/* Divisão de Mensagens */}
-              <div className="space-y-4 p-4 bg-gray-50 dark:bg-[#16151D]/50 rounded-lg">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center space-x-2">
-                    <Switch
-                      id="splitMessages"
-                      checked={splitMessages} // Use watch
-                      onCheckedChange={(checked) => setValue('splitMessages', checked)} // Use setValue
-                    />
-                    <Label htmlFor="splitMessages" className="font-normal">
-                      Dividir Mensagens Longas
-                    </Label> {/* Adicionado "Longas" */}
-                  </div>
-                  <div className="group relative">
-                    <HelpCircle className="w-4 h-4 text-gray-400 cursor-help" />
-                    <div className="absolute bottom-6 right-0 hidden group-hover:block bg-black text-white text-xs rounded p-2 whitespace-normal max-w-xs z-50">
-                      Quebra mensagens de resposta muito longas em várias mensagens menores para melhor visualização no WhatsApp.
-                    </div>
-                  </div>
-                </div>
-                {splitMessages && ( // Renderização condicional
-                  <div>
-                    <div className="flex items-center gap-2 mb-2">
-                      <Label htmlFor="timePerChar">
-                        Velocidade de Digitação (ms por caractere)
-                      </Label>
-                      <div className="group relative">
-                        <HelpCircle className="w-4 h-4 text-gray-400 cursor-help" />
-                        <div className="absolute bottom-6 left-0 hidden group-hover:block bg-black text-white text-xs rounded p-2 whitespace-normal max-w-xs z-50">
-                          Simula velocidade de digitação humana adicionando um atraso proporcional ao número de caracteres. Quanto maior o número, mais devagar (0 = instantâneo).
-                        </div>
-                      </div>
-                    </div>
-                    <Input
-                      id="timePerChar"
-                      type="number"
-                      min="0"
-                      {...register("timePerChar", { valueAsNumber: true })} // Use register, parse como número
-                      placeholder="Ex: 50"
-                      className="mt-1"
-                    />
-                    {errors.timePerChar && <p className="text-red-500 text-sm mt-1">{errors.timePerChar.message}</p>}
-                  </div>
-                )}
-              </div>
-
-              {/* Números a Ignorar */}
-              <div className="space-y-4 p-4 bg-gray-50 dark:bg-[#16151D]/50 rounded-lg">
-                <h3 className="text-lg font-semibold mb-2">Números a Ignorar</h3>
-                <div>
-                  <div className="flex items-center gap-2 mb-2">
-                    <Label>Números para Ignorar</Label>
-                    <div className="group relative">
-                      <HelpCircle className="w-4 h-4 text-gray-400 cursor-help" />
-                      <div className="absolute bottom-6 left-0 hidden group-hover:block bg-black text-white text-xs rounded p-2 whitespace-normal max-w-xs z-50">
-                        Lista de números (JIDs completos, ex: 5511999999999@s.whatsapp.net ou apenas 5511999999999 dependendo da sua API) que o agente deve ignorar completamente. Digite o número e clique em Adicionar ou pressione Enter.
-                      </div>
-                    </div>
-                  </div>
-                  <div className="flex gap-2 mt-2">
-                    <Input
-                      value={ignoreJidInput}
-                      onChange={(e) => setIgnoreJidInput(e.target.value)}
-                      placeholder="Digite um número... (ex: 5511999999999)"
-                      onKeyPress={handleIgnoreJidKeyPress}
-                      className="flex-1"
-                    />
-                    <Button onClick={handleAddIgnoreJid} size="sm" type="button">
-                      Adicionar
-                    </Button>
-                  </div>
-                  {/* Exibe erro de validação para o array ignoreJids */}
-                  {errors.ignoreJids && <p className="text-red-500 text-sm mt-1">{errors.ignoreJids.message}</p>}
-
-                  {ignoreJids && ignoreJids.length > 0 && ( // Renderiza se o array existe e tem itens
-                    <div className="flex flex-wrap gap-2 mt-2">
-                      {ignoreJids.map((jid) => (
-                        <div
-                          key={jid}
-                          className="flex items-center gap-1 bg-gray-100 dark:bg-[#16151D] px-2 py-1 rounded text-sm"
-                        >
-                          <span>{jid}</span>
-                          <Button
-                            onClick={() => handleRemoveIgnoreJid(jid)}
-                            size="sm"
-                            variant="ghost"
-                            className="h-4 w-4 p-0 hover:bg-gray-200 dark:hover:bg-gray-700"
+                    {formData.ignoreJids.length > 0 && (
+                      <div className="flex flex-wrap gap-1">
+                        {formData.ignoreJids.map((jid) => (
+                          <span
+                            key={jid}
+                            className="flex items-center bg-gray-200 text-gray-800 text-xs font-semibold px-2.5 py-0.5 rounded dark:bg-gray-700 dark:text-gray-300"
                           >
-                            <X className="w-3 h-3" />
-                          </Button>
-                        </div>
-                      ))}
-                    </div>
-                  )}
+                            {jid}
+                            <button
+                              type="button"
+                              onClick={() => removeIgnoreJid(jid)}
+                              className="ml-1 text-gray-500 hover:text-gray-900 dark:text-gray-400 dark:hover:text-white"
+                              disabled={loading}
+                            >
+                              <X className="w-3 h-3" />
+                            </button>
+                          </span>
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+
+                {/* Switches */}
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="enabled" className="text-right">
+                    Habilitado
+                    <HelpTooltip content="Ativa ou desativa este bot." />
+                  </Label>
+                  <Switch
+                    id="enabled"
+                    checked={formData.enabled}
+                    onCheckedChange={(checked) =>
+                      handleFormChange("enabled", checked)
+                    }
+                    className="col-span-3"
+                    disabled={loading}
+                  />
+                </div>
+
+
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="listeningFromMe" className="text-right">
+                    Ouvir Minhas Mensagens
+                    <HelpTooltip content="Se ativado, o bot responderá às mensagens enviadas por você (o número da instância)." />
+                  </Label>
+                  <Switch
+                    id="listeningFromMe"
+                    checked={formData.listeningFromMe}
+                    onCheckedChange={(checked) =>
+                      handleFormChange("listeningFromMe", checked)
+                    }
+                    className="col-span-3"
+                    disabled={loading}
+                  />
+                </div>
+
+
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="stopBotFromMe" className="text-right">
+                    Parar Bot Com Minha Mensagem
+                    <HelpTooltip content="Se ativado, o bot parará de responder a uma conversa se você enviar uma mensagem nela." />
+                  </Label>
+                  <Switch
+                    id="stopBotFromMe"
+                    checked={formData.stopBotFromMe}
+                    onCheckedChange={(checked) =>
+                      handleFormChange("stopBotFromMe", checked)
+                    }
+                    className="col-span-3"
+                    disabled={loading}
+                  />
+                </div>
+
+
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="keepOpen" className="text-right">
+                    Manter Sessão Aberta
+                    <HelpTooltip content="Se ativado, a sessão do bot não expirará automaticamente pelo tempo definido em 'Expirar'." />
+                  </Label>
+                  <Switch
+                    id="keepOpen"
+                    checked={formData.keepOpen}
+                    onCheckedChange={(checked) =>
+                      handleFormChange("keepOpen", checked)
+                    }
+                    className="col-span-3"
+                    disabled={loading}
+                  />
+                </div>
+
+
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="splitMessages" className="text-right">
+                    Dividir Mensagens
+                    <HelpTooltip content="Se ativado, respostas longas serão divididas em várias mensagens menores." />
+                  </Label>
+                  <Switch
+                    id="splitMessages"
+                    checked={formData.splitMessages}
+                    onCheckedChange={(checked) =>
+                      handleFormChange("splitMessages", checked)
+                    }
+                    className="col-span-3"
+                    disabled={loading}
+                  />
+                </div>
+
+
+                <div className="grid grid-cols-4 items-center gap-4">
+                  <Label htmlFor="timePerChar" className="text-right">
+                    Tempo Por Caractere (ms)
+                    <HelpTooltip content="Atraso adicional em milissegundos por caractere na resposta do bot, simula digitação." />
+                  </Label>
+                  <Input
+                    id="timePerChar"
+                    type="number"
+                    value={formData.timePerChar}
+                    onChange={(e) =>
+                      handleFormChange("timePerChar", Number(e.target.value))
+                    }
+                    className="col-span-3"
+                    disabled={loading}
+                  />
                 </div>
               </div>
+            </ScrollArea>
+
+
+            {/* Ações do formulário (botões Salvar/Cancelar) */}
+            <div className="flex justify-end gap-2 pt-4 border-t">
+              {isEditing && (
+                <Button
+                  variant="destructive"
+                  onClick={handleDeleteAgent}
+                  disabled={loading}
+                >
+                  <Trash2 className="mr-2 h-4 w-4" /> Desconectar
+                </Button>
+              )}
+              <Button
+                variant="outline"
+                onClick={cancelEditing}
+                disabled={loading}
+              >
+                <X className="mr-2 h-4 w-4" /> Cancelar
+              </Button>
+              <Button onClick={saveAgent} disabled={loading}>
+                <Save className="mr-2 h-4 w-4" />{" "}
+                {isEditing ? "Atualizar" : "Conectar"}
+              </Button>
             </div>
-          </ScrollArea>
+          </div>
         )}
-
-
-        {/* Ações do Formulário */}
-        {/* Botões fora do ScrollArea, fixos na parte inferior */}
-        <div className="flex justify-end gap-2 mt-auto pt-4 border-t bg-white dark:bg-[#0c0b13] sticky bottom-0">
-          <Button
-            onClick={cancelEditing}
-            disabled={isSubmitting || isLoadingAgent} // Desabilita cancelar enquanto salva ou carrega
-            variant="outline"
-          >
-            Cancelar
-          </Button>
-          <Button
-            onClick={handleSubmit(onSubmit)} // Usa handleSubmit do react-hook-form
-            disabled={isSubmitting || isLoadingAgent || !isValid} // Desabilita enquanto salva, carrega ou formulário inválido
-            className="bg-gradient-to-r from-electric-light to-electric hover:opacity-90"
-          >
-            {isSubmitting ? (
-              <>
-                <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                Salvando...
-              </>
-            ) : (
-              <>
-                <Save className="w-4 h-4 mr-2" />
-                {selectedAgentId ? "Atualizar" : "Conectar"} Agente
-              </>
-            )}
-          </Button>
-        </div>
       </DialogContent>
     </Dialog>
   );
-};
-
-export default AgentConfigModal;
+}

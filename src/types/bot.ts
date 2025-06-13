@@ -1,6 +1,7 @@
 // src/types/bot.ts
 
 export interface Bot {
+  instanceName: string;
   id: string;
   enabled: boolean;
   description: string;

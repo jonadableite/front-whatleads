@@ -1,12 +1,10 @@
 // src/components/ui/button.tsx
-// @ts-nocheck
-
+// @ts-nocheck // Manter se houver outros problemas de tipagem, mas este ajuste deve ajudar
 import { cn } from "@/lib/utils";
 import { Slot } from "@radix-ui/react-slot";
 import { type VariantProps, cva } from "class-variance-authority";
 import {
 	type HTMLMotionProps,
-	type MotionProps,
 	type Variants,
 	motion,
 } from "framer-motion";
@@ -42,16 +40,15 @@ const buttonVariants = cva(
 			variant: "default",
 			size: "default",
 		},
-	},
+	}
 );
 
-// Tipo para remover variant e size das props de motion
-type OmitMotionProps = Omit<HTMLMotionProps<"button">, "variant" | "size">;
-
-// Interface de props do botão
+// Tipo para as props do botão, incluindo props padrão e de motion
 interface ButtonProps
-	extends OmitMotionProps,
-	VariantProps<typeof buttonVariants> {
+	extends React.ButtonHTMLAttributes<HTMLButtonElement>, // Props padrão de botão
+	VariantProps<typeof buttonVariants>,
+	HTMLMotionProps<"button"> // Props de motion para um botão
+{
 	asChild?: boolean;
 	children?: ReactNode;
 }
@@ -95,40 +92,59 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
 			},
 		};
 
-		// Determinar o componente com tipagem segura
-		const Comp = (asChild ? Slot : motion.button) as ButtonComponentType;
+		// Determina o componente a ser renderizado (Slot ou motion.button)
+		const Comp = asChild ? Slot : motion.button;
 
-		// Preparar props para o componente
-		const componentProps = {
+		// Prepara as props para o componente
+		// Removemos as props whileHover, whileTap, etc. de 'props'
+		// para não passá-las para o Slot quando asChild for true.
+		// Elas serão adicionadas condicionalmente abaixo.
+		const {
+			whileHover, // Remove whileHover de props
+			whileTap,   // Remove whileTap de props
+			initial,    // Remove initial de props
+			animate,    // Remove animate de props
+			variants,   // Remove variants de props
+			transition, // Remove transition de props
+			...standardProps // Mantém todas as outras props (onClick, type, etc.)
+		} = props;
+
+		const componentProps: any = { // Usar 'any' temporariamente se a tipagem for complexa
 			className: cn(buttonVariants({ variant, size, className })),
 			ref,
-			...(asChild ? {} : { variants: buttonAnimationVariants }),
-			...props,
+			...standardProps, // Passa props padrão
 		};
 
-		// Propriedades de motion para o container
-		const motionContainerProps: MotionProps = {
-			initial: "rest",
-			whileHover: "hover",
-			whileTap: "tap",
-			animate: "rest",
-		};
+		// Adiciona props de motion apenas se não for asChild
+		if (!asChild) {
+			Object.assign(componentProps, {
+				variants: variants || buttonAnimationVariants, // Usa variants passados ou o padrão
+				initial: initial || "rest", // Usa initial passado ou o padrão
+				whileHover: whileHover || "hover", // Usa whileHover passado ou o padrão
+				whileTap: whileTap || "tap",     // Usa whileTap passado ou o padrão
+				animate: animate || "rest",  // Usa animate passado ou o padrão
+				transition: transition // Passa transition se existir
+			});
+		}
 
 		return (
-			<motion.div {...motionContainerProps}>
-				<Comp {...componentProps}>
-					<span className="relative z-10 flex items-center gap-2">
-						{children}
-					</span>
+			// Removemos a motion.div externa
+			<Comp {...componentProps}>
+				<span className="relative z-10 flex items-center gap-2">
+					{children}
+				</span>
+				{/* Efeito Shimmer - aplica apenas se for o motion.button */}
+				{!asChild && (
 					<motion.div
 						className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent"
 						variants={shimmerAnimation}
 					/>
-					<div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent rounded-lg" />
-				</Comp>
-			</motion.div>
+				)}
+				{/* Este div parece decorativo, mantém */}
+				<div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/5 to-transparent rounded-lg" />
+			</Comp>
 		);
-	},
+	}
 );
 
 Button.displayName = "Button";

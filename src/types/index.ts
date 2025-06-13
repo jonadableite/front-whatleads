@@ -25,7 +25,6 @@ export interface Instancia {
   profilePicUrl?: string;
   integration: string;
   number: string | null;
-  typebot: any | null;
   warmupStatus?: {
     progress: number;
     status: string;

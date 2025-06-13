@@ -66,7 +66,7 @@ export const getInstanceEvoAIs = async (
 	instanceName: string,
 ): Promise<EvoAI[]> => {
 	const response = await evoAiUrl.get(
-		`/api/evolution/evoai/find/${instanceName}`,
+		`/evoai/find${instanceName}`,
 	);
 	return response.data;
 };
@@ -77,7 +77,7 @@ export const createEvoAI = async (
 	data: CreateEvoAIRequest,
 ): Promise<EvoAI> => {
 	const response = await evoAiUrl.post(
-		`/api/evolution/evoai/create/${instanceName}`,
+		`/evoai/create${instanceName}`,
 		data,
 	);
 	return response.data;
@@ -90,7 +90,7 @@ export const updateEvoAI = async (
 	data: Partial<CreateEvoAIRequest>,
 ): Promise<EvoAI> => {
 	const response = await evoAiUrl.put(
-		`/api/evolution/evoai/update/${evoaiId}/${instanceName}`,
+		`/evoai/update/${evoaiId}/${instanceName}`,
 		data,
 	);
 	return response.data;
@@ -99,7 +99,7 @@ export const updateEvoAI = async (
 // Função para deletar EvoAI
 export const deleteEvoAI = async (evoaiId: string, instanceName: string) => {
 	const response = await evoAiUrl.delete(
-		`/api/evolution/evoai/delete/${evoaiId}/${instanceName}`,
+		`/evoai/delete/${evoaiId}/${instanceName}`,
 	);
 	return response.data;
 };
@@ -109,7 +109,7 @@ export const getEvoAISettings = async (
 	instanceName: string,
 ): Promise<EvoAISettings> => {
 	const response = await evoAiUrl.get(
-		`/api/evolution/evoai/fetchSettings/${instanceName}`,
+		`/evoai/fetchSettings/${instanceName}`,
 	);
 	return response.data;
 };
@@ -120,7 +120,7 @@ export const saveEvoAISettings = async (
 	settings: Partial<EvoAISettings>,
 ): Promise<EvoAISettings> => {
 	const response = await evoAiUrl.post(
-		`/api/evolution/evoai/settings/${instanceName}`,
+		`/evoai/settings/${instanceName}`,
 		settings,
 	);
 	return response.data;
@@ -132,7 +132,7 @@ export const changeEvoAIStatus = async (
 	status: "opened" | "paused" | "closed",
 ): Promise<void> => {
 	await evoAiUrl.post(
-		`/api/evolution/evoai/changeStatus/${instanceName}`,
+		`/evoai/changeStatus/${instanceName}`,
 		{
 			status,
 		},
@@ -145,7 +145,7 @@ export const getEvoAISessions = async (
 	evoaiId: string,
 ): Promise<any[]> => {
 	const response = await evoAiUrl.get(
-		`/api/evolution/evoai/fetchSessions/${evoaiId}/${instanceName}`,
+		`/evoai/fetchSessions/${evoaiId}/${instanceName}`,
 	);
 	return response.data;
 };

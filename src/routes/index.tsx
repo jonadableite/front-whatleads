@@ -20,8 +20,8 @@ import { RouterProvider, createBrowserRouter } from "react-router-dom";
 import Agendados from "../pages/Agendados";
 import Contatos from "../pages/Contatos";
 import Historico from "../pages/Historico";
-import Instances from "../pages/Instances";
 import PasswordRecovery from "../pages/PasswordRecovery";
+import WhatsappPage from "../pages/Whatsapp";
 
 const router = createBrowserRouter([
 	{
@@ -89,7 +89,7 @@ const router = createBrowserRouter([
 					},
 					{
 						path: "/instancias",
-						element: <Instances />,
+						element: <WhatsappPage />,
 					},
 
 					{
