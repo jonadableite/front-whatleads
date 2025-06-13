@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
 import { Textarea } from "@/components/ui/textarea";
+import { useUser } from "@/contexts/UserContext";
 import { toast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { listAgents } from "@/services/agentService";
@@ -159,19 +160,21 @@ export function AIAgentDialog({
 	const [ignoreJidInput, setIgnoreJidInput] = useState("");
 	const [isCreatingNew, setIsCreatingNew] = useState(false);
 
-	// Obter informações do usuário
-	const user =
-		typeof window !== "undefined"
-			? JSON.parse(localStorage.getItem("user") || "{}")
-			: {};
-	const clientId = user?.client_id || "";
+	// CORRIGIDO: Obtenha o user, clientId e userLoading do UserContext
+	const { user, clientId, loading: userLoading } = useUser(); // Use o hook useUser
+	console.log("Client ID from useUser:", clientId);
+
 
 	// Carregar agentes do usuário
 	const loadUserAgents = useCallback(async () => {
-		if (!clientId) return;
+		// CORRIGIDO: Verifique se clientId está disponível antes de carregar
+		if (!clientId || userLoading) {
+			console.log("clientId not available or user loading, skipping agent load.");
+			return;
+		}
 
 		try {
-			console.log("Carregando agentes do usuário...");
+			console.log("Carregando agentes do usuário com clientId:", clientId);
 			const response = await listAgents(clientId, 0, 100);
 			console.log("Agentes carregados:", response);
 			setAgents(response.data || []);
@@ -183,7 +186,8 @@ export function AIAgentDialog({
 				variant: "destructive",
 			});
 		}
-	}, [clientId]);
+	}, [clientId, userLoading]); // Adicione userLoading como dependência
+
 
 	// Carregar EvoAIs da instância
 	const loadAvailableAgents = useCallback(async () => {
@@ -213,7 +217,8 @@ export function AIAgentDialog({
 		}
 	}, [instanceName]);
 
-	// Carregar dados quando abrir o dialog
+
+	// Carregar dados quando abrir o dialog ou clientId/userLoading mudar
 	useEffect(() => {
 		if (isOpen) {
 			loadUserAgents();
@@ -224,7 +229,8 @@ export function AIAgentDialog({
 			setFormData(defaultFormData);
 			setSelectedAgentId("");
 		}
-	}, [isOpen, loadUserAgents, loadAvailableAgents]);
+	}, [isOpen, loadUserAgents, loadAvailableAgents]); // Dependências incluem loadUserAgents e loadAvailableAgents
+
 
 	// Handlers
 	const handleFormChange = useCallback(
@@ -234,16 +240,18 @@ export function AIAgentDialog({
 		[],
 	);
 
+
 	const handleAgentSelection = useCallback(
 		(agentId: string) => {
 			const agent = agents.find((a) => a.id === agentId);
 			if (agent) {
 				setSelectedAgentId(agentId);
-				const agentUrl = `${process.env.VITE_API_AI_URL}/api/v1/a2a/${agentId}`;
+
+				const agentUrl = `${import.meta.env.VITE_API_AI_URL}/api/v1/a2a/${agentId}`;
 				setFormData((prev) => ({
 					...prev,
 					agentUrl,
-					description: agent.name,
+					description: agent.name, // Ou agent.description se preferir
 					name: agent.name,
 				}));
 			}

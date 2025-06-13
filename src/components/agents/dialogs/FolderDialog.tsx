@@ -1,4 +1,4 @@
-"use client";
+//src/components/agents/dialogs/FolderDialog.tsx
 
 import { Button } from "@/components/ui/button";
 import {
@@ -12,7 +12,7 @@ import {
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { useState, useEffect } from "react";
+import { useEffect, useState } from "react";
 
 interface Folder {
   id: string;
@@ -60,12 +60,12 @@ export function FolderDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[500px] rounded-2xl border bg-background text-foreground shadow-xl">
+      <DialogContent className="sm:max-w-[500px] rounded-2xl border bg-deep text-blue-900 shadow-xl">
         <DialogHeader>
           <DialogTitle className="text-2xl font-semibold">
             {editingFolder ? "Editar pasta" : "Nova pasta"}
           </DialogTitle>
-          <DialogDescription className="text-muted-foreground">
+          <DialogDescription className="text-grbg-gray-600/15-electext-blue-900">
             {editingFolder
               ? "Atualize as informações da pasta existente."
               : "Preencha os campos abaixo para criar uma nova pasta."}
@@ -80,7 +80,7 @@ export function FolderDialog({
               placeholder="Ex: Projetos de IA"
               value={folder.name}
               onChange={(e) => setFolder({ ...folder, name: e.target.value })}
-              className="bg-muted text-foreground placeholder:text-muted-foreground"
+              className="bg-gray-600/15 text-white-pure placeholder:text-grbg-gray-600/15-electext-blue-900"
             />
           </div>
 
@@ -91,7 +91,7 @@ export function FolderDialog({
               placeholder="Adicione uma descrição curta sobre esta pasta..."
               value={folder.description}
               onChange={(e) => setFolder({ ...folder, description: e.target.value })}
-              className="bg-muted text-foreground resize-none h-24 placeholder:text-muted-foreground"
+              className="bg-gray-600/15 text-white resize-none h-24 placeholder:text-grbg-gray-600/15-electext-blue-900"
             />
           </div>
         </div>
@@ -101,17 +101,17 @@ export function FolderDialog({
             type="button"
             variant="outline"
             onClick={() => onOpenChange(false)}
-            className="w-full sm:w-auto"
+            className="w-full sm:w-auto bg-shock/30 text-white hover:bg-shock/60 hover:text-white/80 border-rounded-md border-shock/50 hover:border-shock/60"
           >
             Cancelar
           </Button>
           <Button
             onClick={handleSave}
             disabled={!folder.name || isLoading}
-            className="w-full sm:w-auto bg-primary text-primary-foreground hover:bg-[#B91F7A] hover:text-white"
+            className="w-full sm:w-auto bg-electric text-white hover:bg-blue-500 hover:text-white"
           >
             {isLoading ? (
-              <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full mr-2"></div>
+              <div className="animate-spin h-4 w-4 border-2 border-shock-light border-t-transparent rounded-full mr-2"></div>
             ) : null}
             {editingFolder ? "Salvar alterações" : "Criar pasta"}
           </Button>

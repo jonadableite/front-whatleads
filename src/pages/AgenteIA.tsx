@@ -1,4 +1,3 @@
-// src/pages/AgenteIA.tsx
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -31,7 +30,9 @@ import {
   updateFolder,
 } from "../services/agentService";
 
+
 import { exportAsJson } from "../lib/utils";
+
 
 // Importações dos componentes
 import { AgentList } from "@/components/agents/AgentList";
@@ -46,23 +47,29 @@ import { EmptyState } from "@/components/agents/EmptyState";
 import { AgentForm } from "@/components/agents/forms/AgentForm";
 import { SearchInput } from "@/components/agents/SearchInput";
 
+
 // CORRIGIDO: Importe o hook useUser
 import { useUser } from "@/contexts/UserContext";
+
 
 // Tipos
 import { Agent, AgentCreate } from "@/types/agent";
 import { availableModels } from "@/types/aiModels";
 import { MCPServer } from "@/types/mcpServer";
 
+
 const AgenteIA = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
 
+
   // CORRIGIDO: Obtenha o user, clientId e userLoading do UserContext
   const { user, clientId, loading: userLoading } = useUser(); // Use o hook useUser
 
+
   // CORRIGIDO: Adicionando ref para rastrear montagem do componente
   const mounted = useRef(true);
+
 
   const [agents, setAgents] = useState<Agent[]>([]);
   const [filteredAgents, setFilteredAgents] = useState<Agent[]>([]);
@@ -76,8 +83,10 @@ const AgenteIA = () => {
   const [agentTypes, setAgentTypes] = useState<string[]>([]);
   const [isLoading, setIsLoading] = useState(false); // Este isLoading é para as operações da página (listagem, salvar, deletar)
 
+
   const [isSidebarVisible, setIsSidebarVisible] = useState(false);
   const [selectedFolderId, setSelectedFolderId] = useState<string | null>(null);
+
 
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [isFolderDialogOpen, setIsFolderDialogOpen] = useState(false);
@@ -91,6 +100,7 @@ const AgenteIA = () => {
   const [isCustomMCPDialogOpen, setIsCustomMCPDialogOpen] = useState(false); // Estado para Custom MCP Dialog - Parece não ser usado diretamente aqui.
   const [isShareDialogOpen, setIsShareDialogOpen] = useState(false);
 
+
   const [editingAgent, setEditingAgent] = useState<Agent | null>(null);
   const [editingFolder, setEditingFolder] = useState<AgentFolder | null>(null);
   const [agentToDelete, setAgentToDelete] = useState<Agent | null>(null);
@@ -98,9 +108,11 @@ const AgenteIA = () => {
   const [agentToShare, setAgentToShare] = useState<Agent | null>(null);
   const [sharedApiKey, setSharedApiKey] = useState<string>("");
 
+
   const [folderToDelete, setFolderToDelete] = useState<AgentFolder | null>(
     null
   );
+
 
   const [newAgent, setNewAgent] = useState<Partial<Agent>>({
     client_id: clientId || "",
@@ -122,9 +134,11 @@ const AgenteIA = () => {
     },
   });
 
+
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [isImporting, setIsImporting] = useState(false);
   const [isImportDialogOpen, setIsImportDialogOpen] = useState(false);
+
 
   useEffect(() => {
     if (!clientId) return;
@@ -132,6 +146,7 @@ const AgenteIA = () => {
     loadFolders();
     loadApiKeys();
   }, [clientId, selectedFolderId]);
+
 
   useEffect(() => {
     const loadMCPs = async () => {
@@ -146,8 +161,10 @@ const AgenteIA = () => {
       }
     };
 
+
     loadMCPs();
   }, []);
+
 
   const loadAgents = async () => {
     setIsLoading(true);
@@ -161,6 +178,7 @@ const AgenteIA = () => {
       setAgents(res.data);
       setFilteredAgents(res.data);
 
+
       // Extract unique agent types
       const types = [...new Set(res.data.map(agent => agent.type))].filter(Boolean);
       setAgentTypes(types);
@@ -170,6 +188,7 @@ const AgenteIA = () => {
       setIsLoading(false);
     }
   };
+
 
   const loadFolders = async () => {
     setIsLoading(true);
@@ -183,6 +202,7 @@ const AgenteIA = () => {
     }
   };
 
+
   const loadApiKeys = async () => {
     try {
       const res = await listApiKeys(clientId);
@@ -192,9 +212,11 @@ const AgenteIA = () => {
     }
   };
 
+
   useEffect(() => {
     // Apply both search term and type filters
     let filtered = [...agents];
+
 
     // Apply search term filter
     if (searchTerm.trim() !== "") {
@@ -206,13 +228,16 @@ const AgenteIA = () => {
       );
     }
 
+
     // Apply agent type filter
     if (selectedAgentType) {
       filtered = filtered.filter(agent => agent.type === selectedAgentType);
     }
 
+
     setFilteredAgents(filtered);
   }, [searchTerm, selectedAgentType, agents]);
+
 
   const handleAddAgent = async (agentData: Partial<Agent>) => {
     try {
@@ -232,6 +257,7 @@ const AgenteIA = () => {
           client_id: clientId,
         });
 
+
         if (selectedFolderId && createdAgent.data.id) {
           await assignAgentToFolder(
             createdAgent.data.id,
@@ -239,6 +265,7 @@ const AgenteIA = () => {
             clientId
           );
         }
+
 
         toast({
           title: "Agent added",
@@ -258,6 +285,7 @@ const AgenteIA = () => {
       setIsLoading(false);
     }
   };
+
 
   const handleDeleteAgent = async () => {
     if (!agentToDelete) return;
@@ -282,11 +310,13 @@ const AgenteIA = () => {
     }
   };
 
+
   const handleEditAgent = (agent: Agent) => {
     setEditingAgent(agent);
     setNewAgent({ ...agent });
     setIsDialogOpen(true);
   };
+
 
   const handleMoveAgent = async (targetFolderId: string | null) => {
     if (!agentToMove) return;
@@ -312,6 +342,7 @@ const AgenteIA = () => {
       setAgentToMove(null);
     }
   };
+
 
   const handleAddFolder = async (folderData: {
     name: string;
@@ -349,6 +380,7 @@ const AgenteIA = () => {
     }
   };
 
+
   const handleDeleteFolder = async () => {
     if (!folderToDelete) return;
     try {
@@ -375,15 +407,18 @@ const AgenteIA = () => {
     }
   };
 
+
   const handleShareAgent = async (agent: Agent) => {
     try {
       setIsLoading(true);
       setAgentToShare(agent);
       const response = await shareAgent(agent.id, clientId);
 
+
       if (response.data && response.data.api_key) {
         setSharedApiKey(response.data.api_key);
         setIsShareDialogOpen(true);
+
 
         toast({
           title: "Agent shared",
@@ -400,6 +435,7 @@ const AgenteIA = () => {
       setIsLoading(false);
     }
   };
+
 
   const resetForm = () => {
     setNewAgent({
@@ -424,6 +460,7 @@ const AgenteIA = () => {
     setEditingAgent(null);
   };
 
+
   // Function to export all agents as JSON
   const handleExportAllAgents = () => {
     try {
@@ -432,9 +469,11 @@ const AgenteIA = () => {
       const formattedDate = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}-${date.getDate().toString().padStart(2, '0')}`;
       const filename = `agents-export-${formattedDate}`;
 
+
       // Use the utility function to export
       // Pass agents both as the data and as allAgents parameter to properly resolve references
       const result = exportAsJson({ agents: filteredAgents }, filename, true, agents);
+
 
       if (result) {
         toast({
@@ -447,6 +486,7 @@ const AgenteIA = () => {
     } catch (error) {
       console.error("Error exporting agents:", error);
 
+
       toast({
         title: "Export failed",
         description: "There was an error exporting the agents",
@@ -455,22 +495,28 @@ const AgenteIA = () => {
     }
   };
 
+
   const handleImportAgentJSON = async (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (!file || !clientId) return;
 
+
     try {
       setIsImporting(true);
 
+
       await importAgentFromJson(file, clientId);
+
 
       toast({
         title: "Import successful",
         description: "Agent was imported successfully",
       });
 
+
       // Refresh the agent list
       loadAgents();
+
 
       // Reset file input
       if (fileInputRef.current) {
@@ -488,9 +534,10 @@ const AgenteIA = () => {
     }
   };
 
+
   // Renderização do componente
   return (
-    <div className="container mx-auto p-6 bg-[#121212] min-h-screen flex relative">
+    <div className="container mx-auto p-6 min-h-screen flex relative">
       <AgentSidebar
         visible={isSidebarVisible}
         folders={folders}
@@ -508,22 +555,33 @@ const AgenteIA = () => {
           setFolderToDelete(folder as AgentFolder);
           setIsDeleteFolderDialogOpen(true);
         }}
-        onClose={() => setIsSidebarVisible(!isSidebarVisible)}
+        onClose={() => setIsSidebarVisible(false)} // Altera para fechar explicitamente
       />
 
+
+      {/* Conteúdo principal - flex-1 para ocupar o espaço restante */}
       <div
-        className={`w-full transition-all duration-300 ease-in-out ${isSidebarVisible ? "pl-64" : "pl-0"
-          }`}
+        className={`flex-1 transition-all duration-300 ease-in-out overflow-hidden`} // Remove pl-64/pl-0, adiciona flex-1 e overflow-hidden
       >
         <div className="mb-6 flex items-center justify-between">
           <div className="flex items-center">
+            {/* Botão para abrir a sidebar - visível apenas quando a sidebar NÃO está visível */}
             {!isSidebarVisible && (
               <button
                 onClick={() => setIsSidebarVisible(true)}
-                className="mr-2 bg-[#222] p-2 rounded-md text-emerald-400 hover:bg-[#333] hover:text-emerald-400 shadow-md transition-all"
+                className="relative mr-2 bg-electric p-2 rounded-md text-blue-700 hover:bg-electric-dark hover:text-blue-700 shadow-md transition-all overflow-hidden" // Adicionado 'relative' e 'overflow-hidden'
                 aria-label="Show folders"
               >
-                <Folder className="h-5 w-5" />
+                {/* Radar ping */}
+                <span
+                  aria-hidden="true"
+                  className="absolute inset-0 flex items-center justify-center"
+                >
+                  {/* O span com animate-ping cria o efeito de pulso/radar */}
+                  <span className="absolute w-5 h-5 rounded-full bg-neon-blue opacity-50 animate-ping"></span>
+                </span>
+                {/* O ícone da pasta deve ter um z-index maior que o ping para ficar por cima */}
+                <Folder className="h-6 w-6 relative z-10 hover:scale-110 transition-transform duration-200" />
               </button>
             )}
             <h1 className="text-3xl font-bold text-white flex items-center ml-2">
@@ -532,6 +590,7 @@ const AgenteIA = () => {
                 : "Agents"}
             </h1>
           </div>
+
 
           <div className="flex items-center gap-4">
             <SearchInput
@@ -543,44 +602,47 @@ const AgenteIA = () => {
               agentTypes={agentTypes}
             />
 
+
             <Button
               onClick={() => setIsApiKeysDialogOpen(true)}
-              className="bg-[#222] text-white hover:bg-[#333] border border-[#444]"
+              className="bg-electric text-white hover:bg-electric-dark border border-electric"
             >
-              <Key className="mr-2 h-4 w-4 text-emerald-400" />
+              <Key className="mr-2 h-4 w-4 text-blue-700" />
               API Keys
             </Button>
 
+
             <Button
               onClick={handleExportAllAgents}
-              className="bg-[#222] text-white hover:bg-[#333] border border-[#444]"
+              className="bg-electric text-white hover:bg-electric-dark border border-electric"
               title="Export all agents as JSON"
             >
               <Download className="mr-2 h-4 w-4 text-purple-400" />
               Export All
             </Button>
 
+
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
-                <Button className="bg-emerald-400 text-black hover:bg-[#00cc7d]">
-                  <Plus className="mr-2 h-4 w-4" />
-                  New Agent
+                <Button className="bg-neon-green text-white hover:bg-neon-green/50">
+                  <Plus className="mr-2 h-4 w-4 text-neon-green" />
+                  Novo agente
                 </Button>
               </DropdownMenuTrigger>
-              <DropdownMenuContent className="bg-zinc-900 border-zinc-700">
+              <DropdownMenuContent className="bg-electric/40 border-electric">
                 <DropdownMenuItem
-                  className="text-white hover:bg-zinc-800 cursor-pointer"
+                  className="text-white hover:bg-blue-950 cursor-pointer"
                   onClick={() => {
                     resetForm();
                     setIsDialogOpen(true);
                   }}
                 >
-                  <Plus className="h-4 w-4 mr-2 text-emerald-400" />
-                  New Agent
+                  <Plus className="h-4 w-4 mr-2 text-blue-700" />
+                  Novo agente
                 </DropdownMenuItem>
                 {/* Adicionando o botão Import Agent JSON */}
                 <DropdownMenuItem
-                  className="text-white hover:bg-zinc-800 cursor-pointer"
+                  className=" text-white hover:bg-blue-950 cursor-pointer"
                   onClick={() => setIsImportDialogOpen(true)}
                 >
                   <Upload className="h-4 w-4 mr-2 text-indigo-400" />
@@ -591,10 +653,11 @@ const AgenteIA = () => {
           </div>
         </div>
 
+
         {/* CORRIGIDO: Adicione um loader ou mensagem enquanto o clientId está carregando */}
         {isLoading || userLoading || !clientId ? (
           <div className="flex items-center justify-center h-[60vh]">
-            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-emerald-400"></div>
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-bluetext-blue-700"></div>
           </div>
         ) : filteredAgents.length > 0 ? (
           <AgentList
@@ -651,6 +714,7 @@ const AgenteIA = () => {
         )}
       </div>
 
+
       {/* Dialogs */}
       {/* Certifique-se de passar o clientId correto para os dialogs/forms */}
       <AgentForm
@@ -669,12 +733,14 @@ const AgenteIA = () => {
         clientId={clientId} // Passe o clientId do contexto
       />
 
+
       <FolderDialog
         open={isFolderDialogOpen}
         onOpenChange={setIsFolderDialogOpen}
         editingFolder={editingFolder}
         onSave={handleAddFolder}
       />
+
 
       <MoveAgentDialog
         open={isMovingDialogOpen}
@@ -684,6 +750,7 @@ const AgenteIA = () => {
         onMove={handleMoveAgent} // Passa a função handleMoveAgent
       />
 
+
       <ConfirmationDialog
         open={isDeleteAgentDialogOpen}
         onOpenChange={setIsDeleteAgentDialogOpen}
@@ -691,6 +758,7 @@ const AgenteIA = () => {
         description={`Are you sure you want to delete the agent "${agentToDelete?.name}"? This action cannot be undone.`}
         onConfirm={handleDeleteAgent} // Passa a função handleDeleteAgent
       />
+
 
       <ConfirmationDialog
         open={isDeleteFolderDialogOpen}
@@ -701,6 +769,7 @@ const AgenteIA = () => {
         confirmVariant="destructive"
         onConfirm={handleDeleteFolder}
       />
+
 
       <ApiKeysDialog
         open={isApiKeysDialogOpen}
@@ -787,12 +856,14 @@ const AgenteIA = () => {
         }}
       />
 
+
       <ShareAgentDialog
         open={isShareDialogOpen}
         onOpenChange={setIsShareDialogOpen}
         agent={agentToShare || ({} as Agent)} // Garante que um objeto vazio seja passado se agentToShare for null
         apiKey={sharedApiKey}
       />
+
 
       <ImportAgentDialog
         open={isImportDialogOpen}
@@ -805,5 +876,6 @@ const AgenteIA = () => {
     </div>
   );
 };
+
 
 export default AgenteIA;
