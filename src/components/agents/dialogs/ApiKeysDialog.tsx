@@ -20,11 +20,11 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { ApiKey } from "@/services/agentService"; // Verifique o caminho correto
-import { availableModelProviders } from "@/types/aiModels"; // Verifique o caminho correto
-import { Edit, Eye, EyeOff, Key, Plus, Trash2, X } from "lucide-react"; // Ou a biblioteca de ícones que você usa
+import { ApiKey } from "@/services/agentService";
+import { availableModelProviders } from "@/types/aiModels";
+import { Edit, Eye, EyeOff, Key, Plus, Trash2, X } from "lucide-react";
 import { useEffect, useState } from "react";
-import { ConfirmationDialog } from "./ConfirmationDialog"; // Verifique o caminho correto
+import { ConfirmationDialog } from "./ConfirmationDialog";
 
 interface ApiKeysDialogProps {
   open: boolean;
@@ -41,7 +41,7 @@ interface ApiKeysDialogProps {
     apiKey: {
       name: string;
       provider: string;
-      key_value?: string; // key_value é opcional na atualização
+      key_value?: string;
       is_active: boolean;
     }
   ) => Promise<void>;
@@ -130,35 +130,28 @@ export function ApiKeysDialog({
 
     try {
       if (currentApiKey.id) {
-        // Update existing key
         await onUpdateApiKey(currentApiKey.id, {
           name: currentApiKey.name,
           provider: currentApiKey.provider,
-          // Only send key_value if it was entered (not empty string)
-          ...(currentApiKey.key_value !== "" && { key_value: currentApiKey.key_value }),
-          // Ensure is_active is a boolean, default to true if undefined (for new keys before saving)
+          key_value: currentApiKey.key_value,
           is_active: currentApiKey.is_active !== false,
         });
       } else {
-        // Add new key
         await onAddApiKey({
           name: currentApiKey.name,
           provider: currentApiKey.provider,
-          key_value: currentApiKey.key_value!, // key_value is guaranteed by validation above
+          key_value: currentApiKey.key_value!,
         });
       }
 
-      // Reset form states
       setCurrentApiKey({});
       setIsAddingApiKey(false);
       setIsEditingApiKey(false);
-      setIsApiKeyVisible(false); // Hide key value after saving
-
     } catch (error) {
       console.error("Error saving API key:", error);
-      // Optionally show an error message to the user
     }
   };
+
 
   const handleDeleteConfirm = async () => {
     if (!apiKeyToDelete) return;
