@@ -131,17 +131,17 @@ export function ApiKeysDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-hidden flex flex-col bg-gray-100 border-gray-300"> {/* Changed background and border */}
+      <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-hidden flex flex-col bg-deep border-deep-purple"> {/* Changed background and border */}
         <DialogHeader>
-          <DialogTitle className="text-gray-900">Manage API Keys</DialogTitle> {/* Changed text color */}
+          <DialogTitle className="text-gray-900">Gerenciar chaves de API</DialogTitle> {/* Changed text color */}
           <DialogDescription className="text-gray-600"> {/* Changed text color */}
-            Add and manage API keys for use in your agents
+            Adicione e gerencie chaves de API para uso em seus agentes
           </DialogDescription>
         </DialogHeader>
 
         <div className="flex-1 overflow-auto p-1">
           {isAddingApiKey ? (
-            <div className="space-y-4 p-4 bg-white rounded-md shadow"> {/* Changed background and added shadow */}
+            <div className="space-y-4 p-4 bg-electric-dark rounded-md shadow"> {/* Changed background and added shadow */}
               <div className="flex justify-between items-center">
                 <h3 className="text-lg font-medium text-gray-900"> {/* Changed text color */}
                   {isEditingApiKey ? "Edit Key" : "New Key"}
@@ -174,7 +174,7 @@ export function ApiKeysDialog({
                         name: e.target.value,
                       })
                     }
-                    className="col-span-3 bg-white border-gray-300 text-gray-900" // Changed background, border, text
+                    className="col-span-3 bg-deep border-electric text-gray-900" // Changed background, border, text
                     placeholder="OpenAI GPT-4"
                   />
                 </div>
@@ -195,10 +195,10 @@ export function ApiKeysDialog({
                       })
                     }
                   >
-                    <SelectTrigger className="col-span-3 bg-white border-gray-300 text-gray-900"> {/* Changed background, border, text */}
+                    <SelectTrigger className="col-span-3 bg-deep border-electric-dark text-gray-900"> {/* Changed background, border, text */}
                       <SelectValue placeholder="Select Provider" />
                     </SelectTrigger>
-                    <SelectContent className="bg-white border-gray-300 text-gray-900"> {/* Changed background, border, text */}
+                    <SelectContent className="bg-deep border-electric-dark text-gray-900"> {/* Changed background, border, text */}
                       {availableModelProviders.map((provider) => (
                         <SelectItem
                           key={provider.value}
@@ -229,7 +229,7 @@ export function ApiKeysDialog({
                           key_value: e.target.value,
                         })
                       }
-                      className="bg-white border-gray-300 text-gray-900 pr-10" // Changed background, border, text
+                      className="bg-deep border-electric-dark text-gray-900 pr-10" // Changed background, border, text
                       type={isApiKeyVisible ? "text" : "password"}
                       placeholder={
                         isEditingApiKey
@@ -285,7 +285,7 @@ export function ApiKeysDialog({
                     setIsEditingApiKey(false);
                     setCurrentApiKey({});
                   }}
-                  className="bg-white border-gray-300 text-gray-700 hover:bg-gray-200 hover:text-gray-900" // Changed button colors
+                  className="bg-deep border-electric-darktext-gray-700 hover:bg-electric hover:text-gray-900" // Changed button colors
                 >
                   Cancel
                 </Button>
@@ -295,7 +295,7 @@ export function ApiKeysDialog({
                   disabled={isLoading}
                 >
                   {isLoading && (
-                    <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full mr-1"></div>
+                    <div className="animate-spin h-4 w-4 border-2 border-electric border-t-transparent rounded-full mr-1"></div>
                   )}
                   {isEditingApiKey ? "Update" : "Add"}
                 </Button>
@@ -325,7 +325,7 @@ export function ApiKeysDialog({
                   {apiKeys.map((apiKey) => (
                     <div
                       key={apiKey.id}
-                      className="flex items-center justify-between p-3 bg-white rounded-md border border-gray-300 hover:border-blue-600/30" // Changed background, border, hover border
+                      className="flex items-center justify-between p-3 bg-deep rounded-md border border-electric-darkhover:border-blue-600/30" // Changed background, border, hover border
                     >
                       <div>
                         <p className="font-medium text-gray-900">{apiKey.name}</p> {/* Changed text color */}
@@ -373,7 +373,7 @@ export function ApiKeysDialog({
                 </div>
               ) : (
                 <p className="text-center text-gray-600"> {/* Changed text color */}
-                  No API keys added yet. Click "New Key" to add one.
+                  Nenhuma chave de API adicionada ainda. Clique em "Nova Chave" para adicionar uma.
                 </p>
               )}
             </>
@@ -385,9 +385,9 @@ export function ApiKeysDialog({
           <Button
             variant="outline"
             onClick={() => onOpenChange(false)}
-            className="bg-[#222] border-[#444] text-neutral-300 hover:bg-[#333] hover:text-white"
+            className="bg-shock-dark/30 border-shock/35 text-neutral-300 hover:bg-shock/45 hover:text-white"
           >
-            Close
+            Fechar
           </Button>
         </DialogFooter>
       </DialogContent>
