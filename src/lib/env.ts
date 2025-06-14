@@ -11,5 +11,5 @@ export const getEnv = (key: string, defaultValue?: string): string => {
 };
 
 export const getApiUrl = (): string => {
-  return getEnv('VITE_API_AI_URL', 'https://api-evoai.evoapicloud.com');
+  return getEnv('VITE_API_AI_URL', 'https://evo.whatlead.com.br');
 };

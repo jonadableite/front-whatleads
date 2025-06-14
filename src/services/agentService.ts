@@ -1,4 +1,5 @@
 // services/agentService.ts
+
 import { escapePromptBraces, sanitizeAgentName } from "@/lib/utils";
 import type { Agent, AgentCreate } from "../types/agent";
 // Importa as duas instâncias nomeadas do Axios
@@ -159,29 +160,27 @@ export interface ApiKey {
   id: string;
   name: string;
   provider: string;
-  client_id: string;
+  client_id: string; // This remains as it's part of the returned object structure
   created_at: string;
   updated_at: string;
   is_active: boolean;
 }
 
-export interface ApiKeyCreate {
+// Interface for the request body when creating a key
+export interface ApiKeyCreateBody {
   name: string;
   provider: string;
-  client_id: string;
   key_value: string;
+  // client_id is removed from the body interface
 }
 
-export interface ApiKeyUpdate {
-  name?: string;
-  provider?: string;
-  key_value?: string;
-  is_active?: boolean;
-}
+// Modified createApiKey function to send client_id in headers
+export const createApiKey = (data: ApiKeyCreateBody, clientId: string) =>
+  // Uses apiEvoAi to create API Key in the Evo AI backend
+  apiEvoAi.post<ApiKey>("/api/v1/agents/apikeys", data, {
+    headers: { "x-client-id": clientId }, // Send client_id in headers
+  });
 
-export const createApiKey = (data: ApiKeyCreate) =>
-  // Usa apiEvoAi para criar API Key no backend da Evo AI
-  apiEvoAi.post<ApiKey>("/api/v1/agents/apikeys", data);
 
 export const listApiKeys = (clientId: string, skip = 0, limit = 100) =>
   // Usa apiEvoAi para listar API Keys no backend da Evo AI

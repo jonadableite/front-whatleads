@@ -778,7 +778,7 @@ const AgenteIA = () => {
         apiKeys={apiKeys}
         isLoading={isLoading}
         onAddApiKey={async (keyData) => {
-          await createApiKey({ ...keyData, client_id: clientId });
+          await createApiKey(keyData, clientId);
           loadApiKeys();
         }}
         onUpdateApiKey={async (id, keyData) => {
