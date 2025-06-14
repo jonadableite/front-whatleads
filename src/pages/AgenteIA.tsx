@@ -775,85 +775,19 @@ const AgenteIA = () => {
       <ApiKeysDialog
         open={isApiKeysDialogOpen}
         onOpenChange={setIsApiKeysDialogOpen}
-        apiKeys={apiKeys} // Passando as apiKeys para o ApiKeysDialog
-        isLoading={isLoading} // Pode ser útil passar um estado de loading específico para as keys se necessário
+        apiKeys={apiKeys}
+        isLoading={isLoading}
         onAddApiKey={async (keyData) => {
-          if (!clientId) {
-            toast({
-              title: "Error",
-              description: "Client ID not available.",
-              variant: "destructive",
-            });
-            return;
-          }
-          console.log("Tentando adicionar nova API Key:", keyData); // Log antes de adicionar
-          try {
-            await createApiKey({ ...keyData, client_id: clientId });
-            loadApiKeys();
-            toast({
-              title: "API Key added",
-              description: "API Key created successfully",
-            });
-          } catch (error) {
-            console.error("Error adding API key:", error); // Adicionar log detalhado
-            toast({
-              title: "Error",
-              description: "Unable to add API Key",
-              variant: "destructive",
-            });
-          }
+          await createApiKey({ ...keyData, client_id: clientId });
+          loadApiKeys();
         }}
         onUpdateApiKey={async (id, keyData) => {
-          if (!clientId) {
-            toast({
-              title: "Error",
-              description: "Client ID not available.",
-              variant: "destructive",
-            });
-            return;
-          }
-          console.log("Tentando atualizar API Key:", id, keyData); // Log antes de atualizar
-          try {
-            await updateApiKey(id, keyData, clientId);
-            loadApiKeys();
-            toast({
-              title: "API Key updated",
-              description: "API Key updated successfully",
-            });
-          } catch (error) {
-            console.error("Error updating API key:", error); // Adicionar log detalhado
-            toast({
-              title: "Error",
-              description: "Unable to update API Key",
-              variant: "destructive",
-            });
-          }
+          await updateApiKey(id, keyData, clientId);
+          loadApiKeys();
         }}
         onDeleteApiKey={async (id) => {
-          if (!clientId) {
-            toast({
-              title: "Error",
-              description: "Client ID not available.",
-              variant: "destructive",
-            });
-            return;
-          }
-          console.log("Tentando deletar API Key:", id); // Log antes de deletar
-          try {
-            await deleteApiKey(id, clientId);
-            loadApiKeys();
-            toast({
-              title: "API Key deleted",
-              description: "API Key deleted successfully",
-            });
-          } catch (error) {
-            console.error("Error deleting API key:", error); // Adicionar log detalhado
-            toast({
-              title: "Error",
-              description: "Unable to delete API Key",
-              variant: "destructive",
-            });
-          }
+          await deleteApiKey(id, clientId);
+          loadApiKeys();
         }}
       />
 
