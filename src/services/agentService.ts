@@ -1,5 +1,4 @@
 // services/agentService.ts
-
 import { escapePromptBraces, sanitizeAgentName } from "@/lib/utils";
 import type { Agent, AgentCreate } from "../types/agent";
 // Importa as duas instâncias nomeadas do Axios
@@ -51,7 +50,6 @@ export const getAgent = (agentId: string, clientId: string) =>
 export const getSharedAgent = (agentId: string) =>
   // Usa apiInternal para obter agente compartilhado (assumindo que esta rota está no seu backend principal)
 apiEvoAi.get<Agent>(`/api/v1/agents/${agentId}/shared`); // O interceptor de apiInternal cuidará do x-api-key se aplicável
-
 export const updateAgent = (agentId: string, data: Partial<AgentCreate>) =>
   // Usa apiEvoAi para atualizar agente no backend da Evo AI
   apiEvoAi.put<Agent>(`/api/v1/agents/${agentId}`, processAgentData(data));
@@ -171,16 +169,18 @@ export interface ApiKeyCreateBody {
   name: string;
   provider: string;
   key_value: string;
-  // client_id is removed from the body interface
+  // client_id is removed from the body interface, as it's passed separately
 }
 
-// Modified createApiKey function to send client_id in headers
-export const createApiKey = (data: ApiKeyCreateBody, clientId: string) =>
+// Modified createApiKey function to include client_id in the body
+export const createApiKey = (data: ApiKeyCreateBody, clientId: string) => { // Keep clientId parameter
+  const requestBody = { // Create a new object for the request body
+    ...data, // Include existing data (name, provider, key_value)
+    client_id: clientId // Add client_id to the body
+  };
   // Uses apiEvoAi to create API Key in the Evo AI backend
-  apiEvoAi.post<ApiKey>("/api/v1/agents/apikeys", data, {
-    headers: { "x-client-id": clientId }, // Send client_id in headers
-  });
-
+  return apiEvoAi.post<ApiKey>("/api/v1/agents/apikeys", requestBody); // Send the new requestBody, remove headers
+};
 
 export const listApiKeys = (clientId: string, skip = 0, limit = 100) =>
   // Usa apiEvoAi para listar API Keys no backend da Evo AI
@@ -193,6 +193,13 @@ export const getApiKey = (keyId: string, clientId: string) =>
   apiEvoAi.get<ApiKey>(`/api/v1/agents/apikeys/${keyId}`, {
     headers: { "x-client-id": clientId }, // Mantém o header x-client-id
   });
+
+export interface ApiKeyUpdate {
+  name?: string;
+  provider?: string;
+  key_value?: string;
+  is_active?: boolean;
+}
 
 export const updateApiKey = (
   keyId: string,
