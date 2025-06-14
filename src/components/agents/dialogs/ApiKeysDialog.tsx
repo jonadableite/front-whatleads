@@ -22,7 +22,7 @@ import {
 } from "@/components/ui/select";
 import { ApiKey } from "@/services/agentService";
 import { availableModelProviders } from "@/types/aiModels";
-import { Edit, Eye, Key, Plus, Trash2, X } from "lucide-react";
+import { Edit, Eye, Plus, Trash2, X } from "lucide-react";
 import { useState } from "react";
 import { ConfirmationDialog } from "./ConfirmationDialog";
 
@@ -131,19 +131,19 @@ export function ApiKeysDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-hidden flex flex-col bg-[#1a1a1a] border-[#333]">
+      <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-hidden flex flex-col bg-gray-100 border-gray-300"> {/* Changed background and border */}
         <DialogHeader>
-          <DialogTitle className="text-white">Manage API Keys</DialogTitle>
-          <DialogDescription className="text-neutral-400">
+          <DialogTitle className="text-gray-900">Manage API Keys</DialogTitle> {/* Changed text color */}
+          <DialogDescription className="text-gray-600"> {/* Changed text color */}
             Add and manage API keys for use in your agents
           </DialogDescription>
         </DialogHeader>
 
         <div className="flex-1 overflow-auto p-1">
           {isAddingApiKey ? (
-            <div className="space-y-4 p-4 bg-[#222] rounded-md">
+            <div className="space-y-4 p-4 bg-white rounded-md shadow"> {/* Changed background and added shadow */}
               <div className="flex justify-between items-center">
-                <h3 className="text-lg font-medium text-white">
+                <h3 className="text-lg font-medium text-gray-900"> {/* Changed text color */}
                   {isEditingApiKey ? "Edit Key" : "New Key"}
                 </h3>
                 <Button
@@ -154,7 +154,7 @@ export function ApiKeysDialog({
                     setIsEditingApiKey(false);
                     setCurrentApiKey({});
                   }}
-                  className="text-neutral-400 hover:text-white"
+                  className="text-gray-500 hover:text-gray-700" // Changed text colors
                 >
                   <X className="h-4 w-4" />
                 </Button>
@@ -162,7 +162,7 @@ export function ApiKeysDialog({
 
               <div className="space-y-4">
                 <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="name" className="text-right text-neutral-300">
+                  <Label htmlFor="name" className="text-right text-gray-700"> {/* Changed text color */}
                     Name
                   </Label>
                   <Input
@@ -174,7 +174,7 @@ export function ApiKeysDialog({
                         name: e.target.value,
                       })
                     }
-                    className="col-span-3 bg-[#333] border-[#444] text-white"
+                    className="col-span-3 bg-white border-gray-300 text-gray-900" // Changed background, border, text
                     placeholder="OpenAI GPT-4"
                   />
                 </div>
@@ -182,7 +182,7 @@ export function ApiKeysDialog({
                 <div className="grid grid-cols-4 items-center gap-4">
                   <Label
                     htmlFor="provider"
-                    className="text-right text-neutral-300"
+                    className="text-right text-gray-700" // Changed text color
                   >
                     Provider
                   </Label>
@@ -195,15 +195,15 @@ export function ApiKeysDialog({
                       })
                     }
                   >
-                    <SelectTrigger className="col-span-3 bg-[#333] border-[#444] text-white">
+                    <SelectTrigger className="col-span-3 bg-white border-gray-300 text-gray-900"> {/* Changed background, border, text */}
                       <SelectValue placeholder="Select Provider" />
                     </SelectTrigger>
-                    <SelectContent className="bg-[#222] border-[#444] text-white">
+                    <SelectContent className="bg-white border-gray-300 text-gray-900"> {/* Changed background, border, text */}
                       {availableModelProviders.map((provider) => (
                         <SelectItem
                           key={provider.value}
                           value={provider.value}
-                          className="data-[selected]:bg-[#333] data-[highlighted]:bg-[#333] !text-white focus:!text-white hover:text-emerald-400 data-[selected]:!text-emerald-400"
+                          className="data-[selected]:bg-blue-100 data-[highlighted]:bg-blue-50 !text-gray-900 focus:!text-gray-900 hover:text-blue-600 data-[selected]:!text-blue-600" // Changed hover/selected colors
                         >
                           {provider.label}
                         </SelectItem>
@@ -215,7 +215,7 @@ export function ApiKeysDialog({
                 <div className="grid grid-cols-4 items-center gap-4">
                   <Label
                     htmlFor="key_value"
-                    className="text-right text-neutral-300"
+                    className="text-right text-gray-700" // Changed text color
                   >
                     Key Value
                   </Label>
@@ -229,7 +229,7 @@ export function ApiKeysDialog({
                           key_value: e.target.value,
                         })
                       }
-                      className="bg-[#333] border-[#444] text-white pr-10"
+                      className="bg-white border-gray-300 text-gray-900 pr-10" // Changed background, border, text
                       type={isApiKeyVisible ? "text" : "password"}
                       placeholder={
                         isEditingApiKey
@@ -241,7 +241,7 @@ export function ApiKeysDialog({
                       variant="ghost"
                       size="sm"
                       type="button"
-                      className="absolute right-2 top-1/2 transform -translate-y-1/2 h-7 w-7 p-0 text-neutral-400 hover:text-white"
+                      className="absolute right-2 top-1/2 transform -translate-y-1/2 h-7 w-7 p-0 text-gray-500 hover:text-gray-700" // Changed text colors
                       onClick={() => setIsApiKeyVisible(!isApiKeyVisible)}
                     >
                       <Eye className="h-4 w-4" />
@@ -253,7 +253,7 @@ export function ApiKeysDialog({
                   <div className="grid grid-cols-4 items-center gap-4">
                     <Label
                       htmlFor="is_active"
-                      className="text-right text-neutral-300"
+                      className="text-right text-gray-700" // Changed text color
                     >
                       Status
                     </Label>
@@ -267,9 +267,9 @@ export function ApiKeysDialog({
                             is_active: !!checked,
                           })
                         }
-                        className="mr-2 data-[state=checked]:bg-emerald-400 data-[state=checked]:border-emerald-400"
+                        className="mr-2 data-[state=checked]:bg-blue-600 data-[state=checked]:border-blue-600" // Changed checked color
                       />
-                      <Label htmlFor="is_active" className="text-neutral-300">
+                      <Label htmlFor="is_active" className="text-gray-700"> {/* Changed text color */}
                         Active
                       </Label>
                     </div>
@@ -285,17 +285,17 @@ export function ApiKeysDialog({
                     setIsEditingApiKey(false);
                     setCurrentApiKey({});
                   }}
-                  className="bg-[#222] border-[#444] text-neutral-300 hover:bg-[#333] hover:text-white"
+                  className="bg-white border-gray-300 text-gray-700 hover:bg-gray-200 hover:text-gray-900" // Changed button colors
                 >
                   Cancel
                 </Button>
                 <Button
                   onClick={handleSaveApiKey}
-                  className="bg-emerald-400 text-black hover:bg-[#00cc7d]"
+                  className="bg-blue-600 text-white hover:bg-blue-700" // Changed button colors
                   disabled={isLoading}
                 >
                   {isLoading && (
-                    <div className="animate-spin h-4 w-4 border-2 border-black border-t-transparent rounded-full mr-1"></div>
+                    <div className="animate-spin h-4 w-4 border-2 border-white border-t-transparent rounded-full mr-1"></div>
                   )}
                   {isEditingApiKey ? "Update" : "Add"}
                 </Button>
@@ -304,12 +304,12 @@ export function ApiKeysDialog({
           ) : (
             <>
               <div className="flex justify-between items-center mb-4">
-                <h3 className="text-lg font-medium text-white">
+                <h3 className="text-lg font-medium text-gray-900"> {/* Changed text color */}
                   Available Keys
                 </h3>
                 <Button
                   onClick={handleAddClick}
-                  className="bg-emerald-400 text-black hover:bg-[#00cc7d]"
+                  className="bg-blue-600 text-white hover:bg-blue-700" // Changed button colors
                 >
                   <Plus className="mr-2 h-4 w-4" />
                   New Key
@@ -318,45 +318,44 @@ export function ApiKeysDialog({
 
               {isLoading ? (
                 <div className="flex items-center justify-center h-40">
-                  <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-emerald-400"></div>
+                  <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-blue-600"></div> {/* Changed spinner color */}
                 </div>
               ) : apiKeys.length > 0 ? (
                 <div className="space-y-2">
                   {apiKeys.map((apiKey) => (
                     <div
                       key={apiKey.id}
-                      className="flex items-center justify-between p-3 bg-[#222] rounded-md border border-[#333] hover:border-emerald-400/30"
+                      className="flex items-center justify-between p-3 bg-white rounded-md border border-gray-300 hover:border-blue-600/30" // Changed background, border, hover border
                     >
                       <div>
-                        <p className="font-medium text-white">{apiKey.name}</p>
+                        <p className="font-medium text-gray-900">{apiKey.name}</p> {/* Changed text color */}
                         <div className="flex items-center gap-2 mt-1">
                           <Badge
                             variant="outline"
-                            className="bg-[#333] text-emerald-400 border-emerald-400/30"
+                            className="bg-gray-100 text-blue-600 border-blue-600/30" // Changed badge colors
                           >
                             {apiKey.provider.toUpperCase()}
                           </Badge>
-                          <p className="text-xs text-neutral-400">
+                          <p className="text-xs text-gray-600"> {/* Changed text color */}
                             Created on{" "}
                             {new Date(apiKey.created_at).toLocaleDateString()}
                           </p>
                           {!apiKey.is_active && (
                             <Badge
                               variant="outline"
-                              className="bg-[#333] text-red-400 border-red-400/30"
+                              className="bg-red-100 text-red-600 border-red-600/30" // Example inactive badge color
                             >
                               Inactive
                             </Badge>
                           )}
                         </div>
                       </div>
-
-                      <div className="flex gap-2">
+                      <div className="flex items-center gap-2">
                         <Button
                           variant="ghost"
                           size="sm"
                           onClick={() => handleEditClick(apiKey)}
-                          className="text-neutral-300 hover:text-emerald-400 hover:bg-[#333]"
+                          className="text-gray-500 hover:text-blue-600" // Changed text colors
                         >
                           <Edit className="h-4 w-4" />
                         </Button>
@@ -364,7 +363,7 @@ export function ApiKeysDialog({
                           variant="ghost"
                           size="sm"
                           onClick={() => handleDeleteClick(apiKey)}
-                          className="text-red-500 hover:text-red-400 hover:bg-[#333]"
+                          className="text-gray-500 hover:text-red-600" // Changed text colors
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -373,24 +372,14 @@ export function ApiKeysDialog({
                   ))}
                 </div>
               ) : (
-                <div className="text-center py-10 border border-dashed border-[#333] rounded-md bg-[#222] text-neutral-400">
-                  <Key className="mx-auto h-10 w-10 text-neutral-500 mb-3" />
-                  <p>You don't have any API keys registered</p>
-                  <p className="text-sm mt-1">
-                    Add your API keys to use them in your agents
-                  </p>
-                  <Button
-                    onClick={handleAddClick}
-                    className="mt-4 bg-[#333] text-emerald-400 hover:bg-[#444]"
-                  >
-                    <Plus className="mr-2 h-4 w-4" />
-                    Add Key
-                  </Button>
-                </div>
+                <p className="text-center text-gray-600"> {/* Changed text color */}
+                  No API keys added yet. Click "New Key" to add one.
+                </p>
               )}
             </>
           )}
         </div>
+
 
         <DialogFooter className="border-t border-[#333] pt-4">
           <Button
