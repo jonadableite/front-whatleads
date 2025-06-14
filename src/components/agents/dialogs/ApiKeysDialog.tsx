@@ -22,8 +22,8 @@ import {
 } from "@/components/ui/select";
 import { ApiKey } from "@/services/agentService";
 import { availableModelProviders } from "@/types/aiModels";
-import { Edit, Eye, EyeOff, Key, Plus, Trash2, X } from "lucide-react";
-import { useEffect, useState } from "react";
+import { Edit, Eye, Key, Plus, Trash2, X } from "lucide-react";
+import { useState } from "react";
 import { ConfirmationDialog } from "./ConfirmationDialog";
 
 interface ApiKeysDialogProps {
@@ -62,38 +62,21 @@ export function ApiKeysDialog({
   const [currentApiKey, setCurrentApiKey] = useState<
     Partial<ApiKey & { key_value?: string }>
   >({});
+
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
   const [apiKeyToDelete, setApiKeyToDelete] = useState<ApiKey | null>(null);
   const [isApiKeyVisible, setIsApiKeyVisible] = useState(false);
 
-  // Reset states when the dialog is closed
-  useEffect(() => {
-    if (!open) {
-      setIsAddingApiKey(false);
-      setIsEditingApiKey(false);
-      setCurrentApiKey({});
-      setIsDeleteDialogOpen(false);
-      setApiKeyToDelete(null);
-      setIsApiKeyVisible(false);
-    }
-  }, [open]);
-
-
   const handleAddClick = () => {
-    setCurrentApiKey({ is_active: true }); // Default to active for new keys
+    setCurrentApiKey({});
     setIsAddingApiKey(true);
     setIsEditingApiKey(false);
-    setIsApiKeyVisible(false); // Hide key value initially
   };
 
   const handleEditClick = (apiKey: ApiKey) => {
-    // Note: We don't load the key_value here for security reasons.
-    // The user will leave it blank to keep the old one or enter a new one.
-    // Include existing active status
-    setCurrentApiKey({ ...apiKey, key_value: "", is_active: apiKey.is_active });
+    setCurrentApiKey({ ...apiKey, key_value: "" });
     setIsAddingApiKey(true);
     setIsEditingApiKey(true);
-    setIsApiKeyVisible(false); // Hide key value initially
   };
 
   const handleDeleteClick = (apiKey: ApiKey) => {
@@ -101,30 +84,12 @@ export function ApiKeysDialog({
     setIsDeleteDialogOpen(true);
   };
 
-  const handleToggleActive = async (apiKey: ApiKey) => {
-    try {
-      // Pass the current name and provider, and toggle the active status
-      await onUpdateApiKey(apiKey.id, {
-        name: apiKey.name,
-        provider: apiKey.provider,
-        is_active: !apiKey.is_active, // Toggle the active status
-      });
-    } catch (error) {
-      console.error("Error toggling API key status:", error);
-      // Optionally show a toast or other feedback
-    }
-  };
-
-
   const handleSaveApiKey = async () => {
-    // Basic validation
     if (
       !currentApiKey.name ||
       !currentApiKey.provider ||
-      (!isEditingApiKey && !currentApiKey.key_value) // Key value is required only for adding
+      (!isEditingApiKey && !currentApiKey.key_value)
     ) {
-      // Optionally show a validation message to the user
-      console.warn("Missing required fields");
       return;
     }
 
@@ -152,36 +117,31 @@ export function ApiKeysDialog({
     }
   };
 
-
   const handleDeleteConfirm = async () => {
     if (!apiKeyToDelete) return;
+
     try {
       await onDeleteApiKey(apiKeyToDelete.id);
       setApiKeyToDelete(null);
       setIsDeleteDialogOpen(false);
     } catch (error) {
       console.error("Error deleting API key:", error);
-      // Optionally show an error message to the user
     }
   };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="fixed top-[50%] left-[50%] transform -translate-x-1/2 -translate-y-1/2 sm:max-w-[700px] max-h-[90vh] overflow-hidden flex flex-col bg-[#0c0b13] border-[#0c0b13]">
+      <DialogContent className="sm:max-w-[700px] max-h-[90vh] overflow-hidden flex flex-col bg-[#1a1a1a] border-[#333]">
         <DialogHeader>
-          <DialogTitle className="text-white">Gerenciar chaves de API</DialogTitle>
-          <DialogDescription className="text-gray-400">
-            Adicione e gerencie chaves de API para uso em seus agentes
+          <DialogTitle className="text-white">Manage API Keys</DialogTitle>
+          <DialogDescription className="text-neutral-400">
+            Add and manage API keys for use in your agents
           </DialogDescription>
         </DialogHeader>
 
-        {/* Container principal que controla o scroll e o preenchimento do espaço disponível */}
-        {/* Adicionada chave única para o container principal da renderização condicional */}
-        {/* Este div contém o conteúdo que muda (formulário ou lista) */}
-        <div key={isAddingApiKey ? "api-form-container" : "api-list-container"} className="flex-1 overflow-auto p-1">
+        <div className="flex-1 overflow-auto p-1">
           {isAddingApiKey ? (
-            // Adicionada chave única para o formulário de adicionar/editar
-            <div key="add-edit-form" className="space-y-4 p-4 bg-[#0c0b13] rounded-md">
+            <div className="space-y-4 p-4 bg-[#222] rounded-md">
               <div className="flex justify-between items-center">
                 <h3 className="text-lg font-medium text-white">
                   {isEditingApiKey ? "Edit Key" : "New Key"}
@@ -193,9 +153,8 @@ export function ApiKeysDialog({
                     setIsAddingApiKey(false);
                     setIsEditingApiKey(false);
                     setCurrentApiKey({});
-                    setIsApiKeyVisible(false); // Esconder a chave ao cancelar
                   }}
-                  className="text-gray-400 hover:text-white"
+                  className="text-neutral-400 hover:text-white"
                 >
                   <X className="h-4 w-4" />
                 </Button>
@@ -203,7 +162,7 @@ export function ApiKeysDialog({
 
               <div className="space-y-4">
                 <div className="grid grid-cols-4 items-center gap-4">
-                  <Label htmlFor="name" className="text-right text-gray-300">
+                  <Label htmlFor="name" className="text-right text-neutral-300">
                     Name
                   </Label>
                   <Input
@@ -215,7 +174,7 @@ export function ApiKeysDialog({
                         name: e.target.value,
                       })
                     }
-                    className="col-span-3 bg-[#0c0b13] border-[#444] text-white"
+                    className="col-span-3 bg-[#333] border-[#444] text-white"
                     placeholder="OpenAI GPT-4"
                   />
                 </div>
@@ -223,7 +182,7 @@ export function ApiKeysDialog({
                 <div className="grid grid-cols-4 items-center gap-4">
                   <Label
                     htmlFor="provider"
-                    className="text-right text-gray-300"
+                    className="text-right text-neutral-300"
                   >
                     Provider
                   </Label>
@@ -236,16 +195,15 @@ export function ApiKeysDialog({
                       })
                     }
                   >
-                    <SelectTrigger className="col-span-3 bg-[#0c0b13] border-[#444] text-white">
+                    <SelectTrigger className="col-span-3 bg-[#333] border-[#444] text-white">
                       <SelectValue placeholder="Select Provider" />
                     </SelectTrigger>
-                    {/* Adicionada classe para garantir que o SelectContent apareça acima de outros elementos se necessário */}
-                    <SelectContent className="bg-[#222] border-[#444] text-white z-[999]">
+                    <SelectContent className="bg-[#222] border-[#444] text-white">
                       {availableModelProviders.map((provider) => (
                         <SelectItem
-                          key={provider.value} // Chave única para cada item do select
+                          key={provider.value}
                           value={provider.value}
-                          className="data-[selected]:bg-[#0c0b13] data-[highlighted]:bg-[#0c0b13] !text-white focus:!text-white hover:text-[#CB39C1] data-[selected]:!text-[#CB39C1]"
+                          className="data-[selected]:bg-[#333] data-[highlighted]:bg-[#333] !text-white focus:!text-white hover:text-emerald-400 data-[selected]:!text-emerald-400"
                         >
                           {provider.label}
                         </SelectItem>
@@ -257,7 +215,7 @@ export function ApiKeysDialog({
                 <div className="grid grid-cols-4 items-center gap-4">
                   <Label
                     htmlFor="key_value"
-                    className="text-right text-gray-300"
+                    className="text-right text-neutral-300"
                   >
                     Key Value
                   </Label>
@@ -271,7 +229,7 @@ export function ApiKeysDialog({
                           key_value: e.target.value,
                         })
                       }
-                      className="bg-[#0c0b13] border-[#444] text-white pr-10"
+                      className="bg-[#333] border-[#444] text-white pr-10"
                       type={isApiKeyVisible ? "text" : "password"}
                       placeholder={
                         isEditingApiKey
@@ -279,19 +237,14 @@ export function ApiKeysDialog({
                           : "sk-..."
                       }
                     />
-                    {/* Botão para mostrar/esconder a chave */}
                     <Button
                       variant="ghost"
                       size="sm"
-                      type="button" // Importante para não submeter o form
-                      className="absolute right-2 top-1/2 transform -translate-y-1/2 h-7 w-7 p-0 text-gray-400 hover:text-white"
+                      type="button"
+                      className="absolute right-2 top-1/2 transform -translate-y-1/2 h-7 w-7 p-0 text-neutral-400 hover:text-white"
                       onClick={() => setIsApiKeyVisible(!isApiKeyVisible)}
                     >
-                      {isApiKeyVisible ? (
-                        <EyeOff className="h-4 w-4" />
-                      ) : (
-                        <Eye className="h-4 w-4" />
-                      )}
+                      <Eye className="h-4 w-4" />
                     </Button>
                   </div>
                 </div>
@@ -300,23 +253,23 @@ export function ApiKeysDialog({
                   <div className="grid grid-cols-4 items-center gap-4">
                     <Label
                       htmlFor="is_active"
-                      className="text-right text-gray-300"
+                      className="text-right text-neutral-300"
                     >
                       Status
                     </Label>
                     <div className="col-span-3 flex items-center">
                       <Checkbox
                         id="is_active"
-                        checked={currentApiKey.is_active !== false} // Treat undefined as true for new keys, ensure boolean for existing
+                        checked={currentApiKey.is_active !== false}
                         onCheckedChange={(checked) =>
                           setCurrentApiKey({
                             ...currentApiKey,
-                            is_active: !!checked, // Ensure boolean value
+                            is_active: !!checked,
                           })
                         }
-                        className="mr-2 data-[state=checked]:bg-[#CB39C1] data-[state=checked]:border-[#CB39C1]"
+                        className="mr-2 data-[state=checked]:bg-emerald-400 data-[state=checked]:border-emerald-400"
                       />
-                      <Label htmlFor="is_active" className="text-gray-300">
+                      <Label htmlFor="is_active" className="text-neutral-300">
                         Active
                       </Label>
                     </div>
@@ -324,24 +277,21 @@ export function ApiKeysDialog({
                 )}
               </div>
 
-              {/* Footer para os botões do formulário */}
-              {/* Adicionada chave única para o footer do formulário */}
-              <DialogFooter key="form-footer" className="flex justify-end gap-2 mt-4">
+              <div className="flex justify-end gap-2 mt-4">
                 <Button
                   variant="outline"
                   onClick={() => {
                     setIsAddingApiKey(false);
                     setIsEditingApiKey(false);
                     setCurrentApiKey({});
-                    setIsApiKeyVisible(false); // Esconder a chave ao cancelar
                   }}
-                  className="bg-[#222] border-[#444] text-gray-300 hover:bg-[#0c0b13] hover:text-white"
+                  className="bg-[#222] border-[#444] text-neutral-300 hover:bg-[#333] hover:text-white"
                 >
                   Cancel
                 </Button>
                 <Button
                   onClick={handleSaveApiKey}
-                  className="bg-[#CB39C1] text-black hover:bg-[#00cc7d]"
+                  className="bg-emerald-400 text-black hover:bg-[#00cc7d]"
                   disabled={isLoading}
                 >
                   {isLoading && (
@@ -349,18 +299,17 @@ export function ApiKeysDialog({
                   )}
                   {isEditingApiKey ? "Update" : "Add"}
                 </Button>
-              </DialogFooter>
+              </div>
             </div>
           ) : (
-            // Container para a lista ou estado vazio, com chave única
-            <div key="api-key-list-content"> {/* Chave única para este bloco */}
+            <>
               <div className="flex justify-between items-center mb-4">
                 <h3 className="text-lg font-medium text-white">
                   Available Keys
                 </h3>
                 <Button
                   onClick={handleAddClick}
-                  className="bg-[#CB39C1] text-black hover:bg-[#00cc7d]"
+                  className="bg-emerald-400 text-black hover:bg-[#00cc7d]"
                 >
                   <Plus className="mr-2 h-4 w-4" />
                   New Key
@@ -369,59 +318,45 @@ export function ApiKeysDialog({
 
               {isLoading ? (
                 <div className="flex items-center justify-center h-40">
-                  <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-[#CB39C1]"></div>
+                  <div className="animate-spin rounded-full h-8 w-8 border-t-2 border-b-2 border-emerald-400"></div>
                 </div>
               ) : apiKeys.length > 0 ? (
                 <div className="space-y-2">
                   {apiKeys.map((apiKey) => (
                     <div
-                      key={apiKey.id} // Chave única para cada item da lista (essencial!)
-                      className="flex items-center justify-between p-3 bg-[#222] rounded-md border border-[#0c0b13] hover:border-[#CB39C1]/30"
+                      key={apiKey.id}
+                      className="flex items-center justify-between p-3 bg-[#222] rounded-md border border-[#333] hover:border-emerald-400/30"
                     >
                       <div>
                         <p className="font-medium text-white">{apiKey.name}</p>
                         <div className="flex items-center gap-2 mt-1">
                           <Badge
                             variant="outline"
-                            className="bg-[#0c0b13] text-[#CB39C1] border-[#CB39C1]/30"
+                            className="bg-[#333] text-emerald-400 border-emerald-400/30"
                           >
                             {apiKey.provider.toUpperCase()}
                           </Badge>
-                          <p className="text-xs text-gray-400">
+                          <p className="text-xs text-neutral-400">
                             Created on{" "}
                             {new Date(apiKey.created_at).toLocaleDateString()}
                           </p>
-                          {/* Badge para status ativo/inativo */}
-                          <Badge
-                            variant="outline"
-                            className={`bg-[#0c0b13] ${apiKey.is_active ? 'text-emerald-400 border-emerald-400/30' : 'text-red-400 border-red-400/30'}`}
-                          >
-                            {apiKey.is_active ? "Active" : "Inactive"}
-                          </Badge>
+                          {!apiKey.is_active && (
+                            <Badge
+                              variant="outline"
+                              className="bg-[#333] text-red-400 border-red-400/30"
+                            >
+                              Inactive
+                            </Badge>
+                          )}
                         </div>
                       </div>
+
                       <div className="flex gap-2">
-                        {/* Botão para alternar status ativo/inativo */}
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          onClick={() => handleToggleActive(apiKey)}
-                          title={apiKey.is_active ? "Deactivate Key" : "Activate Key"}
-                          className="text-gray-300 hover:text-[#CB39C1] hover:bg-[#0c0b13]"
-                          disabled={isLoading} // Desabilitar enquanto carrega
-                        >
-                          {apiKey.is_active ? (
-                            <EyeOff className="h-4 w-4" />
-                          ) : (
-                            <Eye className="h-4 w-4" />
-                          )}
-                        </Button>
                         <Button
                           variant="ghost"
                           size="sm"
                           onClick={() => handleEditClick(apiKey)}
-                          className="text-gray-300 hover:text-[#CB39C1] hover:bg-[#0c0b13]"
-                          disabled={isLoading} // Desabilitar enquanto carrega
+                          className="text-neutral-300 hover:text-emerald-400 hover:bg-[#333]"
                         >
                           <Edit className="h-4 w-4" />
                         </Button>
@@ -429,8 +364,7 @@ export function ApiKeysDialog({
                           variant="ghost"
                           size="sm"
                           onClick={() => handleDeleteClick(apiKey)}
-                          className="text-red-500 hover:text-red-400 hover:bg-[#0c0b13]"
-                          disabled={isLoading} // Desabilitar enquanto carrega
+                          className="text-red-500 hover:text-red-400 hover:bg-[#333]"
                         >
                           <Trash2 className="h-4 w-4" />
                         </Button>
@@ -439,52 +373,45 @@ export function ApiKeysDialog({
                   ))}
                 </div>
               ) : (
-                <div className="text-center py-10 border border-dashed border-[#0c0b13] rounded-md bg-[#222] text-gray-400">
-                  <Key className="mx-auto h-10 w-10 text-gray-500 mb-3" />
+                <div className="text-center py-10 border border-dashed border-[#333] rounded-md bg-[#222] text-neutral-400">
+                  <Key className="mx-auto h-10 w-10 text-neutral-500 mb-3" />
                   <p>You don't have any API keys registered</p>
                   <p className="text-sm mt-1">
                     Add your API keys to use them in your agents
                   </p>
                   <Button
                     onClick={handleAddClick}
-                    className="mt-4 bg-[#0c0b13] text-[#CB39C1] hover:bg-[#444]"
+                    className="mt-4 bg-[#333] text-emerald-400 hover:bg-[#444]"
                   >
                     <Plus className="mr-2 h-4 w-4" />
                     Add Key
                   </Button>
                 </div>
               )}
-            </div>
+            </>
           )}
         </div>
 
-        {/* Footer geral para o botão Close quando não estiver no formulário */}
-        {/* Adicionada chave única para o footer de fechar */}
-        {/* Renderizado condicionalmente para não ter dois footers ao mesmo tempo */}
-        {!isAddingApiKey && (
-          <DialogFooter key="close-footer" className="border-t border-[#0c0b13] pt-4">
-            <Button
-              variant="outline"
-              onClick={() => onOpenChange(false)}
-              className="bg-[#222] border-[#444] text-gray-300 hover:bg-[#0c0b13] hover:text-white"
-            >
-              Close
-            </Button>
-          </DialogFooter>
-        )}
-
-
-        {/* Confirmation Dialog para exclusão */}
-        <ConfirmationDialog
-          open={isDeleteDialogOpen}
-          onOpenChange={setIsDeleteDialogOpen}
-          title="Confirm Delete"
-          description={`Are you sure you want to delete the key "${apiKeyToDelete?.name}"? This action cannot be undone.`}
-          confirmText="Delete"
-          confirmVariant="destructive"
-          onConfirm={handleDeleteConfirm}
-        />
+        <DialogFooter className="border-t border-[#333] pt-4">
+          <Button
+            variant="outline"
+            onClick={() => onOpenChange(false)}
+            className="bg-[#222] border-[#444] text-neutral-300 hover:bg-[#333] hover:text-white"
+          >
+            Close
+          </Button>
+        </DialogFooter>
       </DialogContent>
+
+      <ConfirmationDialog
+        open={isDeleteDialogOpen}
+        onOpenChange={setIsDeleteDialogOpen}
+        title="Confirm Delete"
+        description={`Are you sure you want to delete the key "${apiKeyToDelete?.name}"? This action cannot be undone.`}
+        confirmText="Delete"
+        confirmVariant="destructive"
+        onConfirm={handleDeleteConfirm}
+      />
     </Dialog>
   );
 }
