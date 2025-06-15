@@ -94,7 +94,7 @@ export function SubAgentsTab({
         </div>
       </div>
 
-      <div className="border border-electric rounded-md p-4 bg-electric-dark">
+      <div className="border border-electric rounded-md p-4 bg-neutral-900">
         <p className="text-sm text-neutral-400 mb-4">
           Select the agents that will be used as sub-agents.
         </p>
@@ -201,8 +201,8 @@ export function SubAgentsTab({
                     disabled={values.config?.sub_agents?.includes(agent.id)}
                     className={
                       values.config?.sub_agents?.includes(agent.id)
-                        ? "text-neutral-500 bg-electric-dark hover:bg-deep"
-                        : "text-neon-green hover:bg-deep bg-electric-dark"
+                        ? "text-neutral-500 bg-neutral-900 hover:bg-deep"
+                        : "text-neon-green hover:bg-deep bg-neutral-900"
                     }
                   >
                     {values.config?.sub_agents?.includes(agent.id)
