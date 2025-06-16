@@ -138,17 +138,19 @@ const PricingPage: React.FC = () => {
 
 	const plans: Plan[] = [
 		{
-			name: "Basic",
+			name: "Starter",
 			price: {
-				monthly: 109.0,
-				annual: 1229.0,
+				monthly: 129.9,
+				annual: 1299.0,
 			},
 			features: [
 				"2 Números",
 				"Envio aovivo",
 				"Suporte Básico",
-				"Limite de 250 Leads/Base",
+				"Limite de 700 Leads/Base",
 				"Analises Avançadas",
+				"2 automações ativas",
+				"2 automações ativas",
 			],
 			icon: <RocketIcon className="w-12 h-12 text-blue-500" />,
 			bgGradient: "from-blue-500 to-blue-700",
@@ -161,18 +163,22 @@ const PricingPage: React.FC = () => {
 		{
 			name: "Pro",
 			price: {
-				monthly: 167.0,
-				annual: 1800.0,
+				monthly: 249.9,
+				annual: 2499.0,
 			},
 			features: [
 				"5 Números",
+				"2 Agentes de IA",
 				"Envios aovivo e agendados",
 				"Suporte Prioritário",
-				"Limite de 700 Leads/Base",
+				"Limite de 5000 Leads/Base",
 				"Leads Personalizados",
 				"Campanhas Personalizadas",
 				"Segmentação de Leads",
 				"Relatórios Avançados",
+				"API completa",
+				"Aquecedor avançado",
+				"Integrações premium",
 			],
 			icon: <GlobeIcon className="w-12 h-12 text-purple-500" />,
 			bgGradient: "from-purple-500 to-purple-700",
@@ -185,11 +191,12 @@ const PricingPage: React.FC = () => {
 		{
 			name: "Enterprise",
 			price: {
-				monthly: 209.0,
-				annual: 2100.0,
+				monthly: 499.9,
+				annual: 4999.0,
 			},
 			features: [
 				"Números Ilimitados",
+				"Agentes de IA Ilimitados",
 				"Envio aovivo e agendado",
 				"Suporte Dedicado 24/7",
 				"Leads/Base Ilimitadas",
@@ -198,8 +205,11 @@ const PricingPage: React.FC = () => {
 				"Leads Personalizados",
 				"Campanhas Ilimitadas",
 				"Campanhas Personalizadas",
-				"Agendamento e Postagem de Storys",
+				"Aquecedor Avançado",
 				"Segurança Avançada",
+				"Integrações Avançadas",
+				"API Completa",
+				"Treinamento de equipe",
 			],
 			icon: <InfinityIcon className="w-12 h-12 text-green-500" />,
 			bgGradient: "from-green-500 to-emerald-700",
@@ -311,21 +321,19 @@ const PricingPage: React.FC = () => {
 									{/* biome-ignore lint/a11y/useButtonType: <explanation> */}
 									<button
 										onClick={() => setBillingCycle("monthly")}
-										className={`px-6 py-3 rounded-full transition-all duration-300 ${
-											billingCycle === "monthly"
-												? "bg-gradient-to-r from-electric to-neon-green text-white shadow-md"
-												: "text-white/60 hover:text-white"
-										}`}
+										className={`px-6 py-3 rounded-full transition-all duration-300 ${billingCycle === "monthly"
+											? "bg-gradient-to-r from-electric to-neon-green text-white shadow-md"
+											: "text-white/60 hover:text-white"
+											}`}
 									>
 										Mensal
 									</button>
 									<button
 										onClick={() => setBillingCycle("annual")}
-										className={`px-6 py-3 rounded-full transition-all duration-300 ${
-											billingCycle === "annual"
-												? "bg-gradient-to-r from-neon-green to-electric text-white shadow-md"
-												: "text-white/60 hover:text-white"
-										}`}
+										className={`px-6 py-3 rounded-full transition-all duration-300 ${billingCycle === "annual"
+											? "bg-gradient-to-r from-neon-green to-electric text-white shadow-md"
+											: "text-white/60 hover:text-white"
+											}`}
 									>
 										Anual
 									</button>
