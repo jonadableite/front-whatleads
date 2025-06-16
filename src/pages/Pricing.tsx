@@ -137,6 +137,7 @@ const PricingPage: React.FC = () => {
   const [showPlans, setShowPlans] = useState(false);
   const navigate = useNavigate();
 
+<<<<<<< HEAD
   const plans: Plan[] = [
     {
       name: 'Starter',
@@ -221,6 +222,92 @@ const PricingPage: React.FC = () => {
       },
     },
   ];
+=======
+	const plans: Plan[] = [
+		{
+			name: "Starter",
+			price: {
+				monthly: 129.9,
+				annual: 1299.0,
+			},
+			features: [
+				"2 Números",
+				"Envio aovivo",
+				"Suporte Básico",
+				"Limite de 700 Leads/Base",
+				"Analises Avançadas",
+				"2 automações ativas",
+				"2 automações ativas",
+			],
+			icon: <RocketIcon className="w-12 h-12 text-blue-500" />,
+			bgGradient: "from-blue-500 to-blue-700",
+			recommended: false,
+			priceId: {
+				monthly: STRIPE_CONFIG.PRICES.BASIC.MONTHLY,
+				annual: STRIPE_CONFIG.PRICES.BASIC.ANNUAL,
+			},
+		},
+		{
+			name: "Pro",
+			price: {
+				monthly: 249.9,
+				annual: 2499.0,
+			},
+			features: [
+				"5 Números",
+				"2 Agentes de IA",
+				"Envios aovivo e agendados",
+				"Suporte Prioritário",
+				"Limite de 5000 Leads/Base",
+				"Leads Personalizados",
+				"Campanhas Personalizadas",
+				"Segmentação de Leads",
+				"Relatórios Avançados",
+				"API completa",
+				"Aquecedor avançado",
+				"Integrações premium",
+			],
+			icon: <GlobeIcon className="w-12 h-12 text-purple-500" />,
+			bgGradient: "from-purple-500 to-purple-700",
+			recommended: true,
+			priceId: {
+				monthly: STRIPE_CONFIG.PRICES.PRO.MONTHLY,
+				annual: STRIPE_CONFIG.PRICES.PRO.ANNUAL,
+			},
+		},
+		{
+			name: "Enterprise",
+			price: {
+				monthly: 499.9,
+				annual: 4999.0,
+			},
+			features: [
+				"Números Ilimitados",
+				"Agentes de IA Ilimitados",
+				"Envio aovivo e agendado",
+				"Suporte Dedicado 24/7",
+				"Leads/Base Ilimitadas",
+				"Relatórios Personalizados",
+				"Segmentação Avançada de Leads",
+				"Leads Personalizados",
+				"Campanhas Ilimitadas",
+				"Campanhas Personalizadas",
+				"Aquecedor Avançado",
+				"Segurança Avançada",
+				"Integrações Avançadas",
+				"API Completa",
+				"Treinamento de equipe",
+			],
+			icon: <InfinityIcon className="w-12 h-12 text-green-500" />,
+			bgGradient: "from-green-500 to-emerald-700",
+			recommended: false,
+			priceId: {
+				monthly: STRIPE_CONFIG.PRICES.ENTERPRISE.MONTHLY,
+				annual: STRIPE_CONFIG.PRICES.ENTERPRISE.ANNUAL,
+			},
+		},
+	];
+>>>>>>> d515fe1 (pricing)
 
   const isPriceValid = (priceId: string | undefined): boolean => {
     return Boolean(priceId && priceId.trim() !== '');
@@ -317,6 +404,7 @@ const PricingPage: React.FC = () => {
                 </motion.p>
               </div>
 
+<<<<<<< HEAD
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -347,6 +435,36 @@ const PricingPage: React.FC = () => {
                   </button>
                 </div>
               </motion.div>
+=======
+							<motion.div
+								initial={{ opacity: 0, y: 20 }}
+								animate={{ opacity: 1, y: 0 }}
+								transition={{ delay: 0.4 }}
+								className="flex justify-center mb-12"
+							>
+								<div className="bg-deep/80 backdrop-blur-xl rounded-full p-1 flex items-center shadow-lg border border-electric/30">
+									{/* biome-ignore lint/a11y/useButtonType: <explanation> */}
+									<button
+										onClick={() => setBillingCycle("monthly")}
+										className={`px-6 py-3 rounded-full transition-all duration-300 ${billingCycle === "monthly"
+											? "bg-gradient-to-r from-electric to-neon-green text-white shadow-md"
+											: "text-white/60 hover:text-white"
+											}`}
+									>
+										Mensal
+									</button>
+									<button
+										onClick={() => setBillingCycle("annual")}
+										className={`px-6 py-3 rounded-full transition-all duration-300 ${billingCycle === "annual"
+											? "bg-gradient-to-r from-neon-green to-electric text-white shadow-md"
+											: "text-white/60 hover:text-white"
+											}`}
+									>
+										Anual
+									</button>
+								</div>
+							</motion.div>
+>>>>>>> d515fe1 (pricing)
 
               <motion.div
                 className="grid md:grid-cols-3 gap-8"

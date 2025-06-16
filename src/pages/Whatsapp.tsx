@@ -1,22 +1,35 @@
 // src/ pages/Whatsapp.tsx
-import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Button } from "@/components/ui/button";
+import {
+  Avatar,
+  AvatarFallback,
+  AvatarImage,
+} from '@/components/ui/avatar';
+import { Button } from '@/components/ui/button';
 import {
   Dialog,
   DialogContent,
   DialogFooter,
   DialogHeader,
-  DialogTitle
-} from "@/components/ui/dialog";
-import { Progress } from "@/components/ui/progress";
-import { toast } from "@/hooks/use-toast";
-import { cn } from "@/lib/utils";
-import { authService } from "@/services/auth.service";
-import { EvoAI } from "@/services/evoaiService";
-import { connectInstance, createInstance, deleteInstance, fetchBots, fetchUserInstances, getConnectionState, logoutInstance, restartInstance } from "@/services/evolutionApi.service";
-import { Instance, InstancesApiResponse } from "@/types/instance";
-import axios from "axios";
-import { AnimatePresence, motion } from "framer-motion";
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Progress } from '@/components/ui/progress';
+import { toast } from '@/hooks/use-toast';
+import { cn } from '@/lib/utils';
+import { authService } from '@/services/auth.service';
+import { EvoAI } from '@/services/evoaiService';
+import {
+  connectInstance,
+  createInstance,
+  deleteInstance,
+  fetchBots,
+  fetchUserInstances,
+  getConnectionState,
+  logoutInstance,
+  restartInstance,
+} from '@/services/evolutionApi.service';
+import { Instance, InstancesApiResponse } from '@/types/instance';
+import axios from 'axios';
+import { AnimatePresence, motion } from 'framer-motion';
 import {
   AlertCircle,
   Bot,
@@ -30,17 +43,17 @@ import {
   QrCode,
   RefreshCw,
   Settings,
-  Trash2
-} from "lucide-react";
-import { useCallback, useEffect, useRef, useState } from "react";
-import { Toaster } from "react-hot-toast";
-import { useNavigate } from "react-router-dom";
-import { AIAgentDialog } from "../components/instancia/AIAgentDialog";
-import { InstanceSettingsDialog } from "../components/instancia/InstanceSettingsDialog";
+  Trash2,
+} from 'lucide-react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { Toaster } from 'react-hot-toast';
+import { useNavigate } from 'react-router-dom';
+import { AIAgentDialog } from '../components/instancia/AIAgentDialog';
+import { InstanceSettingsDialog } from '../components/instancia/InstanceSettingsDialog';
 
 // Constantes
 const API_BASE_URL =
-  import.meta.env.VITE_API_URL || "http://localhost:9000";
+  import.meta.env.VITE_API_URL || 'http://localhost:9000';
 
 // Interfaces para tipagem
 interface User {
@@ -52,14 +65,16 @@ interface User {
 // Status icons mapping
 const StatusIcon = ({ status }: { status: string }) => {
   switch (status) {
-    case "OPEN":
-    case "online":
+    case 'OPEN':
+    case 'online':
       return <CheckCircle className="w-4 h-4 text-green-500" />;
-    case "connecting":
-    case "qrcode":
-      return <Clock className="w-4 h-4 text-yellow-500 animate-pulse" />;
-    case "close":
-    case "offline":
+    case 'connecting':
+    case 'qrcode':
+      return (
+        <Clock className="w-4 h-4 text-yellow-500 animate-pulse" />
+      );
+    case 'close':
+    case 'offline':
       return <AlertCircle className="w-4 h-4 text-red-500" />;
     default:
       return <Clock className="w-4 h-4 text-gray-500" />;
@@ -69,22 +84,24 @@ const StatusIcon = ({ status }: { status: string }) => {
 // Status text mapping
 const getStatusText = (status: string) => {
   switch (status) {
-    case "OPEN":
-      return "Conectado";
-    case "connecting":
-      return "Conectando";
-    case "qrcode":
-      return "Aguardando QR";
-    case "close":
-      return "Desconectado";
+    case 'OPEN':
+      return 'Conectado';
+    case 'connecting':
+      return 'Conectando';
+    case 'qrcode':
+      return 'Aguardando QR';
+    case 'close':
+      return 'Desconectado';
     default:
-      return "Desconhecido";
+      return 'Desconhecido';
   }
 };
 
 // Profile Avatar Component
 const ProfileAvatar = ({ instance }: { instance: Instance }) => {
-  const isOnline = instance.connectionStatus === "OPEN" || instance.connectionStatus === "online";
+  const isOnline =
+    instance.connectionStatus === 'OPEN' ||
+    instance.connectionStatus === 'online';
   return (
     <div className="relative">
       <Avatar className="w-16 h-16 border-2 border-[#091E3B] shadow-md">
@@ -96,7 +113,9 @@ const ProfileAvatar = ({ instance }: { instance: Instance }) => {
 
         <AvatarFallback className="bg-gradient-to-br from-electric to-blue-700 text-white text-lg font-bold">
           {instance.profileName || instance.instanceName ? (
-            (instance.profileName || instance.instanceName).charAt(0).toUpperCase()
+            (instance.profileName || instance.instanceName)
+              .charAt(0)
+              .toUpperCase()
           ) : (
             <MessageCircle className="w-8 h-8" />
           )}
@@ -105,8 +124,8 @@ const ProfileAvatar = ({ instance }: { instance: Instance }) => {
 
       <div
         className={cn(
-          "absolute -bottom-1 -right-1 w-5 h-5 rounded-full border-2 border-[#091E3B]",
-          isOnline ? "bg-green-500" : "bg-gray-400",
+          'absolute -bottom-1 -right-1 w-5 h-5 rounded-full border-2 border-[#091E3B]',
+          isOnline ? 'bg-green-500' : 'bg-gray-400',
         )}
       />
     </div>
@@ -117,33 +136,34 @@ export default function WhatsappPage() {
   const navigate = useNavigate();
   const [mounted, setMounted] = useState(false);
   const [instances, setInstances] = useState<Instance[]>([]);
-  const [instanceAgents, setInstanceAgents] = useState<Record<string, number>>(
-    {},
-  );
-  const [instanceAgentStatus, setInstanceAgentStatus] = useState<
-    Record<string, "active" | "inactive">
+  const [instanceAgents, setInstanceAgents] = useState<
+    Record<string, number>
   >({});
-  const [search, setSearch] = useState("");
+  const [instanceAgentStatus, setInstanceAgentStatus] = useState<
+    Record<string, 'active' | 'inactive'>
+  >({});
+  const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const [dialogOPEN, setDialogOPEN] = useState(false);
   const [qrCodeDialog, setQrCodeDialog] = useState(false);
-  const [qrCodeData, setQrCodeData] = useState<string>("");
-  const [qrCodeInstance, setQrCodeInstance] = useState<string>("");
+  const [qrCodeData, setQrCodeData] = useState<string>('');
+  const [qrCodeInstance, setQrCodeInstance] = useState<string>('');
   const [isMonitoring, setIsMonitoring] = useState(false);
   const [connectionProgress, setConnectionProgress] = useState(0);
   const [user, setUser] = useState<User | null>(null);
 
   const [showSettingsDialog, setShowSettingsDialog] = useState(false);
-  const [selectedInstanceForSettings, setSelectedInstanceForSettings] =
-    useState<string | null>(null);
+  const [
+    selectedInstanceForSettings,
+    setSelectedInstanceForSettings,
+  ] = useState<string | null>(null);
 
   // State for controlling the "Nova Instância" modal
   const [isModalOpen, setIsModalOpen] = useState(false);
 
-  const [selectedInstanceForAgent, setSelectedInstanceForAgent] = useState<
-    string | null
-  >(null);
+  const [selectedInstanceForAgent, setSelectedInstanceForAgent] =
+    useState<string | null>(null);
   const [agentDialogOPEN, setAgentDialogOPEN] = useState(false);
 
   const monitoringInterval = useRef<NodeJS.Timeout | null>(null);
@@ -153,21 +173,24 @@ export default function WhatsappPage() {
   const [form, setForm] = useState<{
     id?: string;
     instanceName: string;
-    integration: "WHATSAPP-BAILEYS";
+    integration: 'WHATSAPP-BAILEYS';
     qrcode: boolean;
   }>({
-    instanceName: "",
-    integration: "WHATSAPP-BAILEYS",
+    instanceName: '',
+    integration: 'WHATSAPP-BAILEYS',
     qrcode: true,
   });
 
-  const [currentPlan, setCurrentPlan] = useState("");
+  const [currentPlan, setCurrentPlan] = useState('');
   const [instanceLimit, setInstanceLimit] = useState(1);
   const [remainingSlots, setRemainingSlots] = useState(0);
   const [pollingIntervals, setPollingIntervals] = useState<{
     [key: string]: any;
   }>({});
   const [planDetails, setPlanDetails] = useState<{
+    limits: any;
+    usage: any;
+    plan: any;
     type?: string;
     isInTrial?: boolean;
     trialEndDate?: string | null;
@@ -186,9 +209,11 @@ export default function WhatsappPage() {
   const fetchUserPlan = async () => {
     const currentUser = authService.getUser();
     if (!currentUser || !currentUser.id) {
-      console.warn("Usuário não autenticado ou ID do usuário ausente. Não foi possível buscar o plano.");
+      console.warn(
+        'Usuário não autenticado ou ID do usuário ausente. Não foi possível buscar o plano.',
+      );
       // Limpar estados relevantes
-      setCurrentPlan("N/A");
+      setCurrentPlan('N/A');
       setInstanceLimit(0);
       setRemainingSlots(0);
       setPlanDetails({}); // Limpa os detalhes completos também
@@ -198,31 +223,47 @@ export default function WhatsappPage() {
     try {
       const token = authService.getTokenInterno();
       if (!token) {
-        console.error("Token interno não encontrado para buscar o plano. O usuário pode precisar fazer login novamente.");
-        setCurrentPlan("N/A");
+        console.error(
+          'Token interno não encontrado para buscar o plano. O usuário pode precisar fazer login novamente.',
+        );
+        setCurrentPlan('N/A');
         setInstanceLimit(0);
         setRemainingSlots(0);
         setPlanDetails({});
         return;
       }
 
-      const response = await axios.get(`${API_BASE_URL}/api/users/plan-status`, {
-        headers: {
-          Authorization: `Bearer ${token}`,
+      const response = await axios.get(
+        `${API_BASE_URL}/api/users/plan-status`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
         },
-      });
+      );
 
-      console.log("Informações do plano recuperadas com sucesso:", response.data);
+      console.log(
+        'Informações do plano recuperadas com sucesso:',
+        response.data,
+      );
 
       // Validação mais robusta da estrutura da resposta
-      if (!response.data || !response.data.plan || !response.data.limits || !response.data.usage) {
-        console.error("Estrutura de resposta de plano inesperada:", response.data);
+      if (
+        !response.data ||
+        !response.data.plan ||
+        !response.data.limits ||
+        !response.data.usage
+      ) {
+        console.error(
+          'Estrutura de resposta de plano inesperada:',
+          response.data,
+        );
         toast({
-          title: "Erro",
-          description: "Erro ao carregar detalhes do plano.",
-          variant: "destructive",
+          title: 'Erro',
+          description: 'Erro ao carregar detalhes do plano.',
+          variant: 'destructive',
         });
-        setCurrentPlan("N/A");
+        setCurrentPlan('N/A');
         setInstanceLimit(0);
         setRemainingSlots(0);
         setPlanDetails({});
@@ -231,19 +272,18 @@ export default function WhatsappPage() {
 
       const { plan, limits, usage } = response.data;
 
-      setCurrentPlan(plan.name || "Plano Desconhecido");
+      setCurrentPlan(plan.name || 'Plano Desconhecido');
       const limit = limits.maxInstances || 0; // Usar maxInstances conforme API
       setInstanceLimit(limit);
       setRemainingSlots(Math.max(0, limit - usage.currentInstances)); // Usar currentInstances conforme API
 
       // Armazena detalhes completos do plano, incluindo limits e usage
       setPlanDetails(response.data);
-
     } catch (error) {
-      console.error("Erro ao buscar status do plano:", error);
+      console.error('Erro ao buscar status do plano:', error);
       handleConnectionError(error);
 
-      setCurrentPlan("Erro ao carregar");
+      setCurrentPlan('Erro ao carregar');
       setInstanceLimit(0);
       setRemainingSlots(0);
       setPlanDetails({});
@@ -259,24 +299,28 @@ export default function WhatsappPage() {
 
         if (Array.isArray(instanceNames)) {
           namesToProcess = instanceNames;
-        } else if (typeof instanceNames === "string") {
+        } else if (typeof instanceNames === 'string') {
           namesToProcess = [instanceNames];
         } else {
           namesToProcess = instances.map((i) => i.instanceName);
         }
 
         if (namesToProcess.length === 0) {
-          console.log("📋 No instances to load agents for");
+          console.log('📋 No instances to load agents for');
           // Opcional: Limpar status de agentes para instâncias que não existem mais
           // setInstanceAgents({});
           // setInstanceAgentStatus({});
           return;
         }
 
-        console.log("🔄 Loading agents for instances:", namesToProcess);
+        console.log(
+          '🔄 Loading agents for instances:',
+          namesToProcess,
+        );
         const agentCounts: Record<string, number> = {};
         // Objeto para armazenar o status ativo/inativo
-        const agentStatuses: Record<string, "active" | "inactive"> = {};
+        const agentStatuses: Record<string, 'active' | 'inactive'> =
+          {};
 
         for (const instanceName of namesToProcess) {
           try {
@@ -293,8 +337,8 @@ export default function WhatsappPage() {
               agents.some((agent) => agent.enabled === true);
 
             agentStatuses[instanceName] = hasEnabledAgent
-              ? "active"
-              : "inactive";
+              ? 'active'
+              : 'inactive';
 
             console.log(
               `📊 Instance ${instanceName} has ${agentCounts[instanceName]} agents. Agent Status: ${agentStatuses[instanceName]}`,
@@ -305,14 +349,14 @@ export default function WhatsappPage() {
               error,
             );
             agentCounts[instanceName] = 0;
-            agentStatuses[instanceName] = "inactive"; // Define como inativo em caso de erro
+            agentStatuses[instanceName] = 'inactive'; // Define como inativo em caso de erro
           }
         }
 
         setInstanceAgents(agentCounts); // Mantém a contagem para exibição
         setInstanceAgentStatus(agentStatuses);
       } catch (error) {
-        console.error("❌ Error loading instance agents:", error);
+        console.error('❌ Error loading instance agents:', error);
         // Lidar com erro geral no carregamento de agentes
       }
     },
@@ -326,36 +370,43 @@ export default function WhatsappPage() {
 
   const loadInstances = useCallback(async () => {
     if (isLoadingRef.current) {
-      console.log("🔄 Load instances already in progress, skipping...");
+      console.log(
+        '🔄 Load instances already in progress, skipping...',
+      );
       return;
     }
     try {
       isLoadingRef.current = true;
-      console.log("🔄 Loading instances...");
+      console.log('🔄 Loading instances...');
 
       // Suposição: fetchUserInstances retorna um objeto { instances: Instance[], ... }
-      const response: InstancesApiResponse = await fetchUserInstances();
+      const response: InstancesApiResponse =
+        await fetchUserInstances();
 
-      console.log("📋 User instances received:", response.instances.length);
+      console.log(
+        '📋 User instances received:',
+        response.instances.length,
+      );
 
       // Atualiza o estado de instâncias APENAS se houver mudanças
       setInstances((prevInstances) => {
         const hasChanges =
-          JSON.stringify(prevInstances) !== JSON.stringify(response.instances);
+          JSON.stringify(prevInstances) !==
+          JSON.stringify(response.instances);
 
         if (hasChanges) {
-          console.log("✅ Instances updated with changes");
-          return response.instances;  // Atualiza com o array correto
+          console.log('✅ Instances updated with changes');
+          return response.instances; // Atualiza com o array correto
         } else {
-          console.log("📊 No changes in instances data");
+          console.log('📊 No changes in instances data');
           return prevInstances;
         }
       });
 
       // Se precisar chamar outra função após atualizar instances, faça isso aqui ou via useEffect com [instances]
     } catch (error) {
-      console.error("❌ Error loading instances:", error);
-      setInstances([]);  // limpa instâncias
+      console.error('❌ Error loading instances:', error);
+      setInstances([]); // limpa instâncias
       setInstanceAgents({}); // limpa agentes
       setInstanceAgentStatus({}); // limpa status agentes
     } finally {
@@ -370,10 +421,10 @@ export default function WhatsappPage() {
     const initializeApp = async () => {
       try {
         setMounted(true);
-        console.log("🚀 Initializing app...");
+        console.log('🚀 Initializing app...');
         const userData = await authService.getUser();
         if (!userData) {
-          navigate("/login");
+          navigate('/login');
           return;
         }
 
@@ -384,9 +435,9 @@ export default function WhatsappPage() {
           // loadInstancesAgents será chamado automaticamente pelo useEffect abaixo quando instances for atualizado
         }
       } catch (error) {
-        console.error("❌ Error initializing app:", error);
+        console.error('❌ Error initializing app:', error);
         if (mounted) {
-          navigate("/login");
+          navigate('/login');
         }
       }
     };
@@ -401,33 +452,33 @@ export default function WhatsappPage() {
   // ✅ NOVO useEffect: Para carregar os agentes sempre que a lista de instâncias mudar
   useEffect(() => {
     if (instances.length > 0) {
-      console.log("Instances state updated, loading agents...");
+      console.log('Instances state updated, loading agents...');
       loadInstancesAgents(); // Chama loadInstancesAgents quando 'instances' muda
     } else {
       // Limpa o estado de agentes se não houver instâncias
       setInstanceAgents({});
       setInstanceAgentStatus({});
     }
-  }, [instances, loadInstancesAgents])
+  }, [instances, loadInstancesAgents]);
 
   // Função para lidar com erros de conexão (mantida)
   const handleConnectionError = useCallback((error: unknown) => {
-    let errorMessage = "Erro desconhecido";
+    let errorMessage = 'Erro desconhecido';
 
-    if (error && typeof error === "object") {
-      if ("message" in error && typeof error.message === "string") {
+    if (error && typeof error === 'object') {
+      if ('message' in error && typeof error.message === 'string') {
         errorMessage = error.message;
-      } else if ("toString" in error) {
+      } else if ('toString' in error) {
         errorMessage = String(error);
       }
-    } else if (typeof error === "string") {
+    } else if (typeof error === 'string') {
       errorMessage = error;
     }
 
     toast({
-      title: "Erro de Conexão",
+      title: 'Erro de Conexão',
       description: errorMessage,
-      variant: "destructive",
+      variant: 'destructive',
     });
   }, []);
 
@@ -436,31 +487,38 @@ export default function WhatsappPage() {
       setLoading(true);
       const response = await connectInstance(instanceName);
 
-      console.log("🔍 Connect response:", response); // Para debug
+      console.log('🔍 Connect response:', response); // Para debug
 
       // Verificar pelo campo correto 'base64' ou 'qrcode'
-      if (response && typeof response === "object") {
+      if (response && typeof response === 'object') {
         const qrCode = response.base64 || response.code;
-        if (typeof qrCode === "string" && qrCode) {
+        if (typeof qrCode === 'string' && qrCode) {
           // Verifica se qrCode não é vazio
           setQrCodeData(qrCode);
           setQrCodeInstance(instanceName);
           setQrCodeDialog(true);
           startConnectionMonitoring(instanceName);
         } else {
-          console.error("❌ QR code not found or empty in response:", response);
+          console.error(
+            '❌ QR code not found or empty in response:',
+            response,
+          );
           toast({
-            title: "Erro",
-            description: "QR code não encontrado na resposta ou inválido.",
-            variant: "destructive",
+            title: 'Erro',
+            description:
+              'QR code não encontrado na resposta ou inválido.',
+            variant: 'destructive',
           });
         }
       } else {
-        console.error("❌ Invalid response structure for connect:", response);
+        console.error(
+          '❌ Invalid response structure for connect:',
+          response,
+        );
         toast({
-          title: "Erro",
-          description: "Resposta inválida ao tentar conectar.",
-          variant: "destructive",
+          title: 'Erro',
+          description: 'Resposta inválida ao tentar conectar.',
+          variant: 'destructive',
         });
       }
     } catch (error) {
@@ -475,7 +533,7 @@ export default function WhatsappPage() {
       setLoading(true);
       await restartInstance(instanceName);
       toast({
-        title: "Instância Reiniciada",
+        title: 'Instância Reiniciada',
         description: `${instanceName} foi reiniciado com sucesso`,
       });
       await loadInstances(); // Recarrega instâncias para atualizar status
@@ -491,7 +549,7 @@ export default function WhatsappPage() {
       setLoading(true);
       await logoutInstance(instanceName);
       toast({
-        title: "Logout Realizado",
+        title: 'Logout Realizado',
         description: `${instanceName} foi desconectado`,
       });
       await loadInstances(); // Recarrega instâncias para atualizar status
@@ -502,12 +560,15 @@ export default function WhatsappPage() {
     }
   };
 
-  const handleDelete = async (instanceId: string, instanceName: string) => {
+  const handleDelete = async (
+    instanceId: string,
+    instanceName: string,
+  ) => {
     try {
       setLoading(true);
       await deleteInstance(instanceId);
       toast({
-        title: "Instância Deletada",
+        title: 'Instância Deletada',
         description: `${instanceName} foi deletada com sucesso`,
       });
       await loadInstances(); // Recarrega instâncias para remover a deletada
@@ -523,11 +584,11 @@ export default function WhatsappPage() {
       setLoading(true);
       const response = await createInstance(form);
 
-      console.log("🔍 Create instance response:", response); // Para debug
+      console.log('🔍 Create instance response:', response); // Para debug
 
       toast({
-        title: "Instância Criada",
-        description: "Nova instância criada com sucesso",
+        title: 'Instância Criada',
+        description: 'Nova instância criada com sucesso',
       });
 
       setDialogOPEN(false);
@@ -535,7 +596,7 @@ export default function WhatsappPage() {
       // Se a resposta contém QR code, abrir o modal e monitorar
       if (response && (response.base64 || response.qrcode)) {
         const qrCode = response.base64 || response.qrcode;
-        if (typeof qrCode === "string" && qrCode) {
+        if (typeof qrCode === 'string' && qrCode) {
           // Verifica se qrCode não é vazio
           setQrCodeData(qrCode);
           setQrCodeInstance(form.instanceName);
@@ -543,14 +604,14 @@ export default function WhatsappPage() {
           startConnectionMonitoring(form.instanceName);
         } else {
           console.warn(
-            "⚠️ QR code não encontrado ou vazio na resposta de criação, mas instância criada.",
+            '⚠️ QR code não encontrado ou vazio na resposta de criação, mas instância criada.',
           );
         }
       }
 
       setForm({
-        instanceName: "",
-        integration: "WHATSAPP-BAILEYS",
+        instanceName: '',
+        integration: 'WHATSAPP-BAILEYS',
         qrcode: true,
       });
 
@@ -577,18 +638,26 @@ export default function WhatsappPage() {
           // Acessa a propriedade 'state' dentro do objeto 'instance'
           const response = await getConnectionState(instanceName);
           const connectionState = response?.instance?.state; // Use optional chaining para segurança
-          console.log(`📊 Connection state for ${instanceName}:`, connectionState);
+          console.log(
+            `📊 Connection state for ${instanceName}:`,
+            connectionState,
+          );
 
           // Agora compare a string do estado
-          if (connectionState === "OPEN" || connectionState === "connected") {
-            console.log(`✅ Connection OPEN or connected for ${instanceName}`);
+          if (
+            connectionState === 'OPEN' ||
+            connectionState === 'connected'
+          ) {
+            console.log(
+              `✅ Connection OPEN or connected for ${instanceName}`,
+            );
             setConnectionProgress(100);
             setTimeout(() => {
               setQrCodeDialog(false);
               setIsMonitoring(false);
               setConnectionProgress(0);
               toast({
-                title: "Conectado!",
+                title: 'Conectado!',
                 description: `${instanceName} foi conectado com sucesso`,
               });
               loadInstances(); // Recarrega instâncias para atualizar o status na lista
@@ -596,12 +665,14 @@ export default function WhatsappPage() {
             clearInterval(interval);
             monitoringInterval.current = null;
           } else if (
-            connectionState === "error" ||
-            connectionState === "close" ||
-            connectionState === "disconnected"
+            connectionState === 'error' ||
+            connectionState === 'close' ||
+            connectionState === 'disconnected'
           ) {
             // Adicionado 'disconnected'
-            console.log(`❌ Connection failed or closed for ${instanceName}`);
+            console.log(
+              `❌ Connection failed or closed for ${instanceName}`,
+            );
             clearInterval(interval);
             monitoringInterval.current = null;
             setIsMonitoring(false);
@@ -614,7 +685,7 @@ export default function WhatsappPage() {
             setConnectionProgress((prev) => Math.min(prev + 10, 90)); // Incrementa até 90%
           }
         } catch (error) {
-          console.error("Error monitoring connection:", error);
+          console.error('Error monitoring connection:', error);
           clearInterval(interval);
           monitoringInterval.current = null;
           setIsMonitoring(false);
@@ -629,7 +700,6 @@ export default function WhatsappPage() {
     },
     [loadInstances], // Depende de loadInstances
   );
-
 
   const stopConnectionMonitoring = useCallback(() => {
     if (monitoringInterval.current) {
@@ -649,9 +719,13 @@ export default function WhatsappPage() {
 
   const filteredInstances = instances.filter(
     (instance) =>
-      (instance.instanceName || '').toLowerCase().includes(search.toLowerCase()) ||
+      (instance.instanceName || '')
+        .toLowerCase()
+        .includes(search.toLowerCase()) ||
       (instance.profileName &&
-        instance.profileName.toLowerCase().includes(search.toLowerCase())),
+        instance.profileName
+          .toLowerCase()
+          .includes(search.toLowerCase())),
   );
 
   useEffect(() => {
@@ -686,42 +760,55 @@ export default function WhatsappPage() {
         </div>
 
         {/* Bloco de Métricas - Refatorado */}
-        <div className="flex items-center gap-4 bg-deep/60 backdrop-blur-xl px-6 py-3 rounded-xl border border-electric/40 shadow-lg flex-wrap"> {/* flex-wrap para quebrar em telas menores */}
-
+        <div className="flex items-center gap-4 bg-deep/60 backdrop-blur-xl px-6 py-3 rounded-xl border border-electric/40 shadow-lg flex-wrap">
+          {' '}
+          {/* flex-wrap para quebrar em telas menores */}
           {/* Métrica: Plano */}
           <div className="flex items-center space-x-2">
-            <span className="text-sm font-medium text-gray-300">Plano:</span>
+            <span className="text-sm font-medium text-gray-300">
+              Plano:
+            </span>
             <span className="text-base font-semibold text-blue-500">
               {currentPlan}
             </span>
           </div>
-
           {/* Métrica: Instâncias */}
           <div className="flex items-center space-x-2">
-            <span className="text-sm font-medium text-gray-300">Instâncias:</span>
+            <span className="text-sm font-medium text-gray-300">
+              Instâncias:
+            </span>
             <span className="text-base font-semibold text-neon-green">
               {/* Usar dados de usage e limits do planDetails */}
-              {planDetails.usage?.currentInstances ?? '-'} / {planDetails.limits?.maxInstances ?? '-'}
+              {planDetails.usage?.currentInstances ?? '-'} /{' '}
+              {planDetails.limits?.maxInstances ?? '-'}
             </span>
             {/* Opcional: Porcentagem de instâncias, se relevante */}
             {planDetails.usage?.instancesPercentage !== undefined && (
-              <span className={`font-semibold text-sm ${planDetails.usage.instancesPercentage > 80 ? 'text-red-500' : ''}`}>
+              <span
+                className={`font-semibold text-sm ${
+                  planDetails.usage.instancesPercentage > 80
+                    ? 'text-red-500'
+                    : ''
+                }`}
+              >
                 ({planDetails.usage.instancesPercentage.toFixed(0)}%)
               </span>
             )}
           </div>
-
-
-
-
           {/* Métrica: Trial End Date (Condicional) */}
-          {planDetails.plan?.isInTrial && planDetails.plan?.trialEndDate && (
-            <div className="flex items-center space-x-2 text-sm text-yellow-500">
-              <AlertCircle className="w-4 h-4" />
-              {/* Formatar a data corretamente */}
-              <span>Teste até: {new Date(planDetails.plan.trialEndDate).toLocaleDateString('pt-BR')}</span>
-            </div>
-          )}
+          {planDetails.plan?.isInTrial &&
+            planDetails.plan?.trialEndDate && (
+              <div className="flex items-center space-x-2 text-sm text-yellow-500">
+                <AlertCircle className="w-4 h-4" />
+                {/* Formatar a data corretamente */}
+                <span>
+                  Teste até:{' '}
+                  {new Date(
+                    planDetails.plan.trialEndDate,
+                  ).toLocaleDateString('pt-BR')}
+                </span>
+              </div>
+            )}
         </div>
 
         <div className="flex items-center gap-3">
@@ -733,7 +820,7 @@ export default function WhatsappPage() {
             className="flex items-center gap-2"
           >
             <RefreshCw
-              className={cn("w-4 h-4", refreshing && "animate-spin")}
+              className={cn('w-4 h-4', refreshing && 'animate-spin')}
             />
             Atualizar
           </Button>
@@ -742,9 +829,9 @@ export default function WhatsappPage() {
             onClick={() => {
               if (instances.length >= instanceLimit) {
                 toast({
-                  title: "Limite atingido",
+                  title: 'Limite atingido',
                   description: `Você atingiu o limite de ${instanceLimit} instância(s) para o seu plano.`,
-                  variant: "destructive",
+                  variant: 'destructive',
                 });
               } else {
                 setIsModalOpen(true); // Assumindo que você abre um modal para pegar o nome antes de criar
@@ -755,12 +842,13 @@ export default function WhatsappPage() {
         font-semibold py-2 px-6 rounded-lg shadow-md hover:shadow-lg
         transition-opacity duration-300
         flex items-center justify-center
-        ${instances.length >= instanceLimit
+        ${
+              instances.length >= instanceLimit
                 ? 'bg-electric cursor-not-allowed opacity-90'
                 : loading // <-- MUDAR AQUI: use o estado 'loading'
-                  ? 'bg-yellow-600 cursor-wait opacity-70'
-                  : 'bg-gradient-to-r from-electric to-blue-600 hover:opacity-90'
-              }
+                ? 'bg-yellow-600 cursor-wait opacity-70'
+                : 'bg-gradient-to-r from-electric to-blue-600 hover:opacity-90'
+            }
         `}
           >
             {/* Conteúdo do botão dinâmico */}
@@ -813,14 +901,14 @@ export default function WhatsappPage() {
 
           <h3 className="text-2xl font-bold bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent mb-3">
             {search
-              ? "Nenhuma instância encontrada"
-              : "Nenhuma instância criada"}
+              ? 'Nenhuma instância encontrada'
+              : 'Nenhuma instância criada'}
           </h3>
 
           <p className="text-gray-400 text-lg max-w-md mx-auto">
             {search
-              ? "Tente ajustar sua busca"
-              : "Crie sua primeira instância para começar sua jornada"}
+              ? 'Tente ajustar sua busca'
+              : 'Crie sua primeira instância para começar sua jornada'}
           </p>
         </div>
       ) : (
@@ -835,7 +923,7 @@ export default function WhatsappPage() {
                 transition={{
                   duration: 0.4,
                   delay: index * 0.08,
-                  type: "spring",
+                  type: 'spring',
                   stiffness: 280,
                   damping: 25,
                 }}
@@ -845,10 +933,10 @@ export default function WhatsappPage() {
 
                 <div
                   className={cn(
-                    "relative w-full bg-gradient-to-br from-[#16151D]/95 via-[#1a1825]/95 to-[#222030]/95",
-                    "backdrop-blur-xl rounded-3xl border border-white/[0.08]",
-                    "overflow-hidden transition-all duration-500 group-hover:border-white/15",
-                    "shadow-2xl shadow-black/25",
+                    'relative w-full bg-gradient-to-br from-[#16151D]/95 via-[#1a1825]/95 to-[#222030]/95',
+                    'backdrop-blur-xl rounded-3xl border border-white/[0.08]',
+                    'overflow-hidden transition-all duration-500 group-hover:border-white/15',
+                    'shadow-2xl shadow-black/25',
                   )}
                 >
                   <div className="absolute inset-0 opacity-[0.06]">
@@ -861,13 +949,14 @@ export default function WhatsappPage() {
 
                   <div
                     className={cn(
-                      "absolute top-0 left-0 right-0 h-0.5 transition-all duration-700",
-                      instance.connectionStatus === "OPEN"
-                        ? "bg-gradient-to-r from-emerald-400 via-green-500 to-emerald-400"
-                        : instance.connectionStatus === "connecting" ||
-                          instance.connectionStatus === "qrcode"
-                          ? "bg-gradient-to-r from-amber-400 via-yellow-500 to-amber-400"
-                          : "bg-gradient-to-r from-red-400 via-red-500 to-red-400",
+                      'absolute top-0 left-0 right-0 h-0.5 transition-all duration-700',
+                      instance.connectionStatus === 'OPEN'
+                        ? 'bg-gradient-to-r from-emerald-400 via-green-500 to-emerald-400'
+                        : instance.connectionStatus ===
+                            'connecting' ||
+                          instance.connectionStatus === 'qrcode'
+                        ? 'bg-gradient-to-r from-amber-400 via-yellow-500 to-amber-400'
+                        : 'bg-gradient-to-r from-red-400 via-red-500 to-red-400',
                     )}
                   />
 
@@ -878,11 +967,11 @@ export default function WhatsappPage() {
                         <div className="relative flex-shrink-0">
                           <div
                             className={cn(
-                              "absolute -inset-1 rounded-full transition-all duration-500",
-                              "bg-gradient-to-r from-electric via-purple-500 to-blue-700",
-                              instance.connectionStatus === "OPEN"
-                                ? "opacity-100"
-                                : "opacity-50",
+                              'absolute -inset-1 rounded-full transition-all duration-500',
+                              'bg-gradient-to-r from-electric via-purple-500 to-blue-700',
+                              instance.connectionStatus === 'OPEN'
+                                ? 'opacity-100'
+                                : 'opacity-50',
                             )}
                           />
 
@@ -892,13 +981,20 @@ export default function WhatsappPage() {
                                 instance.profilePicUrl ||
                                 instance.profilePicUrl
                               }
-                              alt={instance.profileName || instance.instanceName}
+                              alt={
+                                instance.profileName ||
+                                instance.instanceName
+                              }
                               className="object-cover"
                             />
 
                             <AvatarFallback className="bg-gradient-to-br from-electric to-blue-700 text-white text-lg font-bold">
-                              {instance.profileName || instance.instanceName ? (
-                                (instance.profileName || instance.instanceName)
+                              {instance.profileName ||
+                              instance.instanceName ? (
+                                (
+                                  instance.profileName ||
+                                  instance.instanceName
+                                )
                                   .charAt(0)
                                   .toUpperCase()
                               ) : (
@@ -909,26 +1005,28 @@ export default function WhatsappPage() {
                           {/* Online Status Dot */}
                           <div
                             className={cn(
-                              "absolute -bottom-1 -right-1 w-5 h-5 sm:w-6 sm:h-6 rounded-full border-2 sm:border-3 border-[#16151D] shadow-lg",
-                              "flex items-center justify-center transition-all duration-300",
-                              instance.connectionStatus === "OPEN"
-                                ? "bg-gradient-to-r from-emerald-400 to-green-500"
-                                : instance.connectionStatus === "connecting" ||
-                                  instance.connectionStatus === "qrcode"
-                                  ? "bg-gradient-to-r from-amber-400 to-yellow-500"
-                                  : "bg-gradient-to-r from-red-400 to-red-500",
+                              'absolute -bottom-1 -right-1 w-5 h-5 sm:w-6 sm:h-6 rounded-full border-2 sm:border-3 border-[#16151D] shadow-lg',
+                              'flex items-center justify-center transition-all duration-300',
+                              instance.connectionStatus === 'OPEN'
+                                ? 'bg-gradient-to-r from-emerald-400 to-green-500'
+                                : instance.connectionStatus ===
+                                    'connecting' ||
+                                  instance.connectionStatus ===
+                                    'qrcode'
+                                ? 'bg-gradient-to-r from-amber-400 to-yellow-500'
+                                : 'bg-gradient-to-r from-red-400 to-red-500',
                             )}
                           >
-                            {instance.connectionStatus === "OPEN" && (
+                            {instance.connectionStatus === 'OPEN' && (
                               <div className="absolute inset-0 rounded-full bg-emerald-400 animate-ping opacity-75" />
                             )}
 
                             <div
                               className={cn(
-                                "w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full relative z-10",
-                                instance.connectionStatus === "OPEN"
-                                  ? "bg-white animate-pulse"
-                                  : "bg-white/90",
+                                'w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full relative z-10',
+                                instance.connectionStatus === 'OPEN'
+                                  ? 'bg-white animate-pulse'
+                                  : 'bg-white/90',
                               )}
                             />
                           </div>
@@ -936,7 +1034,8 @@ export default function WhatsappPage() {
 
                         <div className="flex-1 min-w-0">
                           <h3 className="font-bold text-lg sm:text-xl text-white truncate mb-1">
-                            {instance.profileName || instance.instanceName}
+                            {instance.profileName ||
+                              instance.instanceName}
                           </h3>
 
                           <p className="text-sm text-gray-400 truncate font-medium">
@@ -945,7 +1044,10 @@ export default function WhatsappPage() {
 
                           {instance.ownerJid && (
                             <p className="text-xs text-gray-500 truncate mt-1 font-mono">
-                              {instance.ownerJid.replace("@s.whatsapp.net", "")}
+                              {instance.ownerJid.replace(
+                                '@s.whatsapp.net',
+                                '',
+                              )}
                             </p>
                           )}
                         </div>
@@ -954,17 +1056,20 @@ export default function WhatsappPage() {
                       <div className="flex-shrink-0 self-start">
                         <div
                           className={cn(
-                            "px-3 py-1.5 sm:px-4 sm:py-2 rounded-full border backdrop-blur-sm transition-all duration-300",
-                            "flex items-center gap-2 text-xs sm:text-sm font-semibold",
-                            instance.connectionStatus === "OPEN"
-                              ? "bg-emerald-500/10 border-emerald-400/30 text-emerald-400 shadow-lg shadow-emerald-500/20"
-                              : instance.connectionStatus === "connecting" ||
-                                instance.connectionStatus === "qrcode"
-                                ? "bg-amber-500/10 border-amber-400/30 text-amber-400 shadow-lg shadow-amber-500/20"
-                                : "bg-red-500/10 border-red-400/30 text-red-400 shadow-lg shadow-red-500/20",
+                            'px-3 py-1.5 sm:px-4 sm:py-2 rounded-full border backdrop-blur-sm transition-all duration-300',
+                            'flex items-center gap-2 text-xs sm:text-sm font-semibold',
+                            instance.connectionStatus === 'OPEN'
+                              ? 'bg-emerald-500/10 border-emerald-400/30 text-emerald-400 shadow-lg shadow-emerald-500/20'
+                              : instance.connectionStatus ===
+                                  'connecting' ||
+                                instance.connectionStatus === 'qrcode'
+                              ? 'bg-amber-500/10 border-amber-400/30 text-amber-400 shadow-lg shadow-amber-500/20'
+                              : 'bg-red-500/10 border-red-400/30 text-red-400 shadow-lg shadow-red-500/20',
                           )}
                         >
-                          <StatusIcon status={instance.connectionStatus} />
+                          <StatusIcon
+                            status={instance.connectionStatus}
+                          />
 
                           <span className="hidden sm:inline">
                             {getStatusText(instance.connectionStatus)}
@@ -985,7 +1090,9 @@ export default function WhatsappPage() {
                               Agentes IA
                             </p>
                             <p className="text-sm sm:text-lg font-bold text-white">
-                              {instanceAgents[instance.instanceName] || 0}
+                              {instanceAgents[
+                                instance.instanceName
+                              ] || 0}
                             </p>
                           </div>
                         </div>
@@ -997,10 +1104,12 @@ export default function WhatsappPage() {
 
                           <div
                             className={cn(
-                              "p-1.5 sm:p-2 rounded-lg sm:rounded-xl flex-shrink-0",
-                              instanceAgentStatus[instance.instanceName] === "active"
-                                ? "bg-gradient-to-r from-emerald-400 to-green-500" // Ativo
-                                : "bg-gradient-to-r from-gray-400 to-gray-500", // Inativo
+                              'p-1.5 sm:p-2 rounded-lg sm:rounded-xl flex-shrink-0',
+                              instanceAgentStatus[
+                                instance.instanceName
+                              ] === 'active'
+                                ? 'bg-gradient-to-r from-emerald-400 to-green-500' // Ativo
+                                : 'bg-gradient-to-r from-gray-400 to-gray-500', // Inativo
                             )}
                           >
                             <Bot className="w-3 h-3 sm:w-4 sm:h-4 text-white" />
@@ -1011,9 +1120,11 @@ export default function WhatsappPage() {
                               Agente Status
                             </p>
                             <p className="text-sm sm:text-lg font-bold text-white">
-                              {instanceAgentStatus[instance.instanceName] === "active"
-                                ? "Ativo"
-                                : "Inativo"}
+                              {instanceAgentStatus[
+                                instance.instanceName
+                              ] === 'active'
+                                ? 'Ativo'
+                                : 'Inativo'}
                             </p>
                           </div>
                         </div>
@@ -1024,9 +1135,11 @@ export default function WhatsappPage() {
                   <div className="relative px-6 pb-6 sm:px-8 sm:pb-8">
                     <div className="flex flex-wrap gap-2 sm:gap-3">
                       {/* Connect Button */}
-                      {instance.connectionStatus !== "OPEN" && (
+                      {instance.connectionStatus !== 'OPEN' && (
                         <Button
-                          onClick={() => handleConnect(instance.instanceName)}
+                          onClick={() =>
+                            handleConnect(instance.instanceName)
+                          }
                           disabled={loading}
                           size="sm"
                           className="group relative flex items-center gap-2 bg-gradient-to-r from-electric via-neon-purple to-blue-700 hover:from-electric hover:via-deep-purple hover:to-shock text-white border-0 shadow-lg shadow-purple-500/30 hover:shadow-purple-500/50 transition-all duration-500 hover:scale-[1.02] text-xs sm:text-sm font-semibold px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl hover:rounded-2xl overflow-hidden"
@@ -1035,7 +1148,9 @@ export default function WhatsappPage() {
 
                           <QrCode className="w-3.5 h-3.5 sm:w-4 sm:h-4 relative z-10 group-hover:rotate-3 transition-transform duration-300" />
 
-                          <span className="relative z-10">Conectar</span>
+                          <span className="relative z-10">
+                            Conectar
+                          </span>
 
                           {loading && (
                             <div className="w-3 h-3 border-2 border-white/30 border-t-white rounded-full animate-spin" />
@@ -1044,7 +1159,9 @@ export default function WhatsappPage() {
                       )}
                       {/* Restart Button */}
                       <Button
-                        onClick={() => handleRestart(instance.instanceName)}
+                        onClick={() =>
+                          handleRestart(instance.instanceName)
+                        }
                         disabled={loading}
                         size="sm"
                         className="group relative flex items-center gap-2 bg-gradient-to-r from-slate-800 to-slate-700 hover:from-slate-700 hover:to-slate-600 text-slate-200 border border-slate-600/80 shadow-md hover:shadow-lg backdrop-blur-sm transition-all duration-300 hover:scale-[1.02] text-xs sm:text-sm font-medium px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl hover:rounded-2xl"
@@ -1057,7 +1174,9 @@ export default function WhatsappPage() {
                       </Button>
                       {/* Logout Button */}
                       <Button
-                        onClick={() => handleLogout(instance.instanceName)}
+                        onClick={() =>
+                          handleLogout(instance.instanceName)
+                        }
                         disabled={loading}
                         size="sm"
                         className="group relative flex items-center gap-2 bg-gradient-to-r from-amber-900/30 to-amber-500/40 hover:from-amber-500/40 hover:to-amber-700/50 text-amber-300 hover:text-amber-200 border border-amber-600/40 shadow-md hover:shadow-lg backdrop-blur-sm transition-all duration-300 hover:scale-[1.02] text-xs sm:text-sm font-medium px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl hover:rounded-2xl"
@@ -1071,7 +1190,9 @@ export default function WhatsappPage() {
                       {/* AI Agents Button - Enhanced */}
                       <Button
                         onClick={() => {
-                          setSelectedInstanceForAgent(instance.instanceName);
+                          setSelectedInstanceForAgent(
+                            instance.instanceName,
+                          );
                           setAgentDialogOPEN(true);
                         }}
                         size="sm"
@@ -1081,9 +1202,12 @@ export default function WhatsappPage() {
 
                         <Bot className="w-3.5 h-3.5 sm:w-4 sm:h-4 relative z-10 group-hover:scale-110 transition-transform duration-300" />
 
-                        <span className="relative z-10">Agentes IA</span>
+                        <span className="relative z-10">
+                          Agentes IA
+                        </span>
 
-                        {(instanceAgents[instance.instanceName] || 0) > 0 && (
+                        {(instanceAgents[instance.instanceName] ||
+                          0) > 0 && (
                           <div className="relative z-10 flex items-center">
                             <span className="ml-1 px-2 py-0.5 text-xs bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-full shadow-lg shadow-purple-500/30 font-bold min-w-[20px] text-center animate-pulse">
                               {instanceAgents[instance.instanceName]}
@@ -1094,7 +1218,9 @@ export default function WhatsappPage() {
                       {/* Botão de Configurações */}
                       <Button
                         onClick={() => {
-                          setSelectedInstanceForSettings(instance.instanceName);
+                          setSelectedInstanceForSettings(
+                            instance.instanceName,
+                          );
                           setShowSettingsDialog(true);
                         }}
                         disabled={loading}
@@ -1103,7 +1229,9 @@ export default function WhatsappPage() {
                       >
                         <Settings className="w-3.5 h-3.5 sm:w-4 sm:h-4 group-hover:rotate-90 transition-transform duration-300" />
 
-                        <span className="hidden sm:inline">Configurações</span>
+                        <span className="hidden sm:inline">
+                          Configurações
+                        </span>
                         <span className="sm:hidden">Conf</span>
 
                         {loading && (
@@ -1112,14 +1240,21 @@ export default function WhatsappPage() {
                       </Button>
                       {/* Delete Button */}
                       <Button
-                        onClick={() => handleDelete(instance.id, instance.instanceName)}
+                        onClick={() =>
+                          handleDelete(
+                            instance.id,
+                            instance.instanceName,
+                          )
+                        }
                         disabled={loading}
                         size="sm"
                         className="group relative flex items-center gap-2 bg-gradient-to-r from-red-900/30 to-red-800/40 hover:from-red-800/40 hover:to-red-700/50 text-red-400 hover:text-red-300 border border-red-600/40 shadow-md hover:shadow-lg hover:shadow-red-500/20 backdrop-blur-sm transition-all duration-300 hover:scale-[1.02] text-xs sm:text-sm font-medium px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl hover:rounded-2xl"
                       >
                         <Trash2 className="w-3.5 h-3.5 sm:w-4 sm:h-4 group-hover:rotate-12 group-hover:scale-110 transition-transform duration-300" />
 
-                        <span className="hidden sm:inline">Deletar</span>
+                        <span className="hidden sm:inline">
+                          Deletar
+                        </span>
                         <span className="sm:hidden">Del</span>
                         {loading && (
                           <div className="w-3 h-3 border-2 border-red-400/30 border-t-red-600 rounded-full animate-spin" />
@@ -1186,7 +1321,9 @@ export default function WhatsappPage() {
             )}
 
             <div className="text-center">
-              <h3 className="font-semibold text-lg mb-2">Escaneie o QR Code</h3>
+              <h3 className="font-semibold text-lg mb-2">
+                Escaneie o QR Code
+              </h3>
 
               <p className="text-sm text-gray-400 mb-4">
                 Abra o WhatsApp no seu celular e escaneie este código
@@ -1199,7 +1336,10 @@ export default function WhatsappPage() {
                     <span>{connectionProgress}%</span>
                   </div>
 
-                  <Progress value={connectionProgress} className="w-full" />
+                  <Progress
+                    value={connectionProgress}
+                    className="w-full"
+                  />
                 </div>
               )}
             </div>

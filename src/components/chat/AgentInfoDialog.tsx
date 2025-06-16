@@ -28,38 +28,35 @@
 */
 "use client";
 
-import { useState, useEffect } from "react";
-import { Agent } from "@/types/agent";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-  DialogFooter,
-} from "@/components/ui/dialog";
+import { AgentForm } from "@/components/agents/forms/AgentForm";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import {
-  Bot,
-  Code,
-  WrenchIcon,
-  Layers,
-  Server,
-  TagIcon,
-  Share,
-  Edit,
-  Loader2,
-  Download,
-} from "lucide-react";
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { listApiKeys, ApiKey } from "@/services/agentService";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { exportAsJson } from "@/lib/utils";
+import { ApiKey, listApiKeys } from "@/services/agentService";
 import { listMCPServers } from "@/services/mcpServerService";
+import { Agent } from "@/types/agent";
 import { availableModels } from "@/types/aiModels";
 import { MCPServer } from "@/types/mcpServer";
-import { AgentForm } from "@/app/agents/forms/AgentForm";
-import { exportAsJson } from "@/lib/utils";
+import {
+  Bot,
+  Code,
+  Download,
+  Edit,
+  Layers,
+  Server,
+  TagIcon
+} from "lucide-react";
+import { useEffect, useState } from "react";
 
 interface AgentInfoDialogProps {
   agent: Agent | null;
@@ -143,15 +140,15 @@ export function AgentInfoDialog({
   // Function to export the agent as JSON
   const handleExportAgent = async () => {
     if (!agent) return;
-    
+
     try {
       // First fetch all agents to properly resolve agent_tools references
       const { listAgents } = await import("@/services/agentService");
       const allAgentsResponse = await listAgents(clientId, 0, 1000);
       const allAgents = allAgentsResponse.data || [];
-      
+
       exportAsJson(
-        agent, 
+        agent,
         `agent-${agent.name.replace(/\s+/g, "-").toLowerCase()}-${agent.id.substring(0, 8)}`,
         true,
         allAgents
@@ -482,9 +479,9 @@ export function AgentInfoDialog({
           availableModels={availableModels}
           availableMCPs={availableMCPs}
           agents={agents}
-          onOpenApiKeysDialog={() => {}}
-          onOpenMCPDialog={() => {}}
-          onOpenCustomMCPDialog={() => {}}
+          onOpenApiKeysDialog={() => { }}
+          onOpenMCPDialog={() => { }}
+          onOpenCustomMCPDialog={() => { }}
           onSave={handleSaveAgent}
           isLoading={isLoading}
           getAgentNameById={(id) => id}
@@ -494,4 +491,3 @@ export function AgentInfoDialog({
     </>
   );
 }
- 
