@@ -53,8 +53,7 @@ import { AIAgentDialog } from '../components/instancia/AIAgentDialog';
 import { InstanceSettingsDialog } from '../components/instancia/InstanceSettingsDialog';
 
 // Constantes
-const API_BASE_URL =
-  import.meta.env.VITE_API_URL || 'http://localhost:9000';
+const API_BASE_URL = import.meta.env.VITE_API_URL || '';
 
 // Interfaces para tipagem
 interface User {
