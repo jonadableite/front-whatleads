@@ -4,7 +4,6 @@ import { ProtectedLayout } from "@/components/layout/ProtectedLayout";
 import { PublicLayout } from "@/components/layout/PublicLayout";
 import AdminDashboard from "@/pages/AdminDashboard";
 import AgenteIA from "@/pages/AgenteIA";
-import CRM from "@/pages/CRM";
 import Campanhas from "@/pages/Campanhas";
 import CheckoutPage from "@/pages/CheckoutPage";
 import Dashboard from "@/pages/Dashboard";
@@ -18,6 +17,7 @@ import Return from "@/pages/Return";
 import Bottest from "@/pages/bottest";
 import { RouterProvider, createBrowserRouter } from "react-router-dom";
 import Agendados from "../pages/Agendados";
+import Chat from "../pages/Chat";
 import Contatos from "../pages/Contatos";
 import Historico from "../pages/Historico";
 import PasswordRecovery from "../pages/PasswordRecovery";
@@ -101,8 +101,8 @@ const router = createBrowserRouter([
 						element: <Bottest />,
 					},
 					{
-						path: "/crm",
-						element: <CRM />,
+						path: "/chat",
+						element: <Chat />,
 					},
 				],
 			},

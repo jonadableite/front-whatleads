@@ -66,10 +66,9 @@ const sidebarItems: SidebarItem[] = [
     path: "/instancias",
   },
   {
-    title: "Chat CRM",
+    title: "Chat IA",
     icon: <MessageCircle className="w-5 h-5" />,
-    path: "https://chat.whatlead.com.br",
-    isExternal: true,
+    path: "/chat",
   },
   {
     title: "Agentes IA",
@@ -181,10 +180,10 @@ export function Sidebar() {
             const LinkComponent = item.isExternal ? "a" : Link;
             const linkProps: any = item.isExternal
               ? {
-                  href: item.path,
-                  target: "_blank",
-                  rel: "noopener noreferrer",
-                }
+                href: item.path,
+                target: "_blank",
+                rel: "noopener noreferrer",
+              }
               : { to: item.path };
 
             return (
@@ -293,7 +292,7 @@ export function Sidebar() {
                               "flex items-center gap-3 px-12 py-2 text-white/70",
                               "hover:text-white transition-all duration-200",
                               location.pathname === subItem.path &&
-                                "bg-electric/30 text-white"
+                              "bg-electric/30 text-white"
                             )}
                           >
                             <span>{subItem.title}</span>
