@@ -1,5 +1,4 @@
-//services/sessionService.ts
-import { api } from './api';
+import * as api from './api';
 
 export interface ChatSession {
   id: string;
