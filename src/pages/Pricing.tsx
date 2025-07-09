@@ -404,7 +404,6 @@ const PricingPage: React.FC = () => {
                 </motion.p>
               </div>
 
-<<<<<<< HEAD
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
                 animate={{ opacity: 1, y: 0 }}
@@ -435,36 +434,6 @@ const PricingPage: React.FC = () => {
                   </button>
                 </div>
               </motion.div>
-=======
-							<motion.div
-								initial={{ opacity: 0, y: 20 }}
-								animate={{ opacity: 1, y: 0 }}
-								transition={{ delay: 0.4 }}
-								className="flex justify-center mb-12"
-							>
-								<div className="bg-deep/80 backdrop-blur-xl rounded-full p-1 flex items-center shadow-lg border border-electric/30">
-									{/* biome-ignore lint/a11y/useButtonType: <explanation> */}
-									<button
-										onClick={() => setBillingCycle("monthly")}
-										className={`px-6 py-3 rounded-full transition-all duration-300 ${billingCycle === "monthly"
-											? "bg-gradient-to-r from-electric to-neon-green text-white shadow-md"
-											: "text-white/60 hover:text-white"
-											}`}
-									>
-										Mensal
-									</button>
-									<button
-										onClick={() => setBillingCycle("annual")}
-										className={`px-6 py-3 rounded-full transition-all duration-300 ${billingCycle === "annual"
-											? "bg-gradient-to-r from-neon-green to-electric text-white shadow-md"
-											: "text-white/60 hover:text-white"
-											}`}
-									>
-										Anual
-									</button>
-								</div>
-							</motion.div>
->>>>>>> d515fe1 (pricing)
 
               <motion.div
                 className="grid md:grid-cols-3 gap-8"
