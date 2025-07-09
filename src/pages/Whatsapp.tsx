@@ -8,6 +8,7 @@ import { Button } from '@/components/ui/button';
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogFooter,
   DialogHeader,
   DialogTitle,
@@ -1300,6 +1301,63 @@ export default function WhatsappPage() {
           onUpdate={loadInstances} // Recarrega as instâncias (e agentes via useEffect) ao salvar as configurações
         />
       )}
+
+      {/* NOVO: Dialog para Criar Nova Instância */}
+      <Dialog open={isModalOpen} onOpenChange={setIsModalOpen}>
+        <DialogContent className="sm:max-w-[425px]">
+          <DialogHeader>
+            <DialogTitle>Criar Nova Instância</DialogTitle>
+            <DialogDescription>
+              Preencha os detalhes para criar uma nova instância do
+              WhatsApp.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="flex flex-col gap-2">
+              <Label
+                htmlFor="instanceName"
+                className="text-gray-500 font-medium"
+              >
+                Nome da Instância
+              </Label>
+              <Input
+                id="instanceName"
+                value={form.instanceName}
+                onChange={(e) =>
+                  setForm({ ...form, instanceName: e.target.value })
+                }
+                placeholder="Ex: MinhaInstanciaWhatsApp"
+                className="w-full"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              className="bg-pink-500/15 border-electric-dark hover:bg-red-500/35 hover:text-white hover:border-red-300"
+              variant="outline"
+              onClick={() => setIsModalOpen(false)}
+            >
+              Cancelar
+            </Button>
+            <Button
+              onClick={handleCreateInstance}
+              disabled={
+                isCreatingInstance || !form.instanceName.trim()
+              }
+            >
+              {isCreatingInstance ? (
+                <>
+                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                  Criando...
+                </>
+              ) : (
+                'Criar'
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
       {/* QR Code Dialog */}
       <Dialog open={qrCodeDialog} onOpenChange={setQrCodeDialog}>
         <DialogContent className="sm:max-w-md">
