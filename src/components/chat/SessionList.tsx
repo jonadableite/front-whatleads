@@ -26,20 +26,20 @@
 │ who changed it and the date of modification.                                 │
 └──────────────────────────────────────────────────────────────────────────────┘
 */
-"use client";
+'use client';
 
-import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Search, Filter, Plus, Loader2 } from "lucide-react";
-import { ChatSession } from "@/services/sessionService";
+import { Badge } from '@/components/ui/badge';
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from "@/components/ui/select";
+} from '@/components/ui/select';
+import { ChatSession } from '@/services/sessionService';
+import { Filter, Loader2, Plus, Search } from 'lucide-react';
 
 interface SessionListProps {
   sessions: ChatSession[];
@@ -75,12 +75,14 @@ export function SessionList({
       .toLowerCase()
       .includes(searchTerm.toLowerCase());
 
-    if (selectedAgentFilter === "all") {
+    if (selectedAgentFilter === 'all') {
       return matchesSearchTerm;
     }
 
-    const sessionAgentId = session.id.split("_")[1];
-    return matchesSearchTerm && sessionAgentId === selectedAgentFilter;
+    const sessionAgentId = session.id.split('_')[1];
+    return (
+      matchesSearchTerm && sessionAgentId === selectedAgentFilter
+    );
   });
 
   const sortedSessions = [...filteredSessions].sort((a, b) => {
@@ -94,32 +96,33 @@ export function SessionList({
     try {
       const date = new Date(dateTimeStr);
 
-      const day = date.getDate().toString().padStart(2, "0");
-      const month = (date.getMonth() + 1).toString().padStart(2, "0");
+      const day = date.getDate().toString().padStart(2, '0');
+      const month = (date.getMonth() + 1).toString().padStart(2, '0');
       const year = date.getFullYear();
-      const hours = date.getHours().toString().padStart(2, "0");
-      const minutes = date.getMinutes().toString().padStart(2, "0");
+      const hours = date.getHours().toString().padStart(2, '0');
+      const minutes = date.getMinutes().toString().padStart(2, '0');
 
       return `${day}/${month}/${year} ${hours}:${minutes}`;
     } catch (error) {
-      return "Invalid date";
+      return 'Invalid date';
     }
   };
 
   const getExternalId = (sessionId: string) => {
-    return sessionId.split("_")[0];
+    return sessionId.split('_')[0];
   };
 
   return (
-    <div className="w-64 border-r border-neutral-700 flex flex-col bg-neutral-900">
-      <div className="p-4 border-b border-neutral-700">
+    <div className="w-64 border-r border-deep flex flex-col bg-deep">
+      <div className="p-4 border-b border-blue-700">
         <div className="flex items-center justify-between mb-4">
           <Button
             onClick={() => setIsNewChatDialogOpen(true)}
-            className="bg-emerald-800 text-emerald-100 hover:bg-emerald-700 border-emerald-700"
+            className="bg-blue-800 text-blue-100 hover:bg-electric border-blue-700"
             size="sm"
           >
-            <Plus className="h-4 w-4 mr-1" /> New Conversation
+            <Plus className="h-4 w-4 mr-1 text-neon-green" /> Nova
+            conversa
           </Button>
         </div>
 
@@ -128,7 +131,7 @@ export function SessionList({
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-neutral-500" />
             <Input
               placeholder="Search conversations..."
-              className="pl-9 bg-neutral-800 border-neutral-700 text-neutral-200 focus-visible:ring-emerald-500"
+              className="pl-9 bg-neutral-800/70 border-blue-700 text-neutral-200 focus-visible:ring-blue-500"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
@@ -138,18 +141,18 @@ export function SessionList({
             <Button
               variant="ghost"
               size="sm"
-              className="text-neutral-400 hover:text-white hover:bg-neutral-800"
+              className="text-neutral-400 bg-blue-950/80 hover:text-white hover:bg-electric-dark/55"
               onClick={() => setShowAgentFilter(!showAgentFilter)}
             >
               <Filter className="h-4 w-4 mr-1" />
               Filter
             </Button>
 
-            {selectedAgentFilter !== "all" && (
+            {selectedAgentFilter !== 'all' && (
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => setSelectedAgentFilter("all")}
+                onClick={() => setSelectedAgentFilter('all')}
                 className="text-neutral-400 hover:text-white hover:bg-neutral-800"
               >
                 Clear filter
@@ -169,7 +172,7 @@ export function SessionList({
                 <SelectContent className="bg-neutral-900 border-neutral-700 text-white">
                   <SelectItem
                     value="all"
-                    className="data-[selected]:bg-neutral-800 data-[highlighted]:bg-neutral-800 !text-white hover:text-emerald-400 data-[selected]:!text-emerald-400"
+                    className="data-[selected]:bg-neutral-800 data-[highlighted]:bg-neutral-800 !text-white hover:text-blue-400 data-[selected]:!text-blue-400"
                   >
                     All agents
                   </SelectItem>
@@ -177,10 +180,10 @@ export function SessionList({
                     <SelectItem
                       key={agent.id}
                       value={agent.id}
-                      className="data-[selected]:bg-neutral-800 data-[highlighted]:bg-neutral-800 !text-white hover:text-emerald-400 data-[selected]:!text-emerald-400"
+                      className="data-[selected]:bg-neutral-800 data-[highlighted]:bg-neutral-800 !text-white hover:text-blue-400 data-[selected]:!text-blue-400"
                     >
-                      {agent.name.slice(0, 15)}{" "}
-                      {agent.name.length > 15 && "..."}
+                      {agent.name.slice(0, 15)}{' '}
+                      {agent.name.length > 15 && '...'}
                     </SelectItem>
                   ))}
                 </SelectContent>
@@ -193,12 +196,12 @@ export function SessionList({
       <div className="flex-1 overflow-y-auto [&::-webkit-scrollbar]:hidden [-ms-overflow-style:none] [scrollbar-width:none]">
         {isLoading ? (
           <div className="flex justify-center items-center h-24">
-            <Loader2 className="h-5 w-5 text-emerald-400 animate-spin" />
+            <Loader2 className="h-5 w-5 text-blue-400 animate-spin" />
           </div>
         ) : sortedSessions.length > 0 ? (
           <div className="px-4 pt-2 space-y-2">
             {sortedSessions.map((session) => {
-              const agentId = session.id.split("_")[1];
+              const agentId = session.id.split('_')[1];
               const agentInfo = agents.find((a) => a.id === agentId);
               const externalId = getExternalId(session.id);
 
@@ -207,22 +210,22 @@ export function SessionList({
                   key={session.id}
                   className={`p-3 rounded-md cursor-pointer transition-colors group relative ${
                     selectedSession === session.id
-                      ? "bg-emerald-800/20 border border-emerald-600/40"
-                      : "bg-neutral-800 hover:bg-neutral-700 border border-transparent"
+                      ? 'bg-blue-800/20 border border-blue-600/40'
+                      : 'bg-neutral-800 hover:bg-neutral-700 border border-transparent'
                   }`}
                   onClick={() => setSelectedSession(session.id)}
                 >
                   <div className="flex items-center">
-                    <div className="w-2 h-2 rounded-full bg-emerald-500 mr-2"></div>
+                    <div className="w-2 h-2 rounded-full bg-blue-500 mr-2"></div>
                     <div className="text-neutral-200 font-medium truncate max-w-[180px]">
                       {externalId}
                     </div>
                   </div>
                   <div className="mt-1 flex items-center gap-2">
                     {agentInfo && (
-                      <Badge className="bg-neutral-700 text-emerald-400 border-neutral-600 text-xs">
+                      <Badge className="bg-neutral-700 text-blue-400 border-neutral-600 text-xs">
                         {agentInfo.name.slice(0, 15)}
-                        {agentInfo.name.length > 15 && "..."}
+                        {agentInfo.name.length > 15 && '...'}
                       </Badge>
                     )}
                     <div className="text-xs text-neutral-500 ml-auto">
@@ -233,13 +236,13 @@ export function SessionList({
               );
             })}
           </div>
-        ) : searchTerm || selectedAgentFilter !== "all" ? (
+        ) : searchTerm || selectedAgentFilter !== 'all' ? (
           <div className="text-center py-4 text-neutral-400">
             No results found
           </div>
         ) : (
-          <div className="text-center py-4 text-neutral-400">
-            Click "New" to start
+          <div className="text-center py-4 text-neutral-500">
+            Clique em "Nova" para começar
           </div>
         )}
       </div>
