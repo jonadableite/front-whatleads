@@ -131,7 +131,7 @@ export function SessionList({
             <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-neutral-500" />
             <Input
               placeholder="Search conversations..."
-              className="pl-9 bg-neutral-800/70 border-blue-700 text-neutral-200 focus-visible:ring-blue-500"
+              className="pl-9 bg-neutral-800/70 border-electric text-neutral-200 focus-visible:ring-blue-500"
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
             />
