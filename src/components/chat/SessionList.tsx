@@ -114,7 +114,7 @@ export function SessionList({
 
   return (
     <div className="w-64 border-r border-deep flex flex-col bg-deep/90">
-      <div className="p-4 border-b border-blue-700">
+      <div className="p-4 border-b border-blue-700/30">
         <div className="flex items-center justify-between mb-4">
           <Button
             onClick={() => setIsNewChatDialogOpen(true)}
