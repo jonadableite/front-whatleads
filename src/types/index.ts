@@ -67,31 +67,140 @@ export interface MainApiResponse<T> {
   status: number;
 }
 
+// ✅ Interface corrigida e otimizada para payload de campanha
 export interface StartCampaignPayload {
   instanceName: string;
   message: string;
-  media: any;
+  media?: MediaPayload | null;
   minDelay: number;
   maxDelay: number;
-  segmentation?: { segment: string }; // Optional segmentation property
+  segmentation?: {
+    segment: string;
+  };
 }
 
-export type MediaPayload =
-  | { type: "image"; base64: string; fileName: string; mimetype: string }
-  | { type: "audio"; base64: string; fileName: string; mimetype: string }
-  | { type: "video"; base64: string; fileName: string; mimetype: string };
+// ✅ Interface de mídia mais específica e tipada
+export interface MediaPayload {
+  type: 'image' | 'video' | 'audio';
+  base64: string;
+  fileName?: string;
+  mimetype?: string;
+  caption?: string;
+}
 
-export interface StartCampaignPayload {
+// ✅ Interface para diferentes tipos de mídia (opcional, para uso específico)
+export type SpecificMediaPayload =
+  | {
+      type: 'image';
+      base64: string;
+      fileName?: string;
+      mimetype?: string;
+      caption?: string;
+    }
+  | {
+      type: 'audio';
+      base64: string;
+      fileName?: string;
+      mimetype?: string;
+      caption?: string;
+    }
+  | {
+      type: 'video';
+      base64: string;
+      fileName?: string;
+      mimetype?: string;
+      caption?: string;
+    };
+
+// ✅ Interface para agendamento de campanhas
+export interface ScheduleCampaignPayload {
+  campaignId: string;
+  scheduledDate: string; // ISO string
   instanceName: string;
+  message?: string;
+  mediaPayload?: MediaPayload | null;
+  minDelay?: number;
+  maxDelay?: number;
+}
+
+// ✅ Interface para resposta de campanha
+export interface CampaignResponse {
+  success: boolean;
   message: string;
-  media: any;
-  minDelay: number;
-  maxDelay: number;
-  segmentation?: { segment: string }; // Optional segmentation property
+  data?: {
+    campaignId: string;
+    dispatchId?: string;
+    scheduleId?: string;
+  };
+  error?: string;
+}
+
+// ✅ Interface para estatísticas de campanha
+export interface CampaignStatistics {
+  totalLeads: number;
+  sentCount: number;
+  deliveredCount: number;
+  readCount: number;
+  failedCount: number;
+}
+
+// ✅ Interface para progresso de campanha
+export interface CampaignProgress {
+  status: 'preparing' | 'running' | 'paused' | 'completed' | 'failed';
+  progress: number;
+  statistics: CampaignStatistics;
 }
 
 export interface WarmerApiResponse<T> {
   data: T;
   success: boolean;
   error?: string;
+}
+
+// ✅ Tipos para status de campanha
+export type CampaignStatus =
+  | 'draft'
+  | 'preparing'
+  | 'running'
+  | 'paused'
+  | 'completed'
+  | 'failed'
+  | 'scheduled';
+
+// ✅ Tipos para segmentação
+export type SegmentationType =
+  | 'ALTAMENTE_ENGAJADO'
+  | 'MODERADAMENTE_ENGAJADO'
+  | 'LEVEMENTE_ENGAJADO'
+  | 'BAIXO_ENGAJAMENTO';
+
+// ✅ Interface para leads
+export interface Lead {
+  id: string;
+  name: string | null;
+  phone: string;
+  email?: string | null;
+  status?: string;
+  createdAt?: string;
+  updatedAt?: string;
+}
+
+// ✅ Interface para campanha
+export interface Campaign {
+  id: string;
+  name: string;
+  description?: string;
+  status: CampaignStatus;
+  type: string;
+  instance?: string;
+  connectionStatus?: string;
+  progress: number;
+  statistics: CampaignStatistics | null;
+  createdAt?: string;
+  updatedAt?: string;
+  scheduledDate?: string | null;
+  message?: string;
+  mediaType?: string;
+  mediaUrl?: string;
+  mediaCaption?: string;
 }

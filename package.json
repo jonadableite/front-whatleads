@@ -19,6 +19,8 @@
 	"description": "",
 	"dependencies": {
 		"@clerk/clerk-react": "^5.31.8",
+		"@ffmpeg/ffmpeg": "^0.12.15",
+		"@ffmpeg/util": "^0.12.1",
 		"@floating-ui/dom": "^1.6.13",
 		"@hookform/resolvers": "^3.10.0",
 		"@radix-ui/react-accordion": "^1.2.2",
