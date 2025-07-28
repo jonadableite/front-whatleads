@@ -224,7 +224,7 @@ const YouTubeModal: React.FC<{
 // Componente para a seção de ajuda
 const HelpSection: React.FC = () => {
   const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
-  const YOUTUBE_VIDEO_ID = 'dQw4w9WgXcQ'; // Substitua pelo ID do seu vídeo
+  const YOUTUBE_VIDEO_ID = '_IHj4V594Ho'; // Substitua pelo ID do seu vídeo
 
   // Função para baixar arquivo Exceal de exemplo
   const downloadExcelTemplate = () => {
@@ -934,7 +934,7 @@ const Campanhas: React.FC = () => {
   }> = ({ status, onStart, onStop, campaignId }) => {
     const navigate = useNavigate();
     const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
-    const YOUTUBE_VIDEO_ID = 'dQw4w9WgXcQ'; // Substitua pelo ID do seu vídeo
+    const YOUTUBE_VIDEO_ID = '_IHj4V594Ho'; // Substitua pelo ID do seu vídeo
 
     const handlePlayClick = () => {
       if (status === 'paused') {
