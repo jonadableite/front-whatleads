@@ -1,9 +1,9 @@
-import Logo from "@/components/Logo";
-import { Button } from "@/components/ui/button";
-import { useSidebar } from "@/contexts/SidebarContext";
-import { cn } from "@/lib/utils";
-import { authService } from "@/services/auth.service";
-import { AnimatePresence, motion } from "framer-motion";
+import Logo from '@/components/Logo';
+import { Button } from '@/components/ui/button';
+import { useSidebar } from '@/contexts/SidebarContext';
+import { cn } from '@/lib/utils';
+import { authService } from '@/services/auth.service';
+import { AnimatePresence, motion } from 'framer-motion';
 import {
   Bot,
   ChevronRight,
@@ -18,10 +18,10 @@ import {
   Sparkles,
   Users,
   X,
-} from "lucide-react";
-import { useState } from "react";
-import { FaWhatsapp } from "react-icons/fa";
-import { Link, useLocation } from "react-router-dom";
+} from 'lucide-react';
+import { useState } from 'react';
+import { FaWhatsapp } from 'react-icons/fa';
+import { Link, useLocation } from 'react-router-dom';
 
 interface SidebarItem {
   title: string;
@@ -38,53 +38,56 @@ interface SidebarItem {
 
 const sidebarItems: SidebarItem[] = [
   {
-    title: "Dashboard",
+    title: 'Dashboard',
     icon: <Home className="w-5 h-5" />,
-    path: "/",
+    path: '/',
   },
   {
-    title: "Disparos",
+    title: 'Disparos',
     icon: <MessageSquareText className="w-5 h-5" />,
-    path: "/disparos",
-    submenu: [{ title: "Agendados", path: "/disparos/agendados" }],
+    path: '/disparos',
+    submenu: [
+      { title: 'Grupos', path: '/disparos/grupos' }, // Item "Grupos"
+      { title: 'Agendados', path: '/disparos/agendados' }, // Item "Agendados"
+    ],
   },
   {
-    title: "Contatos",
+    title: 'Contatos',
     icon: <Users className="w-5 h-5" />,
-    path: "/contatos",
+    path: '/contatos',
     badge: 5,
   },
   {
-    title: "Campanhas",
+    title: 'Campanhas',
     icon: <FileText className="w-5 h-5" />,
-    path: "/campanhas",
-    submenu: [{ title: "Todas Campanhas", path: "/campanhas" }],
+    path: '/campanhas',
+    submenu: [{ title: 'Todas Campanhas', path: '/campanhas' }],
   },
   {
-    title: "Instâncias",
+    title: 'Instâncias',
     icon: <FaWhatsapp className="w-5 h-5" />,
-    path: "/instancias",
+    path: '/instancias',
   },
   {
-    title: "Chat IA",
+    title: 'Chat IA',
     icon: <MessageCircle className="w-5 h-5" />,
-    path: "/chat",
+    path: '/chat',
   },
   {
-    title: "Agentes IA",
+    title: 'Agentes IA',
     icon: <Bot className="w-5 h-5" />,
-    path: "/AgenteIA",
+    path: '/AgenteIA',
   },
   {
-    title: "Aquecimento",
+    title: 'Aquecimento',
     icon: <Flame className="w-5 h-5" />,
-    path: "https://aquecer.whatlead.com.br",
+    path: 'https://aquecer.whatlead.com.br',
     isExternal: true,
   },
   {
-    title: "Painel de Admin",
+    title: 'Painel de Admin',
     icon: <Crown className="w-5 h-5" />,
-    path: "/admin",
+    path: '/admin',
     adminOnly: true,
   },
 ];
@@ -94,7 +97,7 @@ export function Sidebar() {
   const [openSubmenu, setOpenSubmenu] = useState<string | null>(null);
   const location = useLocation();
   const user = authService.getUser();
-  const isAdmin = user?.role === "admin" || false;
+  const isAdmin = user?.role === 'admin' || false;
 
   const handleLogout = () => {
     authService.logout();
@@ -109,9 +112,9 @@ export function Sidebar() {
       initial={{ x: -300 }}
       animate={{ x: 0 }}
       className={cn(
-        "fixed left-0 top-0 h-screen bg-deep/90 backdrop-blur-xl border-r border-electric/30",
-        isCollapsed ? "w-20" : "w-64",
-        "transition-all duration-300 ease-in-out z-50"
+        'fixed left-0 top-0 h-screen bg-deep/90 backdrop-blur-xl border-r border-electric/30',
+        isCollapsed ? 'w-20' : 'w-64',
+        'transition-all duration-300 ease-in-out z-50',
       )}
     >
       <div className="flex flex-col h-full">
@@ -148,8 +151,8 @@ export function Sidebar() {
               size="icon"
               onClick={toggleSidebar}
               className={cn(
-                "text-neon-pink hover:bg-neon-pink/20 transition-colors duration-300",
-                isCollapsed ? "w-full" : "ml-auto"
+                'text-neon-pink hover:bg-neon-pink/20 transition-colors duration-300',
+                isCollapsed ? 'w-full' : 'ml-auto',
               )}
             >
               {isCollapsed ? (
@@ -177,13 +180,13 @@ export function Sidebar() {
               location.pathname === item.path && !item.isExternal;
 
             // Lógica para renderizar <a> para links externos e <Link> para internos
-            const LinkComponent = item.isExternal ? "a" : Link;
+            const LinkComponent = item.isExternal ? 'a' : Link;
             const linkProps: any = item.isExternal
               ? {
-                href: item.path,
-                target: "_blank",
-                rel: "noopener noreferrer",
-              }
+                  href: item.path,
+                  target: '_blank',
+                  rel: 'noopener noreferrer',
+                }
               : { to: item.path };
 
             return (
@@ -202,13 +205,15 @@ export function Sidebar() {
                 <LinkComponent
                   {...linkProps}
                   className={cn(
-                    "flex items-center gap-3 px-4 py-3 text-white/80 relative group",
-                    "transition-all duration-200",
-                    isActive && "text-white", // Estilo ativo apenas para links internos
-                    isCollapsed && "justify-center"
+                    'flex items-center gap-3 px-4 py-3 text-white/80 relative group',
+                    'transition-all duration-200',
+                    isActive && 'text-white', // Estilo ativo apenas para links internos
+                    isCollapsed && 'justify-center',
                   )}
                   onClick={() =>
-                    item.submenu && !item.isExternal && toggleSubmenu(item.path)
+                    item.submenu &&
+                    !item.isExternal &&
+                    toggleSubmenu(item.path)
                   }
                 >
                   <motion.div
@@ -219,10 +224,13 @@ export function Sidebar() {
                   />
                   <motion.div
                     className={cn(
-                      "relative z-10",
-                      isActive && "text-neon-green" // Estilo ativo apenas para links internos
+                      'relative z-10',
+                      isActive && 'text-neon-green', // Estilo ativo apenas para links internos
                     )}
-                    whileHover={{ scale: 1.1, rotate: [0, -10, 10, -10, 0] }}
+                    whileHover={{
+                      scale: 1.1,
+                      rotate: [0, -10, 10, -10, 0],
+                    }}
                     transition={{ duration: 0.3 }}
                   >
                     {item.icon}
@@ -252,9 +260,12 @@ export function Sidebar() {
                       {item.submenu && (
                         <motion.div
                           animate={{
-                            rotate: openSubmenu === item.path ? 90 : 0,
+                            rotate:
+                              openSubmenu === item.path ? 90 : 0,
                             color:
-                              openSubmenu === item.path ? "#00FF6A" : "#ffffff",
+                              openSubmenu === item.path
+                                ? '#00FF6A'
+                                : '#ffffff',
                           }}
                           className="z-10"
                         >
@@ -280,7 +291,7 @@ export function Sidebar() {
                     openSubmenu === item.path && (
                       <motion.div
                         initial={{ height: 0, opacity: 0 }}
-                        animate={{ height: "auto", opacity: 1 }}
+                        animate={{ height: 'auto', opacity: 1 }}
                         exit={{ height: 0, opacity: 0 }}
                         className="overflow-hidden bg-deep/50"
                       >
@@ -289,10 +300,10 @@ export function Sidebar() {
                             key={subItem.path}
                             to={subItem.path}
                             className={cn(
-                              "flex items-center gap-3 px-12 py-2 text-white/70",
-                              "hover:text-white transition-all duration-200",
+                              'flex items-center gap-3 px-12 py-2 text-white/70',
+                              'hover:text-white transition-all duration-200',
                               location.pathname === subItem.path &&
-                              "bg-electric/30 text-white"
+                                'bg-electric/30 text-white',
                             )}
                           >
                             <span>{subItem.title}</span>
@@ -312,9 +323,9 @@ export function Sidebar() {
           <Link
             to="/pricing" // Este é um link interno, então <Link> está correto
             className={cn(
-              "block w-full bg-gradient-to-r from-electric to-rose-950 rounded-lg relative overflow-hidden",
-              "group hover:shadow-lg transition-all duration-300",
-              isCollapsed ? "p-2" : "p-3"
+              'block w-full bg-gradient-to-r from-electric to-rose-950 rounded-lg relative overflow-hidden',
+              'group hover:shadow-lg transition-all duration-300',
+              isCollapsed ? 'p-2' : 'p-3',
             )}
           >
             {/* ... animações do botão de upgrade ... */}
@@ -330,7 +341,9 @@ export function Sidebar() {
                   <Crown className="w-5 h-5 text-yellow-300 filter drop-shadow-glow" />
                 </motion.div>
                 <div className="flex-1">
-                  <p className="font-bold text-white">Upgrade seu plano</p>
+                  <p className="font-bold text-white">
+                    Upgrade seu plano
+                  </p>
                   <p className="text-xs text-white/90">
                     Desbloqueie todos os recursos
                   </p>
@@ -345,8 +358,8 @@ export function Sidebar() {
           {/* User Info and Logout */}
           <div
             className={cn(
-              "flex items-center",
-              isCollapsed ? "justify-center" : "gap-3"
+              'flex items-center',
+              isCollapsed ? 'justify-center' : 'gap-3',
             )}
           >
             {isCollapsed ? (
