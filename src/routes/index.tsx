@@ -48,7 +48,7 @@ const router = createBrowserRouter([
             element: <Disparos />,
           },
           {
-            path: '/grupos',
+            path: '/disparos/grupos',
             element: <Grupos />,
           },
           {
