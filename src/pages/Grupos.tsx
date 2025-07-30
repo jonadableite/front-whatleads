@@ -1,12 +1,13 @@
-import { Button } from '@/components/ui/button'; // Assumindo que você tem um componente Button
-import { Input } from '@/components/ui/input'; // Assumindo que você tem um componente Input
+// src/pages/Grupos.tsx
+import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import {
   Select,
   SelectContent,
   SelectItem,
   SelectTrigger,
   SelectValue,
-} from '@/components/ui/select'; // Assumindo que você tem um componente Select
+} from '@/components/ui/select';
 import { authService } from '@/services/auth.service';
 import {
   Dialog,
@@ -15,7 +16,7 @@ import {
   DialogDescription,
   DialogOverlay,
   DialogTitle,
-} from '@radix-ui/react-dialog'; // Para o novo modal
+} from '@radix-ui/react-dialog';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useCallback, useEffect, useState } from 'react';
 import {
@@ -32,7 +33,7 @@ import {
   FaUsers,
   FaUserShield,
 } from 'react-icons/fa';
-import { FiPlay, FiPlus, FiX } from 'react-icons/fi'; // Adicionando FiPlay para o EmptyState
+import { FiPlay, FiPlus, FiX } from 'react-icons/fi';
 import { IoMdSend } from 'react-icons/io';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
@@ -186,7 +187,7 @@ const GroupCard: React.FC<GroupCardProps> = ({
         <div className="flex-1 flex items-center justify-between">
           {' '}
           {/* Container para o título e o ícone de admin */}
-          <h3 className="text-xl font-semibold text-white truncate max-w-[calc(100%-40px)]">
+          <h3 className="text-xl font-semibold text-white truncate max-w-[72%]">
             {group.subject}
           </h3>
           {isOwner && (
@@ -207,10 +208,10 @@ const GroupCard: React.FC<GroupCardProps> = ({
       <div className="flex justify-between items-center mt-auto">
         <Button
           variant="outline"
-          className="bg-deep/50 border-electric text-white hover:bg-electric/20"
+          className="bg-blue-500/50 border-blue-500 text-white hover:bg-blue-500/20 hover:border-electric/55 hover:text-neon-purple/50"
           onClick={() => onOpenDetails(group)}
         >
-          <FaInfoCircle className="mr-2" /> Detalhes
+          <FaInfoCircle className="sm-2" /> Detalhes
         </Button>
         <Button
           variant="ghost"
