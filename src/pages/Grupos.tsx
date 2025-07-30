@@ -167,8 +167,8 @@ const GroupCard: React.FC<GroupCardProps> = ({
       className={cn(
         'relative bg-deep/50 border border-electric/30 rounded-2xl p-6 shadow-xl backdrop-blur-md transition-all duration-300 ease-in-out',
         isSelected
-          ? 'border-neon-green ring-2 ring-neon-green'
-          : 'hover:border-electric/50',
+          ? 'border-neon-green ring-2 ring-neon-green bg-neon-green/15 shadow-lg shadow-neon-green/20'
+          : 'hover:border-electric',
       )}
     >
       <div className="flex items-center mb-4">
@@ -205,12 +205,12 @@ const GroupCard: React.FC<GroupCardProps> = ({
       <div className="flex justify-end gap-3 mt-4">
         {/* Botão para SELECIONAR o grupo */}
         <Button
-          onClick={() => onSelect(group.id)} // CORRIGIDO: Agora chama onSelect para selecionar o grupo
+          onClick={() => onSelect(group.id)}
           className={cn(
             'flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200',
             isSelected
-              ? 'bg-neon-green text-deep hover:bg-neon-green/80'
-              : 'bg-electric-blue/20 text-electric-blue hover:bg-electric-blue/40',
+              ? 'bg-neon-green text-white hover:bg-neon-green/80'
+              : 'bg-neon-blue text-white hover:bg-neon-blue/40',
           )}
         >
           {isSelected ? <FaCheckCircle /> : <FaRegCircle />}
@@ -219,8 +219,8 @@ const GroupCard: React.FC<GroupCardProps> = ({
 
         {/* Botão para abrir os DETALHES do grupo */}
         <Button
-          onClick={() => onOpenDetails(group)} // CORRIGIDO: Agora chama onOpenDetails para abrir o modal de detalhes
-          className="flex items-center gap-2 bg-blue-500/20 text-white hover:bg-electric/40 px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200"
+          onClick={() => onOpenDetails(group)}
+          className="flex items-center gap-2 bg-blue-500 border-blue-400 text-white hover:bg-electric/50 px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200"
         >
           <FaInfoCircle />
           Detalhes
@@ -563,7 +563,7 @@ export default function Grupos() {
           );
           return;
         }
-        endpoint = `/message/sendMedia/instance/${selectedInstanceName}`;
+        endpoint = `/message/sendMedia/${selectedInstanceName}`;
         payload = {
           mediatype: mediaType, // 'image', 'video', 'document'
           mimetype: mediaMimeType,
@@ -578,7 +578,7 @@ export default function Grupos() {
           toast.error('Por favor, forneça a URL do áudio.');
           return;
         }
-        endpoint = `/message/sendWhatsAppAudio/instance/${selectedInstanceName}`;
+        endpoint = `/message/sendWhatsAppAudio/${selectedInstanceName}`;
         payload = { audio: audioUrl };
         break;
       default:
@@ -981,7 +981,7 @@ export default function Grupos() {
               className={cn(
                 'flex items-center gap-3 px-4 py-3 rounded-md text-left transition-colors duration-200',
                 activeTab === 'info'
-                  ? 'bg-electric/20 text-electric font-semibold'
+                  ? 'bg-electric/20 text-blue-600 font-semibold'
                   : 'text-white/70 hover:bg-white/10',
               )}
             >
@@ -1687,7 +1687,7 @@ export default function Grupos() {
                   animate="in"
                   exit="out"
                   variants={pageTransition}
-                  className="bg-deep border border-electric/20 rounded-xl p-6 mb-8 shadow-lg"
+                  className="bg-deep/90 border border-electric/20 rounded-xl p-6 mb-8 shadow-lg"
                 >
                   <h2 className="text-2xl font-bold text-white mb-4">
                     Configurações de Disparo
