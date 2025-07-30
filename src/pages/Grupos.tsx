@@ -39,6 +39,7 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { GetInstancesAction } from '../actions';
 import { api } from '../lib/api';
+import { evo } from '../lib/evo';
 import { cn } from '../lib/utils';
 
 interface Instancia {
@@ -171,8 +172,6 @@ const GroupCard: React.FC<GroupCardProps> = ({
       )}
     >
       <div className="flex items-center mb-4">
-        {' '}
-        {/* Flex container para a imagem e o título */}
         {group.pictureUrl ? (
           <img
             src={group.pictureUrl}
@@ -180,54 +179,51 @@ const GroupCard: React.FC<GroupCardProps> = ({
             className="w-12 h-12 rounded-full object-cover mr-4 border border-electric/50"
           />
         ) : (
-          <div className="w-12 h-12 rounded-full bg-electric/20 flex items-center justify-center mr-4 text-white/70 text-2xl">
-            <FaUsers /> {/* Ícone de fallback */}
+          <div className="w-12 h-12 rounded-full bg-electric-blue/20 flex items-center justify-center mr-4">
+            <FaUsers className="text-electric-blue text-2xl" />
           </div>
         )}
-        <div className="flex-1 flex items-center justify-between">
-          {' '}
-          {/* Container para o título e o ícone de admin */}
-          <h3 className="text-xl font-semibold text-white truncate max-w-[72%]">
-            {group.subject}
-          </h3>
-          {isOwner && (
-            <FaCrown
-              className="text-neon-green text-xl ml-2"
-              title="Você é Admin/Super Admin"
-            />
-          )}
-        </div>
+        <h3 className="text-xl font-semibold text-white truncate flex-grow">
+          {group.subject}
+        </h3>
+        {isOwner && (
+          <FaCrown
+            className="text-yellow-400 text-xl ml-2"
+            title="Você é administrador"
+          />
+        )}
       </div>
-      <p className="text-white/70 text-sm mb-4 line-clamp-2">
-        {group.desc || 'Sem descrição.'}
+      <p className="text-white/70 text-sm mb-2">
+        Membros: {group.size}
       </p>
-      <div className="flex items-center text-white/60 text-sm mb-4">
-        <FaUsers className="mr-2 text-electric" />
-        <span>{group.size} membros</span>
-      </div>
-      <div className="flex justify-between items-center mt-auto">
+      {group.desc && (
+        <p className="text-white/70 text-sm mb-4 line-clamp-2">
+          {group.desc}
+        </p>
+      )}
+
+      <div className="flex justify-end gap-3 mt-4">
+        {/* Botão para SELECIONAR o grupo */}
         <Button
-          variant="outline"
-          className="bg-blue-500/50 border-blue-500 text-white hover:bg-blue-500/20 hover:border-electric/55 hover:text-neon-purple/50"
-          onClick={() => onOpenDetails(group)}
-        >
-          <FaInfoCircle className="sm-2" /> Detalhes
-        </Button>
-        <Button
-          variant="ghost"
+          onClick={() => onSelect(group.id)} // CORRIGIDO: Agora chama onSelect para selecionar o grupo
           className={cn(
-            'p-2 rounded-full',
+            'flex items-center gap-2 px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200',
             isSelected
               ? 'bg-neon-green text-deep hover:bg-neon-green/80'
-              : 'text-white/60 hover:text-white hover:bg-electric/20',
+              : 'bg-electric-blue/20 text-electric-blue hover:bg-electric-blue/40',
           )}
-          onClick={() => onSelect(group.id)}
         >
-          {isSelected ? (
-            <FaCheckCircle size={20} />
-          ) : (
-            <FaRegCircle size={20} />
-          )}
+          {isSelected ? <FaCheckCircle /> : <FaRegCircle />}
+          {isSelected ? 'Selecionado' : 'Selecionar'}
+        </Button>
+
+        {/* Botão para abrir os DETALHES do grupo */}
+        <Button
+          onClick={() => onOpenDetails(group)} // CORRIGIDO: Agora chama onOpenDetails para abrir o modal de detalhes
+          className="flex items-center gap-2 bg-blue-500/20 text-white hover:bg-electric/40 px-4 py-2 rounded-lg text-sm font-medium transition-colors duration-200"
+        >
+          <FaInfoCircle />
+          Detalhes
         </Button>
       </div>
     </motion.div>
@@ -350,13 +346,27 @@ const EmptyState: React.FC<EmptyStateProps> = ({
 export default function Grupos() {
   const navigate = useNavigate();
   const [instances, setInstances] = useState<Instancia[]>([]);
-  const [selectedInstance, setSelectedInstance] = useState('');
+  const [selectedInstanceName, setselectedInstanceName] = useState<
+    string | null
+  >(null);
   const [grupos, setGrupos] = useState<Grupo[]>([]);
-  const [selectedGroups, setSelectedGroups] = useState<string[]>([]);
   const [message, setMessage] = useState('');
   const [isLoading, setIsLoading] = useState(false);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState('');
+
+  // Estados para envio de mensagem
+  const [messageType, setMessageType] = useState<
+    'text' | 'media' | 'audio'
+  >('text'); // 'text', 'media', 'audio'
+  const [mediaUrl, setMediaUrl] = useState('');
+  const [mediaMimeType, setMediaMimeType] = useState(''); // Ex: 'image/png', 'video/mp4', 'application/pdf'
+  const [mediaFileName, setMediaFileName] = useState(''); // Opcional
+  const [audioUrl, setAudioUrl] = useState('');
+
+  // Para gerenciar a seleção de grupos e o status do disparo
+  const [selectedGroups, setSelectedGroups] = useState<string[]>([]); // Armazena os JIDs dos grupos selecionados
+  const [isSendingBroadcast, setIsSendingBroadcast] = useState(false); // Indica se um disparo está em andamento
 
   // Modals States
   const [showGroupDetailsModal, setShowGroupDetailsModal] =
@@ -461,29 +471,28 @@ export default function Grupos() {
     [selectedGroup],
   );
 
-  const handleInstanceChange = (instanceId: string) => {
-    setSelectedInstance(instanceId);
+  const handleInstanceChange = (instanceNameFromSelect: string) => {
+    setselectedInstanceName(instanceNameFromSelect);
     setGrupos([]);
     setSelectedGroups([]);
     setSelectedGroup(null);
     setShowGroupDetailsModal(false);
-    if (instanceId) {
-      const instance = instances.find((i) => i.id === instanceId);
-      if (instance) {
-        fetchGroups(instance.instanceName);
-      }
+    if (instanceNameFromSelect) {
+      fetchGroups(instanceNameFromSelect);
     }
   };
 
-  const handleGroupSelect = (groupId: string) => {
-    setSelectedGroups((prev) => {
-      if (prev.includes(groupId)) {
-        return prev.filter((id) => id !== groupId);
+  const handleGroupSelect = useCallback((groupId: string) => {
+    setSelectedGroups((prevSelectedGroups) => {
+      if (prevSelectedGroups.includes(groupId)) {
+        // Se já estiver selecionado, remove
+        return prevSelectedGroups.filter((id) => id !== groupId);
       } else {
-        return [...prev, groupId];
+        // Se não estiver selecionado, adiciona
+        return [...prevSelectedGroups, groupId];
       }
     });
-  };
+  }, []);
 
   const filteredGroups = grupos.filter((group) =>
     group.subject.toLowerCase().includes(searchTerm.toLowerCase()),
@@ -500,61 +509,145 @@ export default function Grupos() {
     }
   };
 
-  const handleSendMessage = async () => {
+  // Função auxiliar para determinar o tipo de mídia com base no MIME Type
+  const getMediaTypeFromMime = (
+    mimetype: string,
+  ): 'image' | 'video' | 'document' | undefined => {
+    if (mimetype.startsWith('image/')) return 'image';
+    if (mimetype.startsWith('video/')) return 'video';
+    // Para documentos, verificamos 'pdf' ou qualquer 'application/'
     if (
-      !selectedInstance ||
-      selectedGroups.length === 0 ||
-      !message.trim()
-    ) {
-      toast.error(
-        'Selecione uma instância, grupos e digite uma mensagem.',
-      );
-      return;
-    }
-    const instance = instances.find((i) => i.id === selectedInstance);
-    if (!instance) {
-      toast.error('Instância não encontrada.');
-      return;
-    }
-    try {
-      setIsLoading(true);
-      for (const groupId of selectedGroups) {
-        const group = grupos.find((g) => g.id === groupId);
-        if (!group) continue;
-        const payload = {
-          number: groupId,
-          text: message.trim(),
-          mentionsEveryOne:
-            (group.isAdmin || group.isSuperAdmin) && true,
-        };
-        await api.main.post(
-          `/message/sendText/${instance.instanceName}`,
-          payload,
-        );
-      }
-      toast.success(
-        `Mensagem enviada para ${selectedGroups.length} grupo(s)!`,
-      );
-      setMessage('');
-      setSelectedGroups([]);
-    } catch (error) {
-      console.error('Erro ao enviar mensagem:', error);
-      toast.error('Erro ao enviar mensagem.');
-    } finally {
-      setIsLoading(false);
-    }
+      mimetype.includes('pdf') ||
+      mimetype.startsWith('application/')
+    )
+      return 'document';
+    return undefined;
   };
+
+  const handleSendMessageToSelectedGroups = useCallback(async () => {
+    if (!selectedInstanceName) {
+      toast.error('Por favor, selecione uma instância primeiro.');
+      return;
+    }
+    if (selectedGroups.length === 0) {
+      toast.error(
+        'Por favor, selecione pelo menos um grupo para o disparo.',
+      );
+      return;
+    }
+
+    let payload: any;
+    let endpoint: string;
+
+    // Constrói o payload e o endpoint com base no tipo de mensagem selecionado
+    switch (messageType) {
+      case 'text':
+        if (!message.trim()) {
+          toast.error('Por favor, digite a mensagem de texto.');
+          return;
+        }
+        endpoint = `/message/sendText/${selectedInstanceName}`;
+        payload = { text: message };
+        break;
+      case 'media': {
+        if (!mediaUrl.trim() || !mediaMimeType.trim()) {
+          toast.error(
+            'Por favor, forneça a URL da mídia e o MIME Type.',
+          );
+          return;
+        }
+        const mediaType = getMediaTypeFromMime(mediaMimeType);
+        if (!mediaType) {
+          toast.error(
+            'MIME Type inválido para mídia. Use image/, video/ ou application/.',
+          );
+          return;
+        }
+        endpoint = `/message/sendMedia/instance/${selectedInstanceName}`;
+        payload = {
+          mediatype: mediaType, // 'image', 'video', 'document'
+          mimetype: mediaMimeType,
+          media: mediaUrl,
+          caption: message, // 'message' state é usado para a legenda
+          fileName: mediaFileName,
+        };
+        break;
+      }
+      case 'audio':
+        if (!audioUrl.trim()) {
+          toast.error('Por favor, forneça a URL do áudio.');
+          return;
+        }
+        endpoint = `/message/sendWhatsAppAudio/instance/${selectedInstanceName}`;
+        payload = { audio: audioUrl };
+        break;
+      default:
+        toast.error('Tipo de mensagem inválido.');
+        return;
+    }
+
+    setIsSendingBroadcast(true);
+    let successfulSends = 0;
+    let failedSends = 0;
+
+    // Itera sobre cada grupo selecionado e envia a mensagem
+    for (const groupJid of selectedGroups) {
+      try {
+        // O campo "number" no payload da API deve ser o groupJid
+        const currentPayload = { ...payload, number: groupJid };
+        await evo.post(endpoint, currentPayload);
+        successfulSends++;
+      } catch (error) {
+        console.error(
+          `Falha ao enviar para o grupo ${groupJid}:`,
+          error,
+        );
+        failedSends++;
+      }
+    }
+
+    setIsSendingBroadcast(false);
+
+    // Exibe toasts de sucesso/falha
+    if (successfulSends > 0) {
+      toast.success(
+        `${successfulSends} mensagem(ns) enviada(s) com sucesso!`,
+      );
+    }
+    if (failedSends > 0) {
+      toast.error(
+        `${failedSends} mensagem(ns) falhou(ram) ao enviar. Verifique o console para detalhes.`,
+      );
+    }
+    // Opcional: Limpar os inputs após o envio
+    setMessage('');
+    setMediaUrl('');
+    setMediaMimeType('');
+    setMediaFileName('');
+    setAudioUrl('');
+  }, [
+    selectedInstanceName,
+    selectedGroups,
+    messageType,
+    message,
+    mediaUrl,
+    mediaMimeType,
+    mediaFileName,
+    audioUrl,
+  ]);
 
   const handleCreateGroup = async () => {
     if (
-      !selectedInstance ||
+      !selectedInstanceName ||
       !newGroupName.trim() ||
       !newGroupParticipants.trim()
     ) {
       toast.error('Preencha todos os campos obrigatórios.');
       return;
     }
-    const instance = instances.find((i) => i.id === selectedInstance);
+    const instance = instances.find(
+      (i) => i.id === selectedInstanceName,
+    );
     if (!instance) {
       toast.error('Instância não encontrada.');
       return;
@@ -607,7 +700,9 @@ export default function Grupos() {
   };
 
   const fetchGroupInviteCode = async (groupJid: string) => {
-    const instance = instances.find((i) => i.id === selectedInstance);
+    const instance = instances.find(
+      (i) => i.id === selectedInstanceName,
+    );
     if (!instance) return;
     try {
       setIsLoading(true);
@@ -644,8 +739,10 @@ export default function Grupos() {
   };
 
   const handleRevokeInviteCode = async () => {
-    if (!selectedGroup || !selectedInstance) return;
-    const instance = instances.find((i) => i.id === selectedInstance);
+    if (!selectedGroup || !selectedInstanceName) return;
+    const instance = instances.find(
+      (i) => i.id === selectedInstanceName,
+    );
     if (!instance) {
       toast.error('Instância não encontrada.');
       return;
@@ -674,7 +771,7 @@ export default function Grupos() {
   const handleSendInviteUrl = async () => {
     if (
       !selectedGroup ||
-      !selectedInstance ||
+      !selectedInstanceName ||
       !inviteNumbers.trim()
     ) {
       toast.error(
@@ -682,7 +779,9 @@ export default function Grupos() {
       );
       return;
     }
-    const instance = instances.find((i) => i.id === selectedInstance);
+    const instance = instances.find(
+      (i) => i.id === selectedInstanceName,
+    );
     if (!instance) {
       toast.error('Instância não encontrada.');
       return;
@@ -724,11 +823,13 @@ export default function Grupos() {
     participantId: string,
     action: 'add' | 'remove' | 'promote' | 'demote',
   ) => {
-    if (!selectedInstance) {
+    if (!selectedInstanceName) {
       toast.error('Selecione uma instância.');
       return;
     }
-    const instance = instances.find((i) => i.id === selectedInstance);
+    const instance = instances.find(
+      (i) => i.id === selectedInstanceName,
+    );
     if (!instance) {
       toast.error('Instância não encontrada.');
       return;
@@ -771,8 +872,10 @@ export default function Grupos() {
   };
 
   const handleUpdateGroupSettings = async (groupJid: string) => {
-    if (!selectedGroup || !selectedInstance) return;
-    const instance = instances.find((i) => i.id === selectedInstance);
+    if (!selectedGroup || !selectedInstanceName) return;
+    const instance = instances.find(
+      (i) => i.id === selectedInstanceName,
+    );
     if (!instance) {
       toast.error('Instância não encontrada.');
       return;
@@ -821,11 +924,13 @@ export default function Grupos() {
   };
 
   const handleLeaveGroup = async (groupJid: string) => {
-    if (!selectedInstance) {
+    if (!selectedInstanceName) {
       toast.error('Selecione uma instância.');
       return;
     }
-    const instance = instances.find((i) => i.id === selectedInstance);
+    const instance = instances.find(
+      (i) => i.id === selectedInstanceName,
+    );
     if (!instance) {
       toast.error('Instância não encontrada.');
       return;
@@ -1501,7 +1606,7 @@ export default function Grupos() {
           {/* Seleção de Instância e Busca */}
           <div className="flex gap-4 items-center flex-wrap">
             <Select
-              value={selectedInstance}
+              value={selectedInstanceName}
               onValueChange={handleInstanceChange}
             >
               <SelectTrigger className="w-[200px] bg-deep/50 border-electric text-white">
@@ -1510,7 +1615,10 @@ export default function Grupos() {
               <SelectContent>
                 {instances.length > 0 ? (
                   instances.map((instance) => (
-                    <SelectItem key={instance.id} value={instance.id}>
+                    <SelectItem
+                      key={instance.id}
+                      value={instance.instanceName}
+                    >
                       {instance.profileName || instance.instanceName}
                     </SelectItem>
                   ))
@@ -1557,10 +1665,15 @@ export default function Grupos() {
                     : 'Selecionar Todos'}
                 </Button>
                 <Button
-                  onClick={handleSendMessage}
+                  onClick={handleSendMessageToSelectedGroups}
                   className="bg-neon-green text-deep hover:bg-neon-green/80"
                   disabled={
-                    selectedGroups.length === 0 || !message.trim()
+                    selectedGroups.length === 0 ||
+                    isLoading || // Desabilita o botão enquanto estiver carregando
+                    (messageType === 'text' && !message.trim()) ||
+                    (messageType === 'media' &&
+                      (!mediaUrl.trim() || !mediaMimeType.trim())) ||
+                    (messageType === 'audio' && !audioUrl.trim())
                   }
                 >
                   <IoMdSend className="mr-2" /> Enviar Mensagem (
@@ -1568,26 +1681,165 @@ export default function Grupos() {
                 </Button>
               </div>
 
-              {selectedGroups.length > 0 && (
+              {selectedInstanceName && (
                 <motion.div
-                  initial={{ opacity: 0, height: 0 }}
-                  animate={{ opacity: 1, height: 'auto' }}
-                  exit={{ opacity: 0, height: 0 }}
-                  className="bg-deep/50 border border-electric/30 rounded-lg p-4 mb-6"
+                  initial="out"
+                  animate="in"
+                  exit="out"
+                  variants={pageTransition}
+                  className="bg-deep border border-electric/20 rounded-xl p-6 mb-8 shadow-lg"
                 >
-                  <label
-                    htmlFor="message-input"
-                    className="block text-white text-sm font-medium mb-2"
-                  >
-                    Mensagem para os grupos selecionados:
-                  </label>
-                  <textarea
-                    id="message-input"
-                    value={message}
-                    onChange={(e) => setMessage(e.target.value)}
-                    placeholder="Digite sua mensagem aqui..."
-                    className="w-full p-3 rounded-lg bg-deep/70 text-white placeholder-white/60 border border-electric focus:ring-1 focus:ring-electric focus:border-electric transition-colors duration-200 min-h-[80px]"
-                  />
+                  <h2 className="text-2xl font-bold text-white mb-4">
+                    Configurações de Disparo
+                  </h2>
+                  <div className="mb-4">
+                    <label
+                      htmlFor="message-type-select"
+                      className="block text-white text-sm font-medium mb-2"
+                    >
+                      Tipo de Mensagem:
+                    </label>
+                    <Select
+                      value={messageType}
+                      onValueChange={(
+                        value: 'text' | 'media' | 'audio',
+                      ) => setMessageType(value)}
+                    >
+                      <SelectTrigger
+                        id="message-type-select"
+                        className="w-full"
+                      >
+                        <SelectValue placeholder="Selecione o tipo de mensagem" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="text">Texto</SelectItem>
+                        <SelectItem value="media">
+                          Mídia (Imagem/Vídeo/Documento)
+                        </SelectItem>
+                        <SelectItem value="audio">
+                          Áudio Narrado
+                        </SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  {/* Campos de input de mensagem com base no messageType */}
+                  {messageType === 'text' && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      exit={{ opacity: 0, height: 0 }}
+                      transition={{ duration: 0.2 }}
+                    >
+                      <label
+                        htmlFor="text-message-input"
+                        className="block text-white text-sm font-medium mb-2"
+                      >
+                        Mensagem de Texto:
+                      </label>
+                      <textarea
+                        id="text-message-input"
+                        value={message}
+                        onChange={(e) => setMessage(e.target.value)}
+                        placeholder="Digite sua mensagem de texto..."
+                        className="w-full p-3 rounded-lg bg-deep/70 text-white placeholder-white/60 border border-electric focus:ring-1 focus:ring-electric focus:border-electric transition-colors duration-200 min-h-[100px]"
+                      />
+                    </motion.div>
+                  )}
+
+                  {messageType === 'media' && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      exit={{ opacity: 0, height: 0 }}
+                      transition={{ duration: 0.2 }}
+                    >
+                      <label
+                        htmlFor="media-url-input"
+                        className="block text-white text-sm font-medium mb-2"
+                      >
+                        URL da Mídia:
+                      </label>
+                      <Input
+                        id="media-url-input"
+                        type="url"
+                        value={mediaUrl}
+                        onChange={(e) => setMediaUrl(e.target.value)}
+                        placeholder="Ex: https://example.com/image.png"
+                        className="w-full p-3 rounded-lg bg-deep/70 text-white placeholder-white/60 border border-electric focus:ring-1 focus:ring-electric focus:border-electric transition-colors duration-200"
+                      />
+                      <label
+                        htmlFor="media-mimetype-input"
+                        className="block text-white text-sm font-medium mb-2 mt-4"
+                      >
+                        MIME Type (Ex: image/png, video/mp4,
+                        application/pdf):
+                      </label>
+                      <Input
+                        id="media-mimetype-input"
+                        type="text"
+                        value={mediaMimeType}
+                        onChange={(e) =>
+                          setMediaMimeType(e.target.value)
+                        }
+                        placeholder="Ex: image/png"
+                        className="w-full p-3 rounded-lg bg-deep/70 text-white placeholder-white/60 border border-electric focus:ring-1 focus:ring-electric focus:border-electric transition-colors duration-200"
+                      />
+                      <label
+                        htmlFor="media-filename-input"
+                        className="block text-white text-sm font-medium mb-2 mt-4"
+                      >
+                        Nome do Arquivo (Opcional):
+                      </label>
+                      <Input
+                        id="media-filename-input"
+                        type="text"
+                        value={mediaFileName}
+                        onChange={(e) =>
+                          setMediaFileName(e.target.value)
+                        }
+                        placeholder="Ex: MinhaImagem.png"
+                        className="w-full p-3 rounded-lg bg-deep/70 text-white placeholder-white/60 border border-electric focus:ring-1 focus:ring-electric focus:border-electric transition-colors duration-200"
+                      />
+                      <label
+                        htmlFor="media-caption-input"
+                        className="block text-white text-sm font-medium mb-2 mt-4"
+                      >
+                        Legenda (Opcional):
+                      </label>
+                      <textarea
+                        id="media-caption-input"
+                        value={message} // Reutilizando o estado 'message' para a legenda
+                        onChange={(e) => setMessage(e.target.value)}
+                        placeholder="Digite uma legenda para a mídia..."
+                        className="w-full p-3 rounded-lg bg-deep/70 text-white placeholder-white/60 border border-electric focus:ring-1 focus:ring-electric focus:border-electric transition-colors duration-200 min-h-[60px]"
+                      />
+                    </motion.div>
+                  )}
+
+                  {messageType === 'audio' && (
+                    <motion.div
+                      initial={{ opacity: 0, height: 0 }}
+                      animate={{ opacity: 1, height: 'auto' }}
+                      exit={{ opacity: 0, height: 0 }}
+                      transition={{ duration: 0.2 }}
+                    >
+                      <label
+                        htmlFor="audio-url-input"
+                        className="block text-white text-sm font-medium mb-2"
+                      >
+                        URL do Áudio Narrado (MP3):
+                      </label>
+                      <Input
+                        id="audio-url-input"
+                        type="url"
+                        value={audioUrl}
+                        onChange={(e) => setAudioUrl(e.target.value)}
+                        placeholder="Ex: https://example.com/audio.mp3"
+                        className="w-full p-3 rounded-lg bg-deep/70 text-white placeholder-white/60 border border-electric focus:ring-1 focus:ring-electric focus:border-electric transition-colors duration-200"
+                      />
+                    </motion.div>
+                  )}
                 </motion.div>
               )}
 
