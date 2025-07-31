@@ -38,6 +38,7 @@ import {
   Bot,
   CheckCircle,
   Clock,
+  Globe,
   Loader2,
   Lock,
   LogOut,
@@ -53,6 +54,7 @@ import { Toaster } from 'react-hot-toast';
 import { useNavigate } from 'react-router-dom';
 import { AIAgentDialog } from '../components/instancia/AIAgentDialog';
 import { InstanceSettingsDialog } from '../components/instancia/InstanceSettingsDialog';
+import { ProxyConfigModal } from '../components/instancia/ProxyConfigModal';
 
 // Constantes
 const API_BASE_URL = import.meta.env.VITE_API_URL || '';
@@ -167,6 +169,11 @@ export default function WhatsappPage() {
   const [selectedInstanceForAgent, setSelectedInstanceForAgent] =
     useState<string | null>(null);
   const [agentDialogOPEN, setAgentDialogOPEN] = useState(false);
+
+  // Estados para o modal de proxy
+  const [selectedInstanceForProxy, setSelectedInstanceForProxy] =
+    useState<string | null>(null);
+  const [proxyDialogOPEN, setProxyDialogOPEN] = useState(false);
 
   const monitoringInterval = useRef<NodeJS.Timeout | null>(null);
   const autoRefreshInterval = useRef<NodeJS.Timeout | null>(null);
@@ -1217,6 +1224,28 @@ export default function WhatsappPage() {
                           </div>
                         )}
                       </Button>
+                      {/* Botão de Proxy */}
+                      <Button
+                        onClick={() => {
+                          setSelectedInstanceForProxy(
+                            instance.instanceName,
+                          );
+                          setProxyDialogOPEN(true);
+                        }}
+                        disabled={loading}
+                        size="sm"
+                        className="group relative flex items-center gap-2 bg-gradient-to-r from-cyan-600/90 via-cyan-700/90 to-cyan-700/90 hover:from-cyan-600 hover:via-cyan-700 hover:to-cyan-700 text-white border border-cyan-500/30 shadow-lg shadow-cyan-500/25 hover:shadow-cyan-500/40 backdrop-blur-sm transition-all duration-300 hover:scale-[1.02] text-xs sm:text-sm font-semibold px-3 sm:px-4 py-2 sm:py-2.5 rounded-xl hover:rounded-2xl overflow-hidden"
+                      >
+                        <div className="absolute inset-0 bg-gradient-to-r from-white/10 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+
+                        <Globe className="w-3.5 h-3.5 sm:w-4 sm:h-4 relative z-10 group-hover:scale-110 transition-transform duration-300" />
+
+                        <span className="relative z-10">Proxy</span>
+
+                        {loading && (
+                          <div className="w-3 h-3 border-2 border-cyan-400/30 border-t-cyan-600 rounded-full animate-spin" />
+                        )}
+                      </Button>
                       {/* Botão de Configurações */}
                       <Button
                         onClick={() => {
@@ -1415,6 +1444,21 @@ export default function WhatsappPage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Proxy Config Dialog */}
+      {selectedInstanceForProxy && (
+        <ProxyConfigModal
+          instanceName={selectedInstanceForProxy}
+          isOpen={proxyDialogOPEN}
+          onOpenChange={(OPEN) => {
+            setProxyDialogOPEN(OPEN);
+            if (!OPEN) {
+              setSelectedInstanceForProxy(null);
+            }
+          }}
+          onUpdate={loadInstances} // Recarrega as instâncias ao salvar configurações
+        />
+      )}
     </div>
   );
 }
