@@ -391,6 +391,32 @@ export default function Grupos() {
   const [previewUrl, setPreviewUrl] = useState('');
   const [mediaFileName, setMediaFileName] = useState('');
 
+  // Atualizar mediaType automaticamente quando messageType mudar
+  useEffect(() => {
+    if (messageType === 'audio') {
+      setMediaType('audio');
+      // Limpar estados de mídia quando mudar para áudio
+      setBase64Image('');
+      setBase64Video('');
+      setPreviewUrl('');
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+      }
+    } else if (messageType === 'media') {
+      setMediaType('image'); // Reset para imagem quando voltar para mídia
+      // Limpar estado de áudio quando mudar para mídia
+      setBase64Audio('');
+      setPreviewUrl('');
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+      }
+    } else if (messageType === 'text') {
+      // Para texto, manter os estados de mídia pois texto pode ter mídia opcional
+      // Apenas resetar mediaType para imagem por padrão
+      setMediaType('image');
+    }
+  }, [messageType, previewUrl]);
+
   // Estados legados para compatibilidade (serão removidos gradualmente)
   const [mediaUrl, setMediaUrl] = useState('');
   const [mediaMimeType, setMediaMimeType] = useState('');
@@ -507,6 +533,11 @@ export default function Grupos() {
     file: File,
     maxSizeMB = 2,
   ): Promise<Blob> => {
+    // Validar se é realmente uma imagem
+    if (!file.type.startsWith('image/')) {
+      throw new Error('O arquivo deve ser uma imagem');
+    }
+
     try {
       const { default: Compressor } = await import('compressorjs');
       return new Promise((resolve, reject) => {
@@ -544,6 +575,27 @@ export default function Grupos() {
     const file = event.target.files?.[0];
     if (!file) return;
 
+    // Validar tipo de arquivo
+    const isValidType = (() => {
+      switch (mediaType) {
+        case 'image':
+          return file.type.startsWith('image/');
+        case 'video':
+          return file.type.startsWith('video/');
+        case 'audio':
+          return file.type.startsWith('audio/');
+        default:
+          return false;
+      }
+    })();
+
+    if (!isValidType) {
+      toast.error(
+        `Arquivo inválido. Esperado: ${mediaType}, Recebido: ${file.type}`,
+      );
+      return;
+    }
+
     // Limpar estados anteriores
     setBase64Image('');
     setBase64Video('');
@@ -576,14 +628,27 @@ export default function Grupos() {
 
       // Se for imagem, comprimir antes
       if (mediaType === 'image') {
-        const compressedFile = await compressImage(file);
-        reader.readAsDataURL(compressedFile);
+        try {
+          const compressedFile = await compressImage(file);
+          reader.readAsDataURL(compressedFile);
+        } catch (error) {
+          console.warn(
+            'Erro na compressão, usando arquivo original:',
+            error,
+          );
+          reader.readAsDataURL(file);
+        }
       } else {
+        // Para vídeo e áudio, usar o arquivo original
         reader.readAsDataURL(file);
       }
     } catch (error) {
       console.error('Erro ao processar mídia:', error);
-      toast.error('Erro ao processar mídia');
+      toast.error(
+        `Erro ao processar ${mediaType}: ${
+          error instanceof Error ? error.message : 'Erro desconhecido'
+        }`,
+      );
     }
   };
 
@@ -670,8 +735,41 @@ export default function Grupos() {
     // Constrói o payload e o endpoint com base no tipo de mensagem selecionado
     switch (messageType) {
       case 'text':
-        endpoint = `/message/sendText/${selectedInstanceName}`;
-        payload = { text: message } as TextPayload;
+        // Se há mídia selecionada, enviar como mídia com legenda
+        if (base64Image || base64Video || base64Audio) {
+          let mediaPayload: MediaPayload;
+          if (base64Image) {
+            mediaPayload = {
+              mediatype: 'image',
+              mimetype: 'image/jpeg',
+              media: base64Image,
+              caption: message,
+              fileName: mediaFileName || 'image.jpg',
+            };
+          } else if (base64Video) {
+            mediaPayload = {
+              mediatype: 'video',
+              mimetype: 'video/mp4',
+              media: base64Video,
+              caption: message,
+              fileName: mediaFileName || 'video.mp4',
+            };
+          } else {
+            mediaPayload = {
+              mediatype: 'audio',
+              mimetype: 'audio/mpeg',
+              media: base64Audio,
+              caption: message,
+              fileName: mediaFileName || 'audio.mp3',
+            };
+          }
+          endpoint = `/message/sendMedia/${selectedInstanceName}`;
+          payload = mediaPayload as MediaPayload;
+        } else {
+          // Se não há mídia, enviar apenas texto
+          endpoint = `/message/sendText/${selectedInstanceName}`;
+          payload = { text: message } as TextPayload;
+        }
         break;
       case 'media': {
         // Preparar payload da mídia base64
@@ -1810,7 +1908,11 @@ export default function Grupos() {
                   disabled={
                     selectedGroups.length === 0 ||
                     isLoading || // Desabilita o botão enquanto estiver carregando
-                    (messageType === 'text' && !message.trim()) ||
+                    (messageType === 'text' &&
+                      !message.trim() &&
+                      !base64Image &&
+                      !base64Video &&
+                      !base64Audio) ||
                     (messageType === 'media' &&
                       !base64Image &&
                       !base64Video &&
@@ -1872,20 +1974,136 @@ export default function Grupos() {
                       animate={{ opacity: 1, height: 'auto' }}
                       exit={{ opacity: 0, height: 0 }}
                       transition={{ duration: 0.2 }}
+                      className="space-y-4"
                     >
-                      <label
-                        htmlFor="text-message-input"
-                        className="block text-white text-sm font-medium mb-2"
-                      >
-                        Mensagem de Texto:
-                      </label>
-                      <textarea
-                        id="text-message-input"
-                        value={message}
-                        onChange={(e) => setMessage(e.target.value)}
-                        placeholder="Digite sua mensagem de texto..."
-                        className="w-full p-3 rounded-lg bg-deep/70 text-white placeholder-white/60 border border-electric focus:ring-1 focus:ring-electric focus:border-electric transition-colors duration-200 min-h-[100px]"
-                      />
+                      <div>
+                        <label
+                          htmlFor="text-message-input"
+                          className="block text-white text-sm font-medium mb-2"
+                        >
+                          Mensagem de Texto:
+                        </label>
+                        <textarea
+                          id="text-message-input"
+                          value={message}
+                          onChange={(e) => setMessage(e.target.value)}
+                          placeholder="Digite sua mensagem de texto..."
+                          className="w-full p-3 rounded-lg bg-deep/70 text-white placeholder-white/60 border border-electric focus:ring-1 focus:ring-electric focus:border-electric transition-colors duration-200 min-h-[100px]"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-white text-sm font-medium mb-2">
+                          Adicionar Mídia (Opcional)
+                        </label>
+                        <div className="space-y-4">
+                          <div>
+                            <label className="block text-white text-xs font-medium mb-2">
+                              Tipo de Mídia
+                            </label>
+                            <select
+                              value={mediaType}
+                              onChange={(e) =>
+                                setMediaType(
+                                  e.target.value as
+                                    | 'image'
+                                    | 'video'
+                                    | 'audio',
+                                )
+                              }
+                              className="w-full p-3 bg-deep/70 border border-electric rounded-lg text-white focus:ring-1 focus:ring-electric focus:border-electric transition-colors duration-200"
+                            >
+                              <option
+                                value="image"
+                                className="bg-deep text-white"
+                              >
+                                Imagem
+                              </option>
+                              <option
+                                value="video"
+                                className="bg-deep text-white"
+                              >
+                                Vídeo
+                              </option>
+                              <option
+                                value="audio"
+                                className="bg-deep text-white"
+                              >
+                                Áudio
+                              </option>
+                            </select>
+                          </div>
+
+                          <div>
+                            <label className="block text-white text-xs font-medium mb-2">
+                              Upload de Mídia
+                            </label>
+                            <label className="flex items-center justify-center w-full h-[58px] bg-deep/70 border border-electric rounded-lg cursor-pointer hover:bg-electric/20 transition-all duration-300">
+                              <input
+                                type="file"
+                                onChange={handleMediaChange}
+                                accept={
+                                  mediaType === 'image'
+                                    ? 'image/*'
+                                    : mediaType === 'audio'
+                                    ? 'audio/*'
+                                    : 'video/*'
+                                }
+                                className="hidden"
+                              />
+                              <div className="flex items-center gap-2 text-white">
+                                {mediaType === 'image' ? (
+                                  <IoMdImage size={24} />
+                                ) : mediaType === 'audio' ? (
+                                  <IoMdMusicalNote size={24} />
+                                ) : (
+                                  <IoMdVideocam size={24} />
+                                )}
+                                <span>
+                                  Upload{' '}
+                                  {mediaType === 'image'
+                                    ? 'Imagem'
+                                    : mediaType === 'audio'
+                                    ? 'Áudio'
+                                    : 'Vídeo'}
+                                </span>
+                              </div>
+                            </label>
+
+                            {previewUrl && (
+                              <div className="mt-4 rounded-lg overflow-hidden bg-deep/50 border border-electric">
+                                {mediaType === 'image' && (
+                                  <img
+                                    src={previewUrl}
+                                    alt="Preview"
+                                    className="w-full h-auto object-cover"
+                                  />
+                                )}
+                                {mediaType === 'audio' && (
+                                  <audio controls className="w-full">
+                                    <source
+                                      src={previewUrl}
+                                      type="audio/mpeg"
+                                    />
+                                    Seu navegador não suporta o
+                                    elemento de áudio.
+                                  </audio>
+                                )}
+                                {mediaType === 'video' && (
+                                  <video controls className="w-full">
+                                    <source
+                                      src={previewUrl}
+                                      type="video/mp4"
+                                    />
+                                    Seu navegador não suporta o
+                                    elemento de vídeo.
+                                  </video>
+                                )}
+                              </div>
+                            )}
+                          </div>
+                        </div>
+                      </div>
                     </motion.div>
                   )}
 
@@ -2058,6 +2276,22 @@ export default function Grupos() {
                             </audio>
                           </div>
                         )}
+                      </div>
+
+                      <div>
+                        <label
+                          htmlFor="audio-caption-input"
+                          className="block text-white text-sm font-medium mb-2"
+                        >
+                          Legenda (Opcional):
+                        </label>
+                        <textarea
+                          id="audio-caption-input"
+                          value={message}
+                          onChange={(e) => setMessage(e.target.value)}
+                          placeholder="Digite uma legenda para o áudio..."
+                          className="w-full p-3 rounded-lg bg-deep/70 text-white placeholder-white/60 border border-electric focus:ring-1 focus:ring-electric focus:border-electric transition-colors duration-200 min-h-[60px]"
+                        />
                       </div>
                     </motion.div>
                   )}
