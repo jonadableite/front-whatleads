@@ -34,7 +34,12 @@ import {
   FaUserShield,
 } from 'react-icons/fa';
 import { FiPlay, FiPlus, FiX } from 'react-icons/fi';
-import { IoMdSend } from 'react-icons/io';
+import {
+  IoMdImage,
+  IoMdMusicalNote,
+  IoMdSend,
+  IoMdVideocam,
+} from 'react-icons/io';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { GetInstancesAction } from '../actions';
@@ -81,6 +86,23 @@ interface GroupSettings {
   announce?: boolean;
   restrict?: boolean;
   ephemeralDuration?: number;
+}
+
+interface MediaPayload {
+  mediatype: string;
+  mimetype: string;
+  media: string;
+  caption?: string;
+  fileName?: string;
+}
+
+interface AudioPayload {
+  audio: string;
+  fileName?: string;
+}
+
+interface TextPayload {
+  text: string;
 }
 
 // Transição de página para framer-motion
@@ -155,7 +177,6 @@ const GroupCard: React.FC<GroupCardProps> = ({
   onOpenDetails,
   onSelect,
   isSelected,
-  isAdmin,
 }) => {
   const isOwner = group.isAdmin || group.isSuperAdmin;
   return (
@@ -359,14 +380,24 @@ export default function Grupos() {
   const [messageType, setMessageType] = useState<
     'text' | 'media' | 'audio'
   >('text'); // 'text', 'media', 'audio'
+
+  // Estados para upload de mídia com base64
+  const [mediaType, setMediaType] = useState<
+    'image' | 'video' | 'audio'
+  >('image');
+  const [base64Image, setBase64Image] = useState('');
+  const [base64Video, setBase64Video] = useState('');
+  const [base64Audio, setBase64Audio] = useState('');
+  const [previewUrl, setPreviewUrl] = useState('');
+  const [mediaFileName, setMediaFileName] = useState('');
+
+  // Estados legados para compatibilidade (serão removidos gradualmente)
   const [mediaUrl, setMediaUrl] = useState('');
-  const [mediaMimeType, setMediaMimeType] = useState(''); // Ex: 'image/png', 'video/mp4', 'application/pdf'
-  const [mediaFileName, setMediaFileName] = useState(''); // Opcional
+  const [mediaMimeType, setMediaMimeType] = useState('');
   const [audioUrl, setAudioUrl] = useState('');
 
-  // Para gerenciar a seleção de grupos e o status do disparo
+  // Para gerenciar a seleção de grupos
   const [selectedGroups, setSelectedGroups] = useState<string[]>([]); // Armazena os JIDs dos grupos selecionados
-  const [isSendingBroadcast, setIsSendingBroadcast] = useState(false); // Indica se um disparo está em andamento
 
   // Modals States
   const [showGroupDetailsModal, setShowGroupDetailsModal] =
@@ -471,6 +502,100 @@ export default function Grupos() {
     [selectedGroup],
   );
 
+  // Função para comprimir imagens
+  const compressImage = async (
+    file: File,
+    maxSizeMB = 2,
+  ): Promise<Blob> => {
+    try {
+      const { default: Compressor } = await import('compressorjs');
+      return new Promise((resolve, reject) => {
+        new Compressor(file, {
+          quality: 0.8,
+          maxWidth: 1920,
+          maxHeight: 1080,
+          success(result) {
+            if (result.size > maxSizeMB * 1024 * 1024) {
+              new Compressor(file, {
+                quality: 0.6,
+                maxWidth: 1280,
+                maxHeight: 720,
+                success: resolve,
+                error: reject,
+              });
+            } else {
+              resolve(result);
+            }
+          },
+          error: reject,
+        });
+      });
+    } catch (error) {
+      console.error('Erro ao importar Compressor:', error);
+      // Fallback: retorna o arquivo original se a compressão falhar
+      return file;
+    }
+  };
+
+  // Função para manipular upload de mídia
+  const handleMediaChange = async (
+    event: React.ChangeEvent<HTMLInputElement>,
+  ) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+
+    // Limpar estados anteriores
+    setBase64Image('');
+    setBase64Video('');
+    setBase64Audio('');
+    setMediaFileName(file.name);
+
+    try {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const base64String = reader.result as string;
+        const base64Content = base64String.split(',')[1];
+
+        // Criar preview URL para visualização
+        const previewUrl = URL.createObjectURL(file);
+        setPreviewUrl(previewUrl);
+
+        // Armazenar o conteúdo base64 apropriado
+        switch (mediaType) {
+          case 'image':
+            setBase64Image(base64Content);
+            break;
+          case 'video':
+            setBase64Video(base64Content);
+            break;
+          case 'audio':
+            setBase64Audio(base64Content);
+            break;
+        }
+      };
+
+      // Se for imagem, comprimir antes
+      if (mediaType === 'image') {
+        const compressedFile = await compressImage(file);
+        reader.readAsDataURL(compressedFile);
+      } else {
+        reader.readAsDataURL(file);
+      }
+    } catch (error) {
+      console.error('Erro ao processar mídia:', error);
+      toast.error('Erro ao processar mídia');
+    }
+  };
+
+  // Cleanup do preview URL
+  useEffect(() => {
+    return () => {
+      if (previewUrl) {
+        URL.revokeObjectURL(previewUrl);
+      }
+    };
+  }, [previewUrl]);
+
   const handleInstanceChange = (instanceNameFromSelect: string) => {
     setselectedInstanceName(instanceNameFromSelect);
     setGrupos([]);
@@ -509,21 +634,6 @@ export default function Grupos() {
     }
   };
 
-  // Função auxiliar para determinar o tipo de mídia com base no MIME Type
-  const getMediaTypeFromMime = (
-    mimetype: string,
-  ): 'image' | 'video' | 'document' | undefined => {
-    if (mimetype.startsWith('image/')) return 'image';
-    if (mimetype.startsWith('video/')) return 'video';
-    // Para documentos, verificamos 'pdf' ou qualquer 'application/'
-    if (
-      mimetype.includes('pdf') ||
-      mimetype.startsWith('application/')
-    )
-      return 'document';
-    return undefined;
-  };
-
   const handleSendMessageToSelectedGroups = useCallback(async () => {
     if (!selectedInstanceName) {
       toast.error('Por favor, selecione uma instância primeiro.');
@@ -536,57 +646,78 @@ export default function Grupos() {
       return;
     }
 
-    let payload: any;
+    // Validação do formulário
+    if (messageType === 'text' && !message.trim()) {
+      toast.error('Por favor, digite a mensagem de texto.');
+      return;
+    }
+
+    if (messageType === 'media') {
+      if (!base64Image && !base64Video && !base64Audio) {
+        toast.error('Por favor, selecione uma mídia para enviar.');
+        return;
+      }
+    }
+
+    if (messageType === 'audio' && !base64Audio) {
+      toast.error('Por favor, selecione um áudio para enviar.');
+      return;
+    }
+
+    let payload: TextPayload | MediaPayload | AudioPayload;
     let endpoint: string;
 
     // Constrói o payload e o endpoint com base no tipo de mensagem selecionado
     switch (messageType) {
       case 'text':
-        if (!message.trim()) {
-          toast.error('Por favor, digite a mensagem de texto.');
-          return;
-        }
         endpoint = `/message/sendText/${selectedInstanceName}`;
-        payload = { text: message };
+        payload = { text: message } as TextPayload;
         break;
       case 'media': {
-        if (!mediaUrl.trim() || !mediaMimeType.trim()) {
-          toast.error(
-            'Por favor, forneça a URL da mídia e o MIME Type.',
-          );
-          return;
+        // Preparar payload da mídia base64
+        let mediaPayload: MediaPayload;
+        if (base64Image) {
+          mediaPayload = {
+            mediatype: 'image',
+            mimetype: 'image/jpeg',
+            media: base64Image,
+            caption: message,
+            fileName: mediaFileName || 'image.jpg',
+          };
+        } else if (base64Video) {
+          mediaPayload = {
+            mediatype: 'video',
+            mimetype: 'video/mp4',
+            media: base64Video,
+            caption: message,
+            fileName: mediaFileName || 'video.mp4',
+          };
+        } else {
+          mediaPayload = {
+            mediatype: 'audio',
+            mimetype: 'audio/mpeg',
+            media: base64Audio,
+            caption: message,
+            fileName: mediaFileName || 'audio.mp3',
+          };
         }
-        const mediaType = getMediaTypeFromMime(mediaMimeType);
-        if (!mediaType) {
-          toast.error(
-            'MIME Type inválido para mídia. Use image/, video/ ou application/.',
-          );
-          return;
-        }
+
         endpoint = `/message/sendMedia/${selectedInstanceName}`;
-        payload = {
-          mediatype: mediaType, // 'image', 'video', 'document'
-          mimetype: mediaMimeType,
-          media: mediaUrl,
-          caption: message, // 'message' state é usado para a legenda
-          fileName: mediaFileName,
-        };
+        payload = mediaPayload as MediaPayload;
         break;
       }
       case 'audio':
-        if (!audioUrl.trim()) {
-          toast.error('Por favor, forneça a URL do áudio.');
-          return;
-        }
         endpoint = `/message/sendWhatsAppAudio/${selectedInstanceName}`;
-        payload = { audio: audioUrl };
+        payload = {
+          audio: base64Audio,
+          fileName: mediaFileName || 'audio.mp3',
+        } as AudioPayload;
         break;
       default:
         toast.error('Tipo de mensagem inválido.');
         return;
     }
 
-    setIsSendingBroadcast(true);
     let successfulSends = 0;
     let failedSends = 0;
 
@@ -606,8 +737,6 @@ export default function Grupos() {
       }
     }
 
-    setIsSendingBroadcast(false);
-
     // Exibe toasts de sucesso/falha
     if (successfulSends > 0) {
       toast.success(
@@ -619,12 +748,19 @@ export default function Grupos() {
         `${failedSends} mensagem(ns) falhou(ram) ao enviar. Verifique o console para detalhes.`,
       );
     }
-    // Opcional: Limpar os inputs após o envio
+    // Limpar os inputs após o envio
     setMessage('');
     setMediaUrl('');
     setMediaMimeType('');
     setMediaFileName('');
     setAudioUrl('');
+    setBase64Image('');
+    setBase64Video('');
+    setBase64Audio('');
+    setPreviewUrl('');
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+    }
   }, [
     selectedInstanceName,
     selectedGroups,
@@ -634,6 +770,10 @@ export default function Grupos() {
     mediaMimeType,
     mediaFileName,
     audioUrl,
+    base64Image,
+    base64Video,
+    base64Audio,
+    previewUrl,
   ]);
 
   const handleCreateGroup = async () => {
@@ -1672,8 +1812,10 @@ export default function Grupos() {
                     isLoading || // Desabilita o botão enquanto estiver carregando
                     (messageType === 'text' && !message.trim()) ||
                     (messageType === 'media' &&
-                      (!mediaUrl.trim() || !mediaMimeType.trim())) ||
-                    (messageType === 'audio' && !audioUrl.trim())
+                      !base64Image &&
+                      !base64Video &&
+                      !base64Audio) ||
+                    (messageType === 'audio' && !base64Audio)
                   }
                 >
                   <IoMdSend className="mr-2" /> Enviar Mensagem (
@@ -1714,7 +1856,7 @@ export default function Grupos() {
                       <SelectContent>
                         <SelectItem value="text">Texto</SelectItem>
                         <SelectItem value="media">
-                          Mídia (Imagem/Vídeo/Documento)
+                          Mídia (Imagem/Vídeo/Áudio)
                         </SelectItem>
                         <SelectItem value="audio">
                           Áudio Narrado
@@ -1753,67 +1895,129 @@ export default function Grupos() {
                       animate={{ opacity: 1, height: 'auto' }}
                       exit={{ opacity: 0, height: 0 }}
                       transition={{ duration: 0.2 }}
+                      className="space-y-4"
                     >
-                      <label
-                        htmlFor="media-url-input"
-                        className="block text-white text-sm font-medium mb-2"
-                      >
-                        URL da Mídia:
-                      </label>
-                      <Input
-                        id="media-url-input"
-                        type="url"
-                        value={mediaUrl}
-                        onChange={(e) => setMediaUrl(e.target.value)}
-                        placeholder="Ex: https://example.com/image.png"
-                        className="w-full p-3 rounded-lg bg-deep/70 text-white placeholder-white/60 border border-electric focus:ring-1 focus:ring-electric focus:border-electric transition-colors duration-200"
-                      />
-                      <label
-                        htmlFor="media-mimetype-input"
-                        className="block text-white text-sm font-medium mb-2 mt-4"
-                      >
-                        MIME Type (Ex: image/png, video/mp4,
-                        application/pdf):
-                      </label>
-                      <Input
-                        id="media-mimetype-input"
-                        type="text"
-                        value={mediaMimeType}
-                        onChange={(e) =>
-                          setMediaMimeType(e.target.value)
-                        }
-                        placeholder="Ex: image/png"
-                        className="w-full p-3 rounded-lg bg-deep/70 text-white placeholder-white/60 border border-electric focus:ring-1 focus:ring-electric focus:border-electric transition-colors duration-200"
-                      />
-                      <label
-                        htmlFor="media-filename-input"
-                        className="block text-white text-sm font-medium mb-2 mt-4"
-                      >
-                        Nome do Arquivo (Opcional):
-                      </label>
-                      <Input
-                        id="media-filename-input"
-                        type="text"
-                        value={mediaFileName}
-                        onChange={(e) =>
-                          setMediaFileName(e.target.value)
-                        }
-                        placeholder="Ex: MinhaImagem.png"
-                        className="w-full p-3 rounded-lg bg-deep/70 text-white placeholder-white/60 border border-electric focus:ring-1 focus:ring-electric focus:border-electric transition-colors duration-200"
-                      />
-                      <label
-                        htmlFor="media-caption-input"
-                        className="block text-white text-sm font-medium mb-2 mt-4"
-                      >
-                        Legenda (Opcional):
-                      </label>
-                      <textarea
-                        id="media-caption-input"
-                        value={message} // Reutilizando o estado 'message' para a legenda
-                        onChange={(e) => setMessage(e.target.value)}
-                        placeholder="Digite uma legenda para a mídia..."
-                        className="w-full p-3 rounded-lg bg-deep/70 text-white placeholder-white/60 border border-electric focus:ring-1 focus:ring-electric focus:border-electric transition-colors duration-200 min-h-[60px]"
-                      />
+                      <div>
+                        <label className="block text-white text-sm font-medium mb-2">
+                          Tipo de Mídia
+                        </label>
+                        <select
+                          value={mediaType}
+                          onChange={(e) =>
+                            setMediaType(
+                              e.target.value as
+                                | 'image'
+                                | 'video'
+                                | 'audio',
+                            )
+                          }
+                          className="w-full p-3 bg-deep/70 border border-electric rounded-lg text-white focus:ring-1 focus:ring-electric focus:border-electric transition-colors duration-200"
+                        >
+                          <option
+                            value="image"
+                            className="bg-deep text-white"
+                          >
+                            Imagem
+                          </option>
+                          <option
+                            value="video"
+                            className="bg-deep text-white"
+                          >
+                            Vídeo
+                          </option>
+                          <option
+                            value="audio"
+                            className="bg-deep text-white"
+                          >
+                            Áudio
+                          </option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-white text-sm font-medium mb-2">
+                          Upload de Mídia
+                        </label>
+                        <label className="flex items-center justify-center w-full h-[58px] bg-deep/70 border border-electric rounded-lg cursor-pointer hover:bg-electric/20 transition-all duration-300">
+                          <input
+                            type="file"
+                            onChange={handleMediaChange}
+                            accept={
+                              mediaType === 'image'
+                                ? 'image/*'
+                                : mediaType === 'audio'
+                                ? 'audio/*'
+                                : 'video/*'
+                            }
+                            className="hidden"
+                          />
+                          <div className="flex items-center gap-2 text-white">
+                            {mediaType === 'image' ? (
+                              <IoMdImage size={24} />
+                            ) : mediaType === 'audio' ? (
+                              <IoMdMusicalNote size={24} />
+                            ) : (
+                              <IoMdVideocam size={24} />
+                            )}
+                            <span>
+                              Upload{' '}
+                              {mediaType === 'image'
+                                ? 'Imagem'
+                                : mediaType === 'audio'
+                                ? 'Áudio'
+                                : 'Vídeo'}
+                            </span>
+                          </div>
+                        </label>
+
+                        {previewUrl && (
+                          <div className="mt-4 rounded-lg overflow-hidden bg-deep/50 border border-electric">
+                            {mediaType === 'image' && (
+                              <img
+                                src={previewUrl}
+                                alt="Preview"
+                                className="w-full h-auto object-cover"
+                              />
+                            )}
+                            {mediaType === 'audio' && (
+                              <audio controls className="w-full">
+                                <source
+                                  src={previewUrl}
+                                  type="audio/mpeg"
+                                />
+                                Seu navegador não suporta o elemento
+                                de áudio.
+                              </audio>
+                            )}
+                            {mediaType === 'video' && (
+                              <video controls className="w-full">
+                                <source
+                                  src={previewUrl}
+                                  type="video/mp4"
+                                />
+                                Seu navegador não suporta o elemento
+                                de vídeo.
+                              </video>
+                            )}
+                          </div>
+                        )}
+                      </div>
+
+                      <div>
+                        <label
+                          htmlFor="media-caption-input"
+                          className="block text-white text-sm font-medium mb-2"
+                        >
+                          Legenda (Opcional):
+                        </label>
+                        <textarea
+                          id="media-caption-input"
+                          value={message}
+                          onChange={(e) => setMessage(e.target.value)}
+                          placeholder="Digite uma legenda para a mídia..."
+                          className="w-full p-3 rounded-lg bg-deep/70 text-white placeholder-white/60 border border-electric focus:ring-1 focus:ring-electric focus:border-electric transition-colors duration-200 min-h-[60px]"
+                        />
+                      </div>
                     </motion.div>
                   )}
 
@@ -1823,21 +2027,38 @@ export default function Grupos() {
                       animate={{ opacity: 1, height: 'auto' }}
                       exit={{ opacity: 0, height: 0 }}
                       transition={{ duration: 0.2 }}
+                      className="space-y-4"
                     >
-                      <label
-                        htmlFor="audio-url-input"
-                        className="block text-white text-sm font-medium mb-2"
-                      >
-                        URL do Áudio Narrado (MP3):
-                      </label>
-                      <Input
-                        id="audio-url-input"
-                        type="url"
-                        value={audioUrl}
-                        onChange={(e) => setAudioUrl(e.target.value)}
-                        placeholder="Ex: https://example.com/audio.mp3"
-                        className="w-full p-3 rounded-lg bg-deep/70 text-white placeholder-white/60 border border-electric focus:ring-1 focus:ring-electric focus:border-electric transition-colors duration-200"
-                      />
+                      <div>
+                        <label className="block text-white text-sm font-medium mb-2">
+                          Upload de Áudio
+                        </label>
+                        <label className="flex items-center justify-center w-full h-[58px] bg-deep/70 border border-electric rounded-lg cursor-pointer hover:bg-electric/20 transition-all duration-300">
+                          <input
+                            type="file"
+                            onChange={handleMediaChange}
+                            accept="audio/*"
+                            className="hidden"
+                          />
+                          <div className="flex items-center gap-2 text-white">
+                            <IoMdMusicalNote size={24} />
+                            <span>Upload Áudio</span>
+                          </div>
+                        </label>
+
+                        {previewUrl && (
+                          <div className="mt-4 rounded-lg overflow-hidden bg-deep/50 border border-electric">
+                            <audio controls className="w-full">
+                              <source
+                                src={previewUrl}
+                                type="audio/mpeg"
+                              />
+                              Seu navegador não suporta o elemento de
+                              áudio.
+                            </audio>
+                          </div>
+                        )}
+                      </div>
                     </motion.div>
                   )}
                 </motion.div>
