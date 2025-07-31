@@ -32,6 +32,7 @@ import {
   FaUserMinus,
   FaUsers,
   FaUserShield,
+  FaWhatsapp,
 } from 'react-icons/fa';
 import { FiPlay, FiPlus, FiX } from 'react-icons/fi';
 import {
@@ -308,7 +309,7 @@ const EmptyState: React.FC<EmptyStateProps> = ({
         </div>
         <div className="space-y-4">
           <h3 className="text-2xl font-bold text-white">
-            Comece criando seu primeiro grupo!
+            Comece selecionando um WhatsApp!
           </h3>
           <p className="text-white/60">
             Crie e gerencie grupos de WhatsApp para suas campanhas e
@@ -320,6 +321,20 @@ const EmptyState: React.FC<EmptyStateProps> = ({
             Como começar:
           </h4>
           <ul className="space-y-4 text-left">
+            <li className="flex items-start gap-3">
+              <div className="bg-electric/20 p-2 rounded-lg">
+                <FaWhatsapp className="w-5 h-5 text-electric" />
+              </div>
+              <div>
+                <p className="text-white font-medium">
+                  Selecione um WhatsApp
+                </p>
+                <p className="text-white/60 text-sm">
+                  Ao selecionar, você verá todos os grupos e
+                  comunidades aos quais o WhatsApp está conectado.
+                </p>
+              </div>
+            </li>
             <li className="flex items-start gap-3">
               <div className="bg-electric/20 p-2 rounded-lg">
                 <FiPlus className="w-5 h-5 text-electric" />
