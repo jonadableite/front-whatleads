@@ -41,12 +41,7 @@ interface ProxyConfig {
   password?: string;
 }
 
-const PROTOCOL_OPTIONS = [
-  { value: 'http', label: 'HTTP' },
-  { value: 'https', label: 'HTTPS' },
-  { value: 'socks4', label: 'SOCKS4' },
-  { value: 'socks5', label: 'SOCKS5' },
-];
+const PROTOCOL_OPTIONS = [{ value: 'http', label: 'HTTP' }];
 
 export function ProxyConfigModal({
   instanceName,
@@ -343,11 +338,7 @@ export function ProxyConfigModal({
                   </h4>
                   <div className="text-xs text-blue-700 dark:text-blue-300 space-y-0.5">
                     <div>
-                      <strong>HTTP/HTTPS:</strong> Proxies web padrão
-                    </div>
-                    <div>
-                      <strong>SOCKS4/SOCKS5:</strong> Proxies SOCKS
-                      avançados
+                      <strong>HTTP</strong> Proxies web padrão
                     </div>
                     <div>
                       <strong>Autenticação:</strong> Opcional - deixe
