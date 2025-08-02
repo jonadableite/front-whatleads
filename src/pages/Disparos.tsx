@@ -1,4 +1,5 @@
 // src/pages/Disparos.tsx
+import { ApiError } from '@/types/error';
 import Compressor from 'compressorjs';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useCallback, useEffect, useState } from 'react';
@@ -10,18 +11,15 @@ import {
   IoMdVideocam,
 } from 'react-icons/io';
 import { useNavigate } from 'react-router-dom';
-import { type Id, toast } from 'react-toastify';
+import { toast } from 'react-toastify';
 import { GetInstancesAction } from '../actions';
+import { InstanceRotationConfig } from '../components/InstanceRotationConfig';
 import { ProgressModal } from '../components/ProgressModal';
 import { api } from '../lib/api';
 import { cn, getWarmupProgressColor } from '../lib/utils';
 import { authService } from '../services/auth.service';
 import { calculateWarmupProgress } from '../services/instance.service';
-import type {
-  Empresa,
-  Instancia,
-  StartCampaignPayload,
-} from '../types';
+import type { Instancia, StartCampaignPayload } from '../types';
 
 interface Campaign {
   id: string;
@@ -43,16 +41,12 @@ interface Campaign {
 
 export default function Disparos() {
   const navigate = useNavigate();
-  const [companies, setCompanies] = useState<Empresa[]>([]);
   const [instances, setInstances] = useState<Instancia[]>([]);
   const [selectedInstance, setSelectedInstance] = useState('');
-  const [selectedConfigId, setSelectedConfigId] = useState('');
   const [message, setMessage] = useState('');
   const [file, setFile] = useState<File | null>(null);
   const [mediaType, setMediaType] = useState('image');
-  const [delay, setDelay] = useState(1);
   const [totalNumbers, setTotalNumbers] = useState(0);
-  const [numbersProcessed, setNumbersProcessed] = useState(0);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [base64Image, setBase64Image] = useState('');
   const [base64Video, setBase64Video] = useState('');
@@ -67,12 +61,10 @@ export default function Disparos() {
   const [minDelay, setMinDelay] = useState(5);
   const [maxDelay, setMaxDelay] = useState(30);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [progress, setProgress] = useState(0);
   const [campaignStatus, setCampaignStatus] = useState<string | null>(
     null,
   );
   const [isStarting, setIsStarting] = useState(false);
-  const [toastId, setToastId] = useState<Id | null>(null);
   const [isLoadingInstances, setIsLoadingInstances] = useState(false);
   const [isLoadingCampaigns, setIsLoadingCampaigns] = useState(false);
   const [isInitialLoading, setIsInitialLoading] = useState(true);
@@ -80,16 +72,7 @@ export default function Disparos() {
     'new' | 'existing'
   >('new');
   const [leadCount, setLeadCount] = useState<number | null>(null);
-  const [segmentationRules, setSegmentationRules] = useState<
-    SegmentationRule[]
-  >([]);
-
-  interface SegmentationRule {
-    field: string;
-    operator: string;
-    value: string;
-  }
-
+  const [useRotation, setUseRotation] = useState(false);
   const [useSegmentation, setUseSegmentation] = useState(false);
   const [selectedSegment, setSelectedSegment] = useState('');
 
@@ -614,11 +597,7 @@ export default function Disparos() {
 
       if (startResponse.data.success) {
         startProgressMonitoring(campaignId);
-        toast.update(toastId, {
-          render: 'Campanha iniciada com sucesso!',
-          type: 'success',
-          autoClose: 5000,
-        });
+        toast.success('Campanha iniciada com sucesso!');
       } else {
         throw new Error(
           startResponse.data.message || 'Erro ao iniciar campanha',
@@ -626,20 +605,14 @@ export default function Disparos() {
       }
     } catch (error) {
       console.error('Erro ao iniciar campanha:', error);
-      toast.update(toastId, {
-        render:
-          error instanceof Error
-            ? error.message
-            : 'Erro ao iniciar campanha',
-        type: 'error',
-        autoClose: 5000,
-      });
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : 'Erro ao iniciar campanha',
+      );
       setIsModalOpen(false);
       setCampaignStatus(null);
     } finally {
-      if (toastId) {
-        toast.dismiss(toastId);
-      }
       setIsStarting(false);
     }
   };
@@ -651,14 +624,12 @@ export default function Disparos() {
           const response = await api.main.get(
             `/campaigns/${campaignId}/progress`,
           );
-          const { status, progress, statistics } = response.data.data;
+          const { status, statistics } = response.data.data;
 
           if (status === 'preparing') {
-            setProgress(0);
-            setNumbersProcessed(0);
+            // Progress handled by ProgressModal component
           } else {
-            setProgress(progress);
-            setNumbersProcessed(statistics.sentCount);
+            // Progress handled by ProgressModal component
           }
 
           setCampaignStatus(status);
@@ -701,11 +672,7 @@ export default function Disparos() {
       setIsStarting(true);
 
       if (dispatchMode === 'new') {
-        toast.update(toastId, {
-          render: 'Importando leads...',
-          type: 'info',
-          isLoading: true,
-        });
+        toast.info('Importando leads...');
       }
 
       if (sendType === 'scheduled') {
@@ -778,13 +745,13 @@ export default function Disparos() {
       } else {
         await startCampaign(selectedCampaign);
       }
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error('Erro detalhado:', error);
 
       const errorMessage =
-        error.response?.data?.message ||
-        error.response?.data?.error ||
-        error.message ||
+        (error as ApiError)?.response?.data?.message ||
+        (error as ApiError)?.response?.data?.error ||
+        (error as Error)?.message ||
         'Erro ao processar a solicitação';
 
       toast.error(errorMessage);
@@ -847,13 +814,12 @@ export default function Disparos() {
                         Instância WhatsApp
                       </label>
                       <select
-                        disabled={isLoadingInstances}
+                        disabled={isLoadingInstances || useRotation}
                         value={selectedInstance}
                         onChange={(e) => {
                           const selectedInstanceId = e.target.value;
                           setSelectedInstance(selectedInstanceId);
 
-                          // Opcional: Lógica adicional ao selecionar uma instância
                           const selectedInstanceData = instances.find(
                             (instance) =>
                               instance.id === selectedInstanceId,
@@ -864,7 +830,6 @@ export default function Disparos() {
                               'Instância selecionada:',
                               selectedInstanceData,
                             );
-                            // Exemplo: Verificar status de aquecimento
                             if (selectedInstanceData.warmupStatus) {
                               console.log(
                                 'Progresso de Warmup:',
@@ -877,6 +842,8 @@ export default function Disparos() {
                         className={cn(
                           'w-full p-4 bg-electric/10 border border-electric rounded-xl text-white focus:ring-2 focus:ring-neon-green transition-all',
                           isLoadingInstances && 'animate-pulse',
+                          useRotation &&
+                            'opacity-50 cursor-not-allowed',
                           'appearance-none',
                         )}
                         style={{
@@ -896,10 +863,11 @@ export default function Disparos() {
                         >
                           {isLoadingInstances
                             ? 'Carregando instâncias...'
+                            : useRotation
+                            ? 'Rotação Ativa - Seleção Automática'
                             : 'Selecione a Instância'}
                         </option>
                         {instances.map((instance) => {
-                          // Cálculo de progresso de warmup
                           const warmupProgress =
                             instance.warmupStatus?.progress ?? 0;
 
@@ -939,9 +907,8 @@ export default function Disparos() {
                         })}
                       </select>
 
-                      {selectedInstance && (
+                      {selectedInstance && !useRotation && (
                         <div className="mt-2 space-y-2">
-                          {/* Informações do Perfil */}
                           {(() => {
                             const selectedInstanceData =
                               instances.find(
@@ -963,7 +930,6 @@ export default function Disparos() {
                                   </div>
                                 )}
 
-                                {/* Progresso de Aquecimento */}
                                 {selectedInstanceData?.warmupStatus
                                   ?.progress !== undefined && (
                                   <div className="text-sm text-white/80 flex items-center gap-2">
@@ -986,7 +952,6 @@ export default function Disparos() {
                                   </div>
                                 )}
 
-                                {/* Status de Aquecimento Recomendado */}
                                 {selectedInstanceData?.warmupStatus
                                   ?.isRecommended && (
                                   <div className="text-sm text-green-400 flex items-center gap-2">
@@ -998,7 +963,6 @@ export default function Disparos() {
                                   </div>
                                 )}
 
-                                {/* Status de Conexão */}
                                 <div
                                   className={cn(
                                     'text-sm flex items-center gap-2',
@@ -1028,6 +992,18 @@ export default function Disparos() {
                               </>
                             );
                           })()}
+                        </div>
+                      )}
+
+                      {useRotation && (
+                        <div className="mt-2 p-3 bg-neon-green/10 border border-neon-green/30 rounded-lg">
+                          <div className="text-sm text-neon-green flex items-center gap-2">
+                            <div className="w-2 h-2 bg-neon-green rounded-full animate-pulse" />
+                            <span>
+                              Rotacao de instâncias ativa - Seleção
+                              automática
+                            </span>
+                          </div>
                         </div>
                       )}
                     </div>
@@ -1273,6 +1249,17 @@ export default function Disparos() {
                     </div>
                   </div>
                 </div>
+
+                {/* Configuração de Rotação de Instâncias */}
+                {selectedCampaign && (
+                  <InstanceRotationConfig
+                    campaignId={selectedCampaign}
+                    selectedInstance={selectedInstance}
+                    onInstanceChange={setSelectedInstance}
+                    onRotationChange={setUseRotation}
+                    className="border-t border-electric/30 pt-6"
+                  />
+                )}
 
                 {dispatchMode === 'existing' && (
                   <div className="space-y-4">
