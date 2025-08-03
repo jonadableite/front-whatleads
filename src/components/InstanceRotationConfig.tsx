@@ -22,6 +22,9 @@ interface Instance {
   warmupStatus?: {
     progress: number;
     isRecommended: boolean;
+    warmupHours: number;
+    status: string;
+    lastUpdate: string | null;
   };
 }
 
@@ -44,7 +47,6 @@ interface CampaignStats {
 
 interface InstanceRotationConfigProps {
   campaignId: string;
-  selectedInstance: string;
   onInstanceChange: (instanceId: string) => void;
   onRotationChange?: (useRotation: boolean) => void;
   className?: string;
@@ -54,7 +56,6 @@ export const InstanceRotationConfig: React.FC<
   InstanceRotationConfigProps
 > = ({
   campaignId,
-  selectedInstance,
   onInstanceChange,
   onRotationChange,
   className,
@@ -81,7 +82,39 @@ export const InstanceRotationConfig: React.FC<
       const response = await api.main.get(
         '/campaigns/instances/available',
       );
-      setInstances(response.data.data || []);
+
+      // Processar dados de warmup para cada instância
+      const processedInstances = response.data.data.map(
+        (instance: {
+          id: string;
+          instanceName: string;
+          connectionStatus: string;
+          profileName?: string;
+          warmupStats?: {
+            warmupTime: number;
+            status: string;
+            createdAt: string;
+          };
+        }) => {
+          const warmupStats = instance.warmupStats;
+          const warmupTime = warmupStats?.warmupTime || 0;
+          const warmupHours = warmupTime / 3600;
+          const progress = Math.min((warmupHours / 400) * 100, 100);
+
+          return {
+            ...instance,
+            warmupStatus: {
+              progress: Math.round(progress * 100) / 100,
+              isRecommended: warmupHours >= 300,
+              warmupHours: Math.round(warmupHours * 100) / 100,
+              status: warmupStats?.status || 'inactive',
+              lastUpdate: warmupStats?.createdAt || null,
+            },
+          };
+        },
+      );
+
+      setInstances(processedInstances);
     } catch (error) {
       console.error('Erro ao carregar instâncias:', error);
       toast.error('Erro ao carregar instâncias disponíveis');
@@ -340,6 +373,7 @@ export const InstanceRotationConfig: React.FC<
         </div>
 
         <button
+          type="button"
           onClick={handleToggleRotation}
           className={cn(
             'px-4 py-2 rounded-lg font-medium transition-all duration-200',
@@ -372,6 +406,7 @@ export const InstanceRotationConfig: React.FC<
                     ['RANDOM', 'SEQUENTIAL', 'LOAD_BALANCED'] as const
                   ).map((strategy) => (
                     <button
+                      type="button"
                       key={strategy}
                       onClick={() => setRotationStrategy(strategy)}
                       className={cn(
@@ -440,6 +475,7 @@ export const InstanceRotationConfig: React.FC<
                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                   {connectedInstances.map((instance) => (
                     <button
+                      type="button"
                       key={instance.id}
                       onClick={() => {
                         if (
@@ -588,6 +624,7 @@ export const InstanceRotationConfig: React.FC<
 
                       <div className="flex items-center gap-2">
                         <button
+                          type="button"
                           onClick={() =>
                             handleToggleInstance(
                               instance.instanceName,
@@ -617,6 +654,7 @@ export const InstanceRotationConfig: React.FC<
 
                 <div className="flex justify-end mt-4">
                   <button
+                    type="button"
                     onClick={handleResetCounters}
                     className="px-3 py-1 text-xs bg-yellow-500/20 text-yellow-400 rounded hover:bg-yellow-500/30 transition-colors"
                   >
@@ -629,6 +667,7 @@ export const InstanceRotationConfig: React.FC<
             {/* Botões de Ação */}
             <div className="flex gap-3">
               <button
+                type="button"
                 onClick={handleConfigureRotation}
                 disabled={
                   isConfiguring || selectedInstances.length === 0
@@ -647,6 +686,7 @@ export const InstanceRotationConfig: React.FC<
 
               {campaignStats && (
                 <button
+                  type="button"
                   onClick={handleRemoveRotation}
                   disabled={isConfiguring}
                   className="px-4 py-3 bg-red-500/20 text-red-400 rounded-lg font-medium hover:bg-red-500/30 disabled:opacity-50 disabled:cursor-not-allowed transition-all"

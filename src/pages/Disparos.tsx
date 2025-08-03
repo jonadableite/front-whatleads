@@ -1254,7 +1254,6 @@ export default function Disparos() {
                 {selectedCampaign && (
                   <InstanceRotationConfig
                     campaignId={selectedCampaign}
-                    selectedInstance={selectedInstance}
                     onInstanceChange={setSelectedInstance}
                     onRotationChange={setUseRotation}
                     className="border-t border-electric/30 pt-6"
