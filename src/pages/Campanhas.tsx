@@ -22,7 +22,7 @@ import type {
   EmptyStateProps,
   StatsCardProps,
 } from '@/interface';
-import { api } from '@/lib/api';
+import api from '@/lib/api';
 import {
   Dialog,
   DialogClose,
@@ -602,10 +602,9 @@ const Campanhas: React.FC = () => {
       await refetch();
 
       toast.success(
-        `Campanha ${
-          action === 'start'
-            ? 'iniciada'
-            : action === 'pause'
+        `Campanha ${action === 'start'
+          ? 'iniciada'
+          : action === 'pause'
             ? 'pausada'
             : 'parada'
         } com sucesso!`,
@@ -703,9 +702,8 @@ const Campanhas: React.FC = () => {
       {trend && (
         <div className="mt-4 flex items-center gap-2">
           <span
-            className={`text-sm ${
-              trend > 0 ? 'text-green-400' : 'text-red-400'
-            }`}
+            className={`text-sm ${trend > 0 ? 'text-green-400' : 'text-red-400'
+              }`}
           >
             {trend > 0 ? '+' : ''}
             {trend}%
