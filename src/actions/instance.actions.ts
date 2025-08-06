@@ -4,7 +4,7 @@ import type { InstancesResponse } from "@/types";
 
 export const GetInstancesAction = async (): Promise<InstancesResponse> => {
 	try {
-		const { data } = await api.get<InstancesResponse>("/instances");
+		const { data } = await api.get<InstancesResponse>("/api/instances");
 		return data;
 	} catch (error) {
 		console.error("Erro ao buscar instâncias:", error);

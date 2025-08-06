@@ -165,7 +165,7 @@ export default function Disparos() {
         instanceName: selectedInstanceData.instanceName,
       });
 
-      await api.post(`/campaigns/${selectedCampaign}/resume`, {
+      await api.post(`/api/campaigns/${selectedCampaign}/resume`, {
         instanceName: selectedInstanceData.instanceName,
       });
       toast.success('Campanha retomada com sucesso!');
@@ -187,7 +187,7 @@ export default function Disparos() {
   // Função para cancelar a campanha
   const handleCancelCampaign = async () => {
     try {
-      await api.post(`/campaigns/${selectedCampaign}/stop`);
+      await api.post(`/api/campaigns/${selectedCampaign}/stop`);
       toast.success('Campanha cancelada com sucesso!');
       setIsModalOpen(false); // Fecha o modal caso a campanha seja cancelada
     } catch (error) {
@@ -277,7 +277,7 @@ export default function Disparos() {
       const [instancesResponse, campaignsResponse] =
         await Promise.all([
           GetInstancesAction(),
-          api.get<Campaign[]>('/campaigns'),
+          api.get<Campaign[]>('/api/campaigns'),
         ]);
 
       if (
