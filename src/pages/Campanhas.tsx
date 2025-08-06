@@ -114,13 +114,13 @@ const fetchCampaigns = async (): Promise<
   (Campaign & { leads: CampaignLeads })[]
 > => {
   try {
-    const { data } = await api.get<Campaign[]>('/campaigns');
+    const { data } = await api.get<Campaign[]>('/api/campaigns');
 
     // Buscar estatísticas em paralelo para todas as campanhas
     const statsPromises = (Array.isArray(data) ? data : []).map(
       (campaign) =>
         api
-          .get(`/campaigns/${campaign.id}/stats`)
+          .get(`/api/campaigns/${campaign.id}/stats`)
           .then((response) => ({
             campaignId: campaign.id,
             statistics: response.data,
@@ -479,7 +479,7 @@ const Campanhas: React.FC = () => {
 
   const startCampaign = useMutation({
     mutationFn: async (id: string) => {
-      const response = await api.post(`/campaigns/${id}/start`);
+      const response = await api.post(`/api/campaigns/${id}/start`);
       // Forçar refetch imediato após iniciar
       await refetch();
       return response;
@@ -488,16 +488,16 @@ const Campanhas: React.FC = () => {
 
   const pauseCampaign = useMutation({
     mutationFn: (id: string) =>
-      api.post(`/campaigns/${id}/pause`),
+      api.post(`/api/campaigns/${id}/pause`),
   });
 
   const stopCampaign = useMutation({
     mutationFn: (id: string) =>
-      api.post(`/campaigns/${id}/stop`),
+      api.post(`/api/campaigns/${id}/stop`),
   });
 
   const deleteCampaign = useMutation({
-    mutationFn: (id: string) => api.delete(`/campaigns/${id}`),
+    mutationFn: (id: string) => api.delete(`/api/campaigns/${id}`),
   });
 
   const createCampaign = useMutation({
@@ -519,7 +519,7 @@ const Campanhas: React.FC = () => {
     }: {
       id: string;
       data: Partial<Campaign>;
-    }) => api.put(`/campaigns/${id}`, data),
+    }) => api.put(`/api/campaigns/${id}`, data),
     onSuccess: () => {
       toast.success('Campanha atualizada com sucesso!');
       refetch();
@@ -547,7 +547,7 @@ const Campanhas: React.FC = () => {
       formData.append('file', file);
 
       const response = await api.post(
-        `/campaigns/${campaignId}/leads/import`,
+        `/api/campaigns/${campaignId}/leads/import`,
         formData,
         {
           headers: {

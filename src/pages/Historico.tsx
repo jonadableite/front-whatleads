@@ -161,7 +161,7 @@ const Historico: React.FC = () => {
 			try {
 				console.log("Buscando dispatches para campanha:", campaignId);
 				const response = await api.get(
-					`/campaigns/${campaignId}/dispatches`,
+					`/api/campaigns/${campaignId}/dispatches`,
 				);
 				console.log("Resposta da API:", response.data);
 				return response.data;

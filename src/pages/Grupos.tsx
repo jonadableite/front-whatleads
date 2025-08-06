@@ -511,7 +511,7 @@ export default function Grupos() {
       try {
         setIsLoading(true);
         const response = await api.get(
-          `/groups/fetchAllGroups/${instanceName}?getParticipants=true`,
+          `/api/groups/fetchAllGroups/${instanceName}?getParticipants=true`,
         );
         if (response.data.success) {
           const fetchedGroups: Grupo[] = response.data.data || [];
@@ -911,7 +911,7 @@ export default function Grupos() {
         .map((num) => num.trim())
         .filter((num) => num.length > 0);
       const response = await api.post(
-        `/groups/create/${instance.instanceName}`,
+        `/api/groups/create/${instance.instanceName}`,
         {
           subject: newGroupName.trim(),
           description: newGroupDescription.trim() || undefined,
@@ -959,7 +959,7 @@ export default function Grupos() {
     try {
       setIsLoading(true);
       const response = await api.get(
-        `/groups/inviteCode/${instance.instanceName}?groupJid=${groupJid}`,
+        `/api/groups/inviteCode/${instance.instanceName}?groupJid=${groupJid}`,
       );
       if (response.data.success && selectedGroup) {
         setSelectedGroup((prev) =>
@@ -1002,7 +1002,7 @@ export default function Grupos() {
     try {
       setIsLoading(true);
       const response = await api.post(
-        `/groups/revokeInviteCode/${instance.instanceName}?groupJid=${selectedGroup.id}`,
+        `/api/groups/revokeInviteCode/${instance.instanceName}?groupJid=${selectedGroup.id}`,
       );
       if (response.data.success) {
         toast.success('Link de convite revogado com sucesso!');
@@ -1050,7 +1050,7 @@ export default function Grupos() {
         numbers: numbersArray,
       };
       const response = await api.post(
-        `/groups/sendInvite/${instance.instanceName}`,
+        `/api/groups/sendInvite/${instance.instanceName}`,
         payload,
       );
       if (response.data.success) {
@@ -1090,7 +1090,7 @@ export default function Grupos() {
       setIsLoading(true);
       const participantsArray = [participantId];
       const response = await api.post(
-        `/groups/updateParticipant/${instance.instanceName}?groupJid=${groupJid}`,
+        `/api/groups/updateParticipant/${instance.instanceName}?groupJid=${groupJid}`,
         {
           action,
           participants: participantsArray,
