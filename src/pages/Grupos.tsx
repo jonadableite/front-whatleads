@@ -43,8 +43,7 @@ import {
 } from 'react-icons/io';
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
-import { GetInstancesAction } from '../actions';
-import api from '../lib/api';
+import { apiUtils } from '../lib/api-utils';
 import { evo } from '../lib/evo';
 import { cn } from '../lib/utils';
 
@@ -494,13 +493,13 @@ export default function Grupos() {
   const fetchInstances = async () => {
     try {
       setIsLoading(true);
-      const response = await GetInstancesAction();
+      const response = await apiUtils.getInstances() as { instances: Instancia[] };
       if (response?.instances) {
-        setInstances(response.instances as Instancia[]);
+        setInstances(response.instances);
       }
     } catch (error) {
       console.error('Erro ao buscar instâncias:', error);
-      toast.error('Erro ao carregar instâncias');
+      toast.error('Erro ao carregar instâncias. Tente novamente.');
     } finally {
       setIsLoading(false);
     }
@@ -510,11 +509,9 @@ export default function Grupos() {
     async (instanceName: string) => {
       try {
         setIsLoading(true);
-        const response = await api.get(
-          `/api/groups/fetchAllGroups/${instanceName}?getParticipants=true`,
-        );
-        if (response.data.success) {
-          const fetchedGroups: Grupo[] = response.data.data || [];
+        const response = await apiUtils.getGroups(instanceName) as { success: boolean; data: Grupo[] };
+        if (response.success) {
+          const fetchedGroups: Grupo[] = response.data || [];
           setGrupos(fetchedGroups);
           if (selectedGroup) {
             const updatedSelectedGroup = fetchedGroups.find(
@@ -535,7 +532,7 @@ export default function Grupos() {
         }
       } catch (error) {
         console.error('Erro ao buscar grupos:', error);
-        toast.error('Erro ao carregar grupos');
+        toast.error('Erro ao carregar grupos. Tente novamente.');
       } finally {
         setIsLoading(false);
       }
@@ -910,15 +907,12 @@ export default function Grupos() {
         .split('\n')
         .map((num) => num.trim())
         .filter((num) => num.length > 0);
-      const response = await api.post(
-        `/api/groups/create/${instance.instanceName}`,
-        {
-          subject: newGroupName.trim(),
-          description: newGroupDescription.trim() || undefined,
-          participants,
-        },
-      );
-      if (response.data.success) {
+      const response = await apiUtils.createGroup(instance.instanceName, {
+        subject: newGroupName.trim(),
+        description: newGroupDescription.trim() || undefined,
+        participants,
+      }) as { success: boolean; message?: string };
+      if (response.success) {
         toast.success('Grupo criado com sucesso!');
         setShowCreateGroupModal(false);
         setNewGroupName('');
@@ -926,11 +920,11 @@ export default function Grupos() {
         setNewGroupParticipants('');
         fetchGroups(instance.instanceName);
       } else {
-        toast.error(response.data.message || 'Erro ao criar grupo.');
+        toast.error(response.message || 'Erro ao criar grupo.');
       }
     } catch (error) {
       console.error('Erro ao criar grupo:', error);
-      toast.error('Erro ao criar grupo.');
+      toast.error('Erro ao criar grupo. Tente novamente.');
     } finally {
       setIsLoading(false);
     }
@@ -958,13 +952,16 @@ export default function Grupos() {
     if (!instance) return;
     try {
       setIsLoading(true);
-      const response = await api.get(
+      const response = await apiUtils.requestWithRetry(
+        'get',
         `/api/groups/inviteCode/${instance.instanceName}?groupJid=${groupJid}`,
-      );
-      if (response.data.success && selectedGroup) {
+        undefined,
+        { timeout: 15000 }
+      ) as { success: boolean; data: { code: string } };
+      if (response.success && selectedGroup) {
         setSelectedGroup((prev) =>
           prev
-            ? { ...prev, inviteCode: response.data.data.code }
+            ? { ...prev, inviteCode: response.data.code }
             : null,
         );
         toast.success('Código de convite obtido!');
@@ -973,7 +970,7 @@ export default function Grupos() {
       }
     } catch (error) {
       console.error('Erro ao obter código de convite:', error);
-      toast.error('Erro ao obter código de convite.');
+      toast.error('Erro ao obter código de convite. Tente novamente.');
     } finally {
       setIsLoading(false);
     }
@@ -1001,10 +998,13 @@ export default function Grupos() {
     }
     try {
       setIsLoading(true);
-      const response = await api.post(
+      const response = await apiUtils.requestWithRetry(
+        'post',
         `/api/groups/revokeInviteCode/${instance.instanceName}?groupJid=${selectedGroup.id}`,
-      );
-      if (response.data.success) {
+        undefined,
+        { timeout: 15000 }
+      ) as { success: boolean };
+      if (response.success) {
         toast.success('Link de convite revogado com sucesso!');
         setSelectedGroup((prev) =>
           prev ? { ...prev, inviteCode: undefined } : null,
@@ -1014,7 +1014,7 @@ export default function Grupos() {
       }
     } catch (error) {
       console.error('Erro ao revogar link de convite:', error);
-      toast.error('Erro ao revogar link de convite.');
+      toast.error('Erro ao revogar link de convite. Tente novamente.');
     } finally {
       setIsLoading(false);
     }
@@ -1049,22 +1049,24 @@ export default function Grupos() {
         description: inviteDescription.trim() || undefined,
         numbers: numbersArray,
       };
-      const response = await api.post(
+      const response = await apiUtils.requestWithRetry(
+        'post',
         `/api/groups/sendInvite/${instance.instanceName}`,
         payload,
-      );
-      if (response.data.success) {
+        { timeout: 20000 }
+      ) as { success: boolean; message?: string };
+      if (response.success) {
         toast.success('Convite enviado com sucesso!');
         setInviteNumbers('');
         setInviteDescription('');
       } else {
         toast.error(
-          response.data.message || 'Erro ao enviar convite.',
+          response.message || 'Erro ao enviar convite.',
         );
       }
     } catch (error) {
       console.error('Erro ao enviar convite:', error);
-      toast.error('Erro ao enviar convite.');
+      toast.error('Erro ao enviar convite. Tente novamente.');
     } finally {
       setIsLoading(false);
     }
@@ -1089,14 +1091,16 @@ export default function Grupos() {
     try {
       setIsLoading(true);
       const participantsArray = [participantId];
-      const response = await api.post(
+      const response = await apiUtils.requestWithRetry(
+        'post',
         `/api/groups/updateParticipant/${instance.instanceName}?groupJid=${groupJid}`,
         {
           action,
           participants: participantsArray,
         },
-      );
-      if (response.data.success) {
+        { timeout: 15000 }
+      ) as { success: boolean; message?: string };
+      if (response.success) {
         toast.success(
           `Participante ${action === 'add'
             ? 'adicionado'
@@ -1111,12 +1115,12 @@ export default function Grupos() {
         fetchGroups(instance.instanceName);
       } else {
         toast.error(
-          response.data.message || `Erro ao ${action} participante.`,
+          response.message || `Erro ao ${action} participante.`,
         );
       }
     } catch (error) {
       console.error(`Erro ao ${action} participante:`, error);
-      toast.error(`Erro ao ${action} participante.`);
+      toast.error(`Erro ao ${action} participante. Tente novamente.`);
     } finally {
       setIsLoading(false);
     }
@@ -1133,30 +1137,37 @@ export default function Grupos() {
     }
     try {
       setIsLoading(true);
+
       // Update announcement setting
-      await api.post(
+      await apiUtils.requestWithRetry(
+        'post',
         `/group/updateSetting/${instance.instanceName}?groupJid=${groupJid}`,
         {
           action: currentGroupSettings.announce
             ? 'announcement'
             : 'not_announcement',
         },
+        { timeout: 15000 }
       );
 
       // Update restrict setting
-      await api.post(
+      await apiUtils.requestWithRetry(
+        'post',
         `/group/updateSetting/${instance.instanceName}?groupJid=${groupJid}`,
         {
           action: currentGroupSettings.restrict
             ? 'locked'
             : 'unlocked',
         },
+        { timeout: 15000 }
       );
 
       // Update ephemeral duration setting
-      await api.post(
+      await apiUtils.requestWithRetry(
+        'post',
         `/group/toggleEphemeral/${instance.instanceName}?groupJid=${groupJid}`,
         { expiration: currentGroupSettings.ephemeralDuration },
+        { timeout: 15000 }
       );
 
       toast.success(
@@ -1168,7 +1179,7 @@ export default function Grupos() {
         'Erro ao atualizar configurações do grupo:',
         error,
       );
-      toast.error('Erro ao atualizar configurações do grupo.');
+      toast.error('Erro ao atualizar configurações do grupo. Tente novamente.');
     } finally {
       setIsLoading(false);
     }
@@ -1188,22 +1199,25 @@ export default function Grupos() {
     }
     try {
       setIsLoading(true);
-      const response = await api.delete(
+      const response = await apiUtils.requestWithRetry(
+        'delete',
         `/group/leaveGroup/${instance.instanceName}?groupJid=${groupJid}`,
-      );
-      if (response.data.success) {
+        undefined,
+        { timeout: 15000 }
+      ) as { success: boolean; message?: string };
+      if (response.success) {
         toast.success('Você saiu do grupo com sucesso!');
         setShowGroupDetailsModal(false);
         setSelectedGroup(null);
         fetchGroups(instance.instanceName);
       } else {
         toast.error(
-          response.data.message || 'Erro ao sair do grupo.',
+          response.message || 'Erro ao sair do grupo.',
         );
       }
     } catch (error) {
       console.error('Erro ao sair do grupo:', error);
-      toast.error('Erro ao sair do grupo.');
+      toast.error('Erro ao sair do grupo. Tente novamente.');
     } finally {
       setIsLoading(false);
     }
@@ -1828,6 +1842,11 @@ export default function Grupos() {
               >
                 Buscando informações...
               </motion.div>
+              <div className="text-sm text-white/40 mt-4">
+                <p>⏱️ Timeouts otimizados para operações longas</p>
+                <p>🔄 Retry automático em caso de falha</p>
+                <p>💾 Cache inteligente para melhor performance</p>
+              </div>
             </div>
           </div>
         </motion.div>
@@ -1889,7 +1908,41 @@ export default function Grupos() {
           </div>
 
           {/* Ações de Grupo e Lista */}
-          {filteredGroups.length === 0 &&
+          {isLoading && selectedInstanceName ? (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              className="text-center py-12"
+            >
+              <div className="max-w-md mx-auto space-y-6">
+                <motion.div
+                  animate={{
+                    scale: [1, 1.1, 1],
+                    rotate: [0, 5, -5, 0],
+                  }}
+                  transition={{
+                    duration: 2,
+                    repeat: Number.POSITIVE_INFINITY,
+                    repeatType: 'reverse',
+                  }}
+                  className="text-6xl mb-4"
+                >
+                  🔄
+                </motion.div>
+                <h3 className="text-2xl font-bold text-white">
+                  Carregando Grupos
+                </h3>
+                <p className="text-white/60">
+                  Buscando grupos da instância {selectedInstanceName}...
+                </p>
+                <div className="text-sm text-white/40 space-y-1">
+                  <p>📱 Conectando com WhatsApp...</p>
+                  <p>👥 Buscando participantes...</p>
+                  <p>⚙️ Carregando configurações...</p>
+                </div>
+              </div>
+            </motion.div>
+          ) : filteredGroups.length === 0 &&
             !isLoading &&
             searchTerm === '' ? (
             <EmptyState
