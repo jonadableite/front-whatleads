@@ -1,5 +1,5 @@
 // src/actions/leads.actions.ts
-import { api } from "@/lib/api";
+import api from "@/lib/api";
 
 export async function saveCreateLead(
 	name: string,
@@ -9,7 +9,7 @@ export async function saveCreateLead(
 	dialog: any[],
 ) {
 	try {
-		const response = await api.main.post(`/leads`, {
+		const response = await api.post(`/leads`, {
 			name,
 			phone,
 			email,
