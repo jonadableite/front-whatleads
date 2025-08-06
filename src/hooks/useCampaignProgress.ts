@@ -28,7 +28,7 @@ export const useCampaignProgress = (campaignId: string) => {
 		const fetchProgress = async () => {
 			try {
 				const response = await api.get(
-					`/campaigns/${campaignId}/progress`,
+					`/api/campaigns/${campaignId}/progress`,
 				);
 
 				if (response.data.success) {
@@ -68,7 +68,7 @@ export const useCampaignProgress = (campaignId: string) => {
 
 	const handlePause = async () => {
 		try {
-			await api.post(`/campaigns/${campaignId}/pause`);
+			await api.post(`/api/campaigns/${campaignId}/pause`);
 			toast.success("Campanha pausada com sucesso");
 			setIsPolling(false);
 		} catch (error) {
@@ -79,7 +79,7 @@ export const useCampaignProgress = (campaignId: string) => {
 
 	const handleResume = async (instanceName: string) => {
 		try {
-			await api.post(`/campaigns/${campaignId}/resume`, { instanceName });
+			await api.post(`/api/campaigns/${campaignId}/resume`, { instanceName });
 			toast.success("Campanha retomada com sucesso");
 			setIsPolling(true);
 		} catch (error) {
@@ -90,7 +90,7 @@ export const useCampaignProgress = (campaignId: string) => {
 
 	const handleCancel = async () => {
 		try {
-			await api.post(`/campaigns/${campaignId}/stop`);
+			await api.post(`/api/campaigns/${campaignId}/stop`);
 			toast.success("Campanha cancelada com sucesso");
 			setIsPolling(false);
 		} catch (error) {
