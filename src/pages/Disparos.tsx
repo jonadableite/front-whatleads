@@ -15,7 +15,7 @@ import { toast } from 'react-toastify';
 import { GetInstancesAction } from '../actions';
 import { InstanceRotationConfig } from '../components/InstanceRotationConfig';
 import { ProgressModal } from '../components/ProgressModal';
-import { api } from '../lib/api';
+import api from '../lib/api';
 import { cn, getWarmupProgressColor } from '../lib/utils';
 import { authService } from '../services/auth.service';
 import { calculateWarmupProgress } from '../services/instance.service';
@@ -109,7 +109,7 @@ export default function Disparos() {
   const fetchLeadCount = useCallback(
     async (campaignId: string, segment: string) => {
       try {
-        const response = await api.main.get(
+        const response = await api.get(
           `/campaigns/${campaignId}/lead-count`,
           {
             params: { segmentation: segment },
@@ -134,7 +134,7 @@ export default function Disparos() {
   // 		"Chamando handlePauseCampaign() - Enviando requisição para pausar campanha",
   // 	);
   // 	try {
-  // 		await api.main.post(`/campaigns/${selectedCampaign}/pause`);
+  // 		await api.post(`/campaigns/${selectedCampaign}/pause`);
   // 		toast.success("Campanha pausada com sucesso!");
   // 	} catch (error) {
   // 		console.error("Erro ao pausar campanha:", error);
@@ -165,7 +165,7 @@ export default function Disparos() {
         instanceName: selectedInstanceData.instanceName,
       });
 
-      await api.main.post(`/campaigns/${selectedCampaign}/resume`, {
+      await api.post(`/campaigns/${selectedCampaign}/resume`, {
         instanceName: selectedInstanceData.instanceName,
       });
       toast.success('Campanha retomada com sucesso!');
@@ -187,7 +187,7 @@ export default function Disparos() {
   // Função para cancelar a campanha
   const handleCancelCampaign = async () => {
     try {
-      await api.main.post(`/campaigns/${selectedCampaign}/stop`);
+      await api.post(`/campaigns/${selectedCampaign}/stop`);
       toast.success('Campanha cancelada com sucesso!');
       setIsModalOpen(false); // Fecha o modal caso a campanha seja cancelada
     } catch (error) {
@@ -234,9 +234,9 @@ export default function Disparos() {
         const prevInstance = prevInstances[index];
         return (
           prevInstance.warmupStatus?.progress !==
-            newInstance.warmupStatus?.progress ||
+          newInstance.warmupStatus?.progress ||
           prevInstance.connectionStatus !==
-            newInstance.connectionStatus
+          newInstance.connectionStatus
         );
       });
     };
@@ -277,13 +277,13 @@ export default function Disparos() {
       const [instancesResponse, campaignsResponse] =
         await Promise.all([
           GetInstancesAction(),
-          api.main.get<Campaign[]>('/campaigns'),
+          api.get<Campaign[]>('/campaigns'),
         ]);
 
       if (
         instancesResponse?.instances &&
         JSON.stringify(instancesResponse.instances) !==
-          JSON.stringify(instances)
+        JSON.stringify(instances)
       ) {
         setInstances(instancesResponse.instances);
       }
@@ -467,7 +467,7 @@ export default function Disparos() {
 
   const refetchCampaign = async () => {
     try {
-      const response = await api.main.get<Campaign>(
+      const response = await api.get<Campaign>(
         `/campaigns/${selectedCampaign}`,
       );
       const updatedCampaign = response.data;
@@ -546,7 +546,7 @@ export default function Disparos() {
         payload.segmentation = { segment: selectedSegment }; // Correcting the segmentation assignment
       }
 
-      const startResponse = await api.main.post(
+      const startResponse = await api.post(
         `/campaigns/${campaignId}/start`,
         payload,
       );
@@ -556,7 +556,7 @@ export default function Disparos() {
         const formData = new FormData();
         formData.append('file', file);
 
-        const importResponse = await api.main.post(
+        const importResponse = await api.post(
           `/campaigns/${campaignId}/leads/import`,
           formData,
           {
@@ -582,7 +582,7 @@ export default function Disparos() {
 
       // Verificar se existem leads na campanha
       console.log('Verificando leads existentes...');
-      const campaignStats = await api.main.get(
+      const campaignStats = await api.get(
         `/campaigns/${campaignId}/stats`,
       );
       if (!campaignStats.data.totalLeads) {
@@ -621,7 +621,7 @@ export default function Disparos() {
     (campaignId: string) => {
       const interval = setInterval(async () => {
         try {
-          const response = await api.main.get(
+          const response = await api.get(
             `/campaigns/${campaignId}/progress`,
           );
           const { status, statistics } = response.data.data;
@@ -720,7 +720,7 @@ export default function Disparos() {
           mediaPayload, // Incluindo mídia no payload
         });
 
-        const response = await api.main.post(
+        const response = await api.post(
           `/scheduler/${selectedCampaign}/schedule`,
           {
             scheduledDate: scheduledDateTime.toISOString(),
@@ -843,7 +843,7 @@ export default function Disparos() {
                           'w-full p-4 bg-electric/10 border border-electric rounded-xl text-white focus:ring-2 focus:ring-neon-green transition-all',
                           isLoadingInstances && 'animate-pulse',
                           useRotation &&
-                            'opacity-50 cursor-not-allowed',
+                          'opacity-50 cursor-not-allowed',
                           'appearance-none',
                         )}
                         style={{
@@ -864,8 +864,8 @@ export default function Disparos() {
                           {isLoadingInstances
                             ? 'Carregando instâncias...'
                             : useRotation
-                            ? 'Rotação Ativa - Seleção Automática'
-                            : 'Selecione a Instância'}
+                              ? 'Rotação Ativa - Seleção Automática'
+                              : 'Selecione a Instância'}
                         </option>
                         {instances.map((instance) => {
                           const warmupProgress =
@@ -879,9 +879,9 @@ export default function Disparos() {
                                 'bg-deep text-white',
                                 instance.warmupStatus
                                   ?.isRecommended &&
-                                  'text-neon-green',
+                                'text-neon-green',
                                 instance.connectionStatus ===
-                                  'OPEN' && 'font-medium',
+                                'OPEN' && 'font-medium',
                               )}
                             >
                               {instance.instanceName}
@@ -895,8 +895,8 @@ export default function Disparos() {
                                       ? 'text-green-500'
                                       : instance.connectionStatus !==
                                         'OPEN'
-                                      ? 'text-yellow-500'
-                                      : 'text-blue-500',
+                                        ? 'text-yellow-500'
+                                        : 'text-blue-500',
                                   )}
                                 >
                                   ({warmupProgress.toFixed(1)}%)
@@ -932,36 +932,36 @@ export default function Disparos() {
 
                                 {selectedInstanceData?.warmupStatus
                                   ?.progress !== undefined && (
-                                  <div className="text-sm text-white/80 flex items-center gap-2">
-                                    <div className="w-2 h-2 bg-white/50 rounded-full" />
-                                    <span>
-                                      Aquecimento:{' '}
-                                      <span
-                                        className={`${getWarmupProgressColor(
-                                          selectedInstanceData
-                                            .warmupStatus?.progress ||
+                                    <div className="text-sm text-white/80 flex items-center gap-2">
+                                      <div className="w-2 h-2 bg-white/50 rounded-full" />
+                                      <span>
+                                        Aquecimento:{' '}
+                                        <span
+                                          className={`${getWarmupProgressColor(
+                                            selectedInstanceData
+                                              .warmupStatus?.progress ||
                                             0,
-                                        )}`}
-                                      >
-                                        {selectedInstanceData.warmupStatus?.progress.toFixed(
-                                          2,
-                                        )}
-                                        %
+                                          )}`}
+                                        >
+                                          {selectedInstanceData.warmupStatus?.progress.toFixed(
+                                            2,
+                                          )}
+                                          %
+                                        </span>
                                       </span>
-                                    </span>
-                                  </div>
-                                )}
+                                    </div>
+                                  )}
 
                                 {selectedInstanceData?.warmupStatus
                                   ?.isRecommended && (
-                                  <div className="text-sm text-green-400 flex items-center gap-2">
-                                    <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
-                                    <span>
-                                      Esta instância já possui mais de
-                                      300 horas de aquecimento
-                                    </span>
-                                  </div>
-                                )}
+                                    <div className="text-sm text-green-400 flex items-center gap-2">
+                                      <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
+                                      <span>
+                                        Esta instância já possui mais de
+                                        300 horas de aquecimento
+                                      </span>
+                                    </div>
+                                  )}
 
                                 <div
                                   className={cn(
@@ -984,7 +984,7 @@ export default function Disparos() {
                                   <span>
                                     Status:{' '}
                                     {selectedInstanceData?.connectionStatus ===
-                                    'OPEN'
+                                      'OPEN'
                                       ? 'Conectado'
                                       : 'Desconectado'}
                                   </span>
@@ -1053,7 +1053,7 @@ export default function Disparos() {
                             className={cn(
                               'bg-deep text-white',
                               campaign.status === 'running' &&
-                                'text-neon-green',
+                              'text-neon-green',
                             )}
                           >
                             {campaign.name}
@@ -1077,15 +1077,15 @@ export default function Disparos() {
                           {campaigns.find(
                             (c) => c.id === selectedCampaign,
                           )?.statistics && (
-                            <div className="text-sm text-white/80">
-                              <span>
-                                Envios:{' '}
-                                {campaigns.find(
-                                  (c) => c.id === selectedCampaign,
-                                )?.statistics?.totalLeads || 0}
-                              </span>
-                            </div>
-                          )}
+                              <div className="text-sm text-white/80">
+                                <span>
+                                  Envios:{' '}
+                                  {campaigns.find(
+                                    (c) => c.id === selectedCampaign,
+                                  )?.statistics?.totalLeads || 0}
+                                </span>
+                              </div>
+                            )}
                         </div>
                       )}
                     </div>
@@ -1158,8 +1158,8 @@ export default function Disparos() {
                           mediaType === 'image'
                             ? 'image/*'
                             : mediaType === 'audio'
-                            ? 'audio/*'
-                            : 'video/*'
+                              ? 'audio/*'
+                              : 'video/*'
                         }
                         className="hidden"
                       />
@@ -1176,8 +1176,8 @@ export default function Disparos() {
                           {mediaType === 'image'
                             ? 'Imagem'
                             : mediaType === 'audio'
-                            ? 'Áudio'
-                            : 'Vídeo'}
+                              ? 'Áudio'
+                              : 'Vídeo'}
                         </span>
                       </div>
                     </label>

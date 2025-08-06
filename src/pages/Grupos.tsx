@@ -44,7 +44,7 @@ import {
 import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { GetInstancesAction } from '../actions';
-import { api } from '../lib/api';
+import api from '../lib/api';
 import { evo } from '../lib/evo';
 import { cn } from '../lib/utils';
 
@@ -510,7 +510,7 @@ export default function Grupos() {
     async (instanceName: string) => {
       try {
         setIsLoading(true);
-        const response = await api.main.get(
+        const response = await api.get(
           `/groups/fetchAllGroups/${instanceName}?getParticipants=true`,
         );
         if (response.data.success) {
@@ -660,8 +660,7 @@ export default function Grupos() {
     } catch (error) {
       console.error('Erro ao processar mídia:', error);
       toast.error(
-        `Erro ao processar ${mediaType}: ${
-          error instanceof Error ? error.message : 'Erro desconhecido'
+        `Erro ao processar ${mediaType}: ${error instanceof Error ? error.message : 'Erro desconhecido'
         }`,
       );
     }
@@ -911,7 +910,7 @@ export default function Grupos() {
         .split('\n')
         .map((num) => num.trim())
         .filter((num) => num.length > 0);
-      const response = await api.main.post(
+      const response = await api.post(
         `/groups/create/${instance.instanceName}`,
         {
           subject: newGroupName.trim(),
@@ -959,7 +958,7 @@ export default function Grupos() {
     if (!instance) return;
     try {
       setIsLoading(true);
-      const response = await api.main.get(
+      const response = await api.get(
         `/groups/inviteCode/${instance.instanceName}?groupJid=${groupJid}`,
       );
       if (response.data.success && selectedGroup) {
@@ -1002,7 +1001,7 @@ export default function Grupos() {
     }
     try {
       setIsLoading(true);
-      const response = await api.main.post(
+      const response = await api.post(
         `/groups/revokeInviteCode/${instance.instanceName}?groupJid=${selectedGroup.id}`,
       );
       if (response.data.success) {
@@ -1050,7 +1049,7 @@ export default function Grupos() {
         description: inviteDescription.trim() || undefined,
         numbers: numbersArray,
       };
-      const response = await api.main.post(
+      const response = await api.post(
         `/groups/sendInvite/${instance.instanceName}`,
         payload,
       );
@@ -1090,7 +1089,7 @@ export default function Grupos() {
     try {
       setIsLoading(true);
       const participantsArray = [participantId];
-      const response = await api.main.post(
+      const response = await api.post(
         `/groups/updateParticipant/${instance.instanceName}?groupJid=${groupJid}`,
         {
           action,
@@ -1099,14 +1098,13 @@ export default function Grupos() {
       );
       if (response.data.success) {
         toast.success(
-          `Participante ${
-            action === 'add'
-              ? 'adicionado'
-              : action === 'remove'
+          `Participante ${action === 'add'
+            ? 'adicionado'
+            : action === 'remove'
               ? 'removido'
               : action === 'promote'
-              ? 'promovido'
-              : 'demovido'
+                ? 'promovido'
+                : 'demovido'
           } com sucesso!`,
         );
         setNewParticipantNumber('');
@@ -1136,7 +1134,7 @@ export default function Grupos() {
     try {
       setIsLoading(true);
       // Update announcement setting
-      await api.main.post(
+      await api.post(
         `/group/updateSetting/${instance.instanceName}?groupJid=${groupJid}`,
         {
           action: currentGroupSettings.announce
@@ -1146,7 +1144,7 @@ export default function Grupos() {
       );
 
       // Update restrict setting
-      await api.main.post(
+      await api.post(
         `/group/updateSetting/${instance.instanceName}?groupJid=${groupJid}`,
         {
           action: currentGroupSettings.restrict
@@ -1156,7 +1154,7 @@ export default function Grupos() {
       );
 
       // Update ephemeral duration setting
-      await api.main.post(
+      await api.post(
         `/group/toggleEphemeral/${instance.instanceName}?groupJid=${groupJid}`,
         { expiration: currentGroupSettings.ephemeralDuration },
       );
@@ -1190,7 +1188,7 @@ export default function Grupos() {
     }
     try {
       setIsLoading(true);
-      const response = await api.main.delete(
+      const response = await api.delete(
         `/group/leaveGroup/${instance.instanceName}?groupJid=${groupJid}`,
       );
       if (response.data.success) {
@@ -1323,8 +1321,8 @@ export default function Grupos() {
                   </span>{' '}
                   {group.creation
                     ? new Date(
-                        group.creation * 1000,
-                      ).toLocaleDateString()
+                      group.creation * 1000,
+                    ).toLocaleDateString()
                     : 'N/A'}
                 </p>
                 <p className="text-white/70">
@@ -1359,9 +1357,8 @@ export default function Grupos() {
                   </span>{' '}
                   {group.ephemeralDuration === 0
                     ? 'Desativado'
-                    : `${
-                        group.ephemeralDuration / (24 * 60 * 60)
-                      } dias`}
+                    : `${group.ephemeralDuration / (24 * 60 * 60)
+                    } dias`}
                 </p>
               </motion.div>
             )}
@@ -1378,7 +1375,7 @@ export default function Grupos() {
                 </h3>
                 <div className="max-h-60 overflow-y-auto custom-scrollbar">
                   {group.participants &&
-                  group.participants.length > 0 ? (
+                    group.participants.length > 0 ? (
                     <ul className="space-y-2">
                       {group.participants.map((participant) => (
                         <li
@@ -1893,8 +1890,8 @@ export default function Grupos() {
 
           {/* Ações de Grupo e Lista */}
           {filteredGroups.length === 0 &&
-          !isLoading &&
-          searchTerm === '' ? (
+            !isLoading &&
+            searchTerm === '' ? (
             <EmptyState
               onNewGroup={() => setShowCreateGroupModal(true)}
               searchTerm={searchTerm}
@@ -1913,7 +1910,7 @@ export default function Grupos() {
                   className="bg-deep/50 border-electric text-white hover:bg-electric/20"
                 >
                   {selectedGroups.length === filteredGroups.length &&
-                  filteredGroups.length > 0
+                    filteredGroups.length > 0
                     ? 'Desmarcar Todos'
                     : 'Selecionar Todos'}
                 </Button>
@@ -2021,9 +2018,9 @@ export default function Grupos() {
                               onChange={(e) =>
                                 setMediaType(
                                   e.target.value as
-                                    | 'image'
-                                    | 'video'
-                                    | 'audio',
+                                  | 'image'
+                                  | 'video'
+                                  | 'audio',
                                 )
                               }
                               className="w-full p-3 bg-deep/70 border border-electric rounded-lg text-white focus:ring-1 focus:ring-electric focus:border-electric transition-colors duration-200"
@@ -2061,8 +2058,8 @@ export default function Grupos() {
                                   mediaType === 'image'
                                     ? 'image/*'
                                     : mediaType === 'audio'
-                                    ? 'audio/*'
-                                    : 'video/*'
+                                      ? 'audio/*'
+                                      : 'video/*'
                                 }
                                 className="hidden"
                               />
@@ -2079,8 +2076,8 @@ export default function Grupos() {
                                   {mediaType === 'image'
                                     ? 'Imagem'
                                     : mediaType === 'audio'
-                                    ? 'Áudio'
-                                    : 'Vídeo'}
+                                      ? 'Áudio'
+                                      : 'Vídeo'}
                                 </span>
                               </div>
                             </label>
@@ -2139,9 +2136,9 @@ export default function Grupos() {
                           onChange={(e) =>
                             setMediaType(
                               e.target.value as
-                                | 'image'
-                                | 'video'
-                                | 'audio',
+                              | 'image'
+                              | 'video'
+                              | 'audio',
                             )
                           }
                           className="w-full p-3 bg-deep/70 border border-electric rounded-lg text-white focus:ring-1 focus:ring-electric focus:border-electric transition-colors duration-200"
@@ -2179,8 +2176,8 @@ export default function Grupos() {
                               mediaType === 'image'
                                 ? 'image/*'
                                 : mediaType === 'audio'
-                                ? 'audio/*'
-                                : 'video/*'
+                                  ? 'audio/*'
+                                  : 'video/*'
                             }
                             className="hidden"
                           />
@@ -2197,8 +2194,8 @@ export default function Grupos() {
                               {mediaType === 'image'
                                 ? 'Imagem'
                                 : mediaType === 'audio'
-                                ? 'Áudio'
-                                : 'Vídeo'}
+                                  ? 'Áudio'
+                                  : 'Vídeo'}
                             </span>
                           </div>
                         </label>
