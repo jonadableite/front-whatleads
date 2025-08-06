@@ -114,12 +114,12 @@ const fetchCampaigns = async (): Promise<
   (Campaign & { leads: CampaignLeads })[]
 > => {
   try {
-    const { data } = await api.main.get<Campaign[]>('/campaigns');
+    const { data } = await api.get<Campaign[]>('/campaigns');
 
     // Buscar estatísticas em paralelo para todas as campanhas
     const statsPromises = (Array.isArray(data) ? data : []).map(
       (campaign) =>
-        api.main
+        api
           .get(`/campaigns/${campaign.id}/stats`)
           .then((response) => ({
             campaignId: campaign.id,
@@ -479,7 +479,7 @@ const Campanhas: React.FC = () => {
 
   const startCampaign = useMutation({
     mutationFn: async (id: string) => {
-      const response = await api.main.post(`/campaigns/${id}/start`);
+      const response = await api.post(`/campaigns/${id}/start`);
       // Forçar refetch imediato após iniciar
       await refetch();
       return response;
@@ -488,21 +488,21 @@ const Campanhas: React.FC = () => {
 
   const pauseCampaign = useMutation({
     mutationFn: (id: string) =>
-      api.main.post(`/campaigns/${id}/pause`),
+      api.post(`/campaigns/${id}/pause`),
   });
 
   const stopCampaign = useMutation({
     mutationFn: (id: string) =>
-      api.main.post(`/campaigns/${id}/stop`),
+      api.post(`/campaigns/${id}/stop`),
   });
 
   const deleteCampaign = useMutation({
-    mutationFn: (id: string) => api.main.delete(`/campaigns/${id}`),
+    mutationFn: (id: string) => api.delete(`/campaigns/${id}`),
   });
 
   const createCampaign = useMutation({
     mutationFn: (data: Partial<Campaign>) =>
-      api.main.post('/campaigns', data),
+      api.post('/campaigns', data),
     onSuccess: () => {
       toast.success('Campanha criada com sucesso!');
       refetch();
@@ -519,7 +519,7 @@ const Campanhas: React.FC = () => {
     }: {
       id: string;
       data: Partial<Campaign>;
-    }) => api.main.put(`/campaigns/${id}`, data),
+    }) => api.put(`/campaigns/${id}`, data),
     onSuccess: () => {
       toast.success('Campanha atualizada com sucesso!');
       refetch();
@@ -546,7 +546,7 @@ const Campanhas: React.FC = () => {
       const formData = new FormData();
       formData.append('file', file);
 
-      const response = await api.main.post(
+      const response = await api.post(
         `/campaigns/${campaignId}/leads/import`,
         formData,
         {
