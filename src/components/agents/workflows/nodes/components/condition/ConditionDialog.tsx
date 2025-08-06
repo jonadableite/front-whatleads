@@ -26,7 +26,7 @@
 │ who changed it and the date of modification.                                 │
 └──────────────────────────────────────────────────────────────────────────────┘
 */
-/* eslint-disable no-unused-vars */
+ 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import { useState } from "react";
 import { v4 as uuidv4 } from "uuid";

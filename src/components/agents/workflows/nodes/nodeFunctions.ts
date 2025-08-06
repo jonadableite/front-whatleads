@@ -27,7 +27,7 @@
 └──────────────────────────────────────────────────────────────────────────────┘
 */
 /* eslint-disable @typescript-eslint/no-explicit-any */
-/* eslint-disable no-unused-vars */
+ 
 export enum ConditionTypeEnum {
   PREVIOUS_OUTPUT = "previous-output",
 }
