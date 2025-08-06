@@ -1,4 +1,6 @@
 // src/services/hotmart.service.ts
+import axios from "axios";
+import { authService } from "./auth.service";
 
 // Interfaces para os tipos de dados Hotmart
 export interface HotmartCustomer {
@@ -69,7 +71,7 @@ export interface HotmartCustomer {
 export interface HotmartEvent {
   id: string;
   eventType: string;
-  eventData: any;
+  eventData: Record<string, unknown>;
   eventDate: string;
   transaction?: string;
   subscriberCode?: string;
@@ -202,8 +204,59 @@ export interface HotmartCustomersResponse {
   totalPages: number;
 }
 
+export interface HotmartEventResponse {
+  events: HotmartEvent[];
+  total: number;
+  page: number;
+  totalPages: number;
+}
+
+export interface HotmartTransactionResponse {
+  transactions: HotmartTransaction[];
+  total: number;
+  page: number;
+  totalPages: number;
+}
+
+export interface HotmartSubscriptionResponse {
+  subscriptions: HotmartSubscription[];
+  total: number;
+  page: number;
+  totalPages: number;
+}
+
+export interface HotmartSyncResponse {
+  syncedCount: number;
+  message: string;
+}
+
+export interface HotmartNoteResponse {
+  customer: HotmartCustomer;
+  message: string;
+}
+
+export interface HotmartTagsResponse {
+  customer: HotmartCustomer;
+  message: string;
+}
+
+export interface HotmartExportResponse {
+  data: string;
+  filename: string;
+}
+
+export interface HotmartAnalyticsResponse {
+  data: Record<string, unknown>;
+  summary: Record<string, unknown>;
+}
+
 class HotmartService {
-  // Removido getAuthHeaders pois agora o interceptor cuida da autenticação
+  private getAuthHeaders() {
+    const token = authService.getTokenInterno();
+    return {
+      Authorization: `Bearer ${token}`,
+    };
+  }
 
   /**
    * Lista todos os clientes Hotmart
@@ -220,12 +273,16 @@ class HotmartService {
       if (filters.isActive !== undefined) params.append("isActive", filters.isActive.toString());
       if (filters.search) params.append("search", filters.search);
 
-      const response = await api.get(`/api/hotmart/customers?${params.toString()}`);
+      const response = await axios.get(
+        `${import.meta.env.VITE_API_URL || "https://aquecerapi.whatlead.com.br"}/api/hotmart/customers?${params.toString()}`,
+        { headers: this.getAuthHeaders() }
+      );
 
       return response.data.data;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Erro ao buscar clientes Hotmart:", error);
-      throw new Error(error.response?.data?.error || "Erro ao buscar clientes");
+      const errorMessage = error instanceof Error ? error.message : "Erro ao buscar clientes";
+      throw new Error(errorMessage);
     }
   }
 
@@ -234,12 +291,16 @@ class HotmartService {
    */
   async getCustomerStats(): Promise<HotmartStats> {
     try {
-      const response = await api.get('/api/hotmart/customers/stats');
+      const response = await axios.get(
+        `${import.meta.env.VITE_API_URL || "https://aquecerapi.whatlead.com.br"}/api/hotmart/customers/stats`,
+        { headers: this.getAuthHeaders() }
+      );
 
       return response.data.data;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Erro ao buscar estatísticas:", error);
-      throw new Error(error.response?.data?.error || "Erro ao buscar estatísticas");
+      const errorMessage = error instanceof Error ? error.message : "Erro ao buscar estatísticas";
+      throw new Error(errorMessage);
     }
   }
 
@@ -249,14 +310,15 @@ class HotmartService {
   async getCustomer(id: string): Promise<HotmartCustomer> {
     try {
       const response = await axios.get(
-        `${API_URL}/api/hotmart/customers/${id}`,
+        `${import.meta.env.VITE_API_URL || "https://aquecerapi.whatlead.com.br"}/api/hotmart/customers/${id}`,
         { headers: this.getAuthHeaders() }
       );
 
       return response.data.data;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Erro ao buscar cliente:", error);
-      throw new Error(error.response?.data?.error || "Erro ao buscar cliente");
+      const errorMessage = error instanceof Error ? error.message : "Erro ao buscar cliente";
+      throw new Error(errorMessage);
     }
   }
 
@@ -266,56 +328,59 @@ class HotmartService {
   async updateCustomer(id: string, updateData: Partial<HotmartCustomer>): Promise<HotmartCustomer> {
     try {
       const response = await axios.put(
-        `${API_URL}/api/hotmart/customers/${id}`,
+        `${import.meta.env.VITE_API_URL || "https://aquecerapi.whatlead.com.br"}/api/hotmart/customers/${id}`,
         updateData,
         { headers: this.getAuthHeaders() }
       );
 
       return response.data.data;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Erro ao atualizar cliente:", error);
-      throw new Error(error.response?.data?.error || "Erro ao atualizar cliente");
+      const errorMessage = error instanceof Error ? error.message : "Erro ao atualizar cliente";
+      throw new Error(errorMessage);
     }
   }
 
   /**
    * Lista eventos de um cliente
    */
-  async getCustomerEvents(customerId: string, page = 1, limit = 20): Promise<any> {
+  async getCustomerEvents(customerId: string, page = 1, limit = 20): Promise<HotmartEventResponse> {
     try {
       const response = await axios.get(
-        `${API_URL}/api/hotmart/customers/${customerId}/events?page=${page}&limit=${limit}`,
+        `${import.meta.env.VITE_API_URL || "https://aquecerapi.whatlead.com.br"}/api/hotmart/customers/${customerId}/events?page=${page}&limit=${limit}`,
         { headers: this.getAuthHeaders() }
       );
 
       return response.data.data;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Erro ao buscar eventos do cliente:", error);
-      throw new Error(error.response?.data?.error || "Erro ao buscar eventos");
+      const errorMessage = error instanceof Error ? error.message : "Erro ao buscar eventos";
+      throw new Error(errorMessage);
     }
   }
 
   /**
    * Lista transações de um cliente
    */
-  async getCustomerTransactions(customerId: string, page = 1, limit = 20): Promise<any> {
+  async getCustomerTransactions(customerId: string, page = 1, limit = 20): Promise<HotmartTransactionResponse> {
     try {
       const response = await axios.get(
-        `${API_URL}/api/hotmart/customers/${customerId}/transactions?page=${page}&limit=${limit}`,
+        `${import.meta.env.VITE_API_URL || "https://aquecerapi.whatlead.com.br"}/api/hotmart/customers/${customerId}/transactions?page=${page}&limit=${limit}`,
         { headers: this.getAuthHeaders() }
       );
 
       return response.data.data;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Erro ao buscar transações do cliente:", error);
-      throw new Error(error.response?.data?.error || "Erro ao buscar transações");
+      const errorMessage = error instanceof Error ? error.message : "Erro ao buscar transações";
+      throw new Error(errorMessage);
     }
   }
 
   /**
    * Lista assinaturas da API da Hotmart
    */
-  async listSubscriptions(filters: any = {}): Promise<any> {
+  async listSubscriptions(filters: Record<string, unknown> = {}): Promise<HotmartSubscriptionResponse> {
     try {
       const params = new URLSearchParams();
       Object.entries(filters).forEach(([key, value]) => {
@@ -325,14 +390,15 @@ class HotmartService {
       });
 
       const response = await axios.get(
-        `${API_URL}/api/hotmart/subscriptions?${params.toString()}`,
+        `${import.meta.env.VITE_API_URL || "https://aquecerapi.whatlead.com.br"}/api/hotmart/subscriptions?${params.toString()}`,
         { headers: this.getAuthHeaders() }
       );
 
       return response.data.data;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Erro ao listar assinaturas:", error);
-      throw new Error(error.response?.data?.error || "Erro ao listar assinaturas");
+      const errorMessage = error instanceof Error ? error.message : "Erro ao listar assinaturas";
+      throw new Error(errorMessage);
     }
   }
 
@@ -342,68 +408,72 @@ class HotmartService {
   async getSubscriptionDetails(subscriberCode: string): Promise<HotmartSubscription> {
     try {
       const response = await axios.get(
-        `${API_URL}/api/hotmart/subscriptions/${subscriberCode}`,
+        `${import.meta.env.VITE_API_URL || "https://aquecerapi.whatlead.com.br"}/api/hotmart/subscriptions/${subscriberCode}`,
         { headers: this.getAuthHeaders() }
       );
 
       return response.data.data;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Erro ao buscar detalhes da assinatura:", error);
-      throw new Error(error.response?.data?.error || "Erro ao buscar detalhes da assinatura");
+      const errorMessage = error instanceof Error ? error.message : "Erro ao buscar detalhes da assinatura";
+      throw new Error(errorMessage);
     }
   }
 
   /**
    * Cancela uma assinatura
    */
-  async cancelSubscription(subscriberCode: string, sendEmail = true): Promise<any> {
+  async cancelSubscription(subscriberCode: string, sendEmail = true): Promise<Record<string, unknown>> {
     try {
       const response = await axios.post(
-        `${API_URL}/api/hotmart/subscriptions/${subscriberCode}/cancel`,
+        `${import.meta.env.VITE_API_URL || "https://aquecerapi.whatlead.com.br"}/api/hotmart/subscriptions/${subscriberCode}/cancel`,
         { sendEmail },
         { headers: this.getAuthHeaders() }
       );
 
       return response.data.data;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Erro ao cancelar assinatura:", error);
-      throw new Error(error.response?.data?.error || "Erro ao cancelar assinatura");
+      const errorMessage = error instanceof Error ? error.message : "Erro ao cancelar assinatura";
+      throw new Error(errorMessage);
     }
   }
 
   /**
    * Reativa uma assinatura
    */
-  async reactivateSubscription(subscriberCode: string, chargeNow = false): Promise<any> {
+  async reactivateSubscription(subscriberCode: string, chargeNow = false): Promise<Record<string, unknown>> {
     try {
       const response = await axios.post(
-        `${API_URL}/api/hotmart/subscriptions/${subscriberCode}/reactivate`,
+        `${import.meta.env.VITE_API_URL || "https://aquecerapi.whatlead.com.br"}/api/hotmart/subscriptions/${subscriberCode}/reactivate`,
         { chargeNow },
         { headers: this.getAuthHeaders() }
       );
 
       return response.data.data;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Erro ao reativar assinatura:", error);
-      throw new Error(error.response?.data?.error || "Erro ao reativar assinatura");
+      const errorMessage = error instanceof Error ? error.message : "Erro ao reativar assinatura";
+      throw new Error(errorMessage);
     }
   }
 
   /**
    * Sincroniza dados com a API da Hotmart
    */
-  async syncWithHotmart(): Promise<any> {
+  async syncWithHotmart(): Promise<HotmartSyncResponse> {
     try {
       const response = await axios.post(
-        `${API_URL}/api/hotmart/sync`,
+        `${import.meta.env.VITE_API_URL || "https://aquecerapi.whatlead.com.br"}/api/hotmart/sync`,
         {},
         { headers: this.getAuthHeaders() }
       );
 
       return response.data.data;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Erro na sincronização:", error);
-      throw new Error(error.response?.data?.error || "Erro na sincronização");
+      const errorMessage = error instanceof Error ? error.message : "Erro na sincronização";
+      throw new Error(errorMessage);
     }
   }
 
@@ -413,15 +483,16 @@ class HotmartService {
   async addCustomerNote(customerId: string, notes: string): Promise<HotmartCustomer> {
     try {
       const response = await axios.post(
-        `${API_URL}/api/hotmart/customers/${customerId}/notes`,
+        `${import.meta.env.VITE_API_URL || "https://aquecerapi.whatlead.com.br"}/api/hotmart/customers/${customerId}/notes`,
         { notes },
         { headers: this.getAuthHeaders() }
       );
 
       return response.data.data;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Erro ao adicionar nota:", error);
-      throw new Error(error.response?.data?.error || "Erro ao adicionar nota");
+      const errorMessage = error instanceof Error ? error.message : "Erro ao adicionar nota";
+      throw new Error(errorMessage);
     }
   }
 
@@ -431,15 +502,16 @@ class HotmartService {
   async addCustomerTags(customerId: string, tags: string[]): Promise<HotmartCustomer> {
     try {
       const response = await axios.post(
-        `${API_URL}/api/hotmart/customers/${customerId}/tags`,
+        `${import.meta.env.VITE_API_URL || "https://aquecerapi.whatlead.com.br"}/api/hotmart/customers/${customerId}/tags`,
         { tags },
         { headers: this.getAuthHeaders() }
       );
 
       return response.data.data;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Erro ao adicionar tags:", error);
-      throw new Error(error.response?.data?.error || "Erro ao adicionar tags");
+      const errorMessage = error instanceof Error ? error.message : "Erro ao adicionar tags";
+      throw new Error(errorMessage);
     }
   }
 
@@ -449,7 +521,7 @@ class HotmartService {
   async removeCustomerTags(customerId: string, tags: string[]): Promise<HotmartCustomer> {
     try {
       const response = await axios.delete(
-        `${API_URL}/api/hotmart/customers/${customerId}/tags`,
+        `${import.meta.env.VITE_API_URL || "https://aquecerapi.whatlead.com.br"}/api/hotmart/customers/${customerId}/tags`,
         {
           headers: this.getAuthHeaders(),
           data: { tags },
@@ -457,19 +529,20 @@ class HotmartService {
       );
 
       return response.data.data;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Erro ao remover tags:", error);
-      throw new Error(error.response?.data?.error || "Erro ao remover tags");
+      const errorMessage = error instanceof Error ? error.message : "Erro ao remover tags";
+      throw new Error(errorMessage);
     }
   }
 
   /**
    * Exporta dados dos clientes
    */
-  async exportCustomers(filters: any = {}, format = "csv"): Promise<string> {
+  async exportCustomers(filters: Record<string, unknown> = {}, format = "csv"): Promise<string> {
     try {
       const response = await axios.post(
-        `${API_URL}/api/hotmart/export?format=${format}`,
+        `${import.meta.env.VITE_API_URL || "https://aquecerapi.whatlead.com.br"}/api/hotmart/export?format=${format}`,
         filters,
         {
           headers: this.getAuthHeaders(),
@@ -478,16 +551,17 @@ class HotmartService {
       );
 
       return response.data;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Erro ao exportar clientes:", error);
-      throw new Error(error.response?.data?.error || "Erro ao exportar clientes");
+      const errorMessage = error instanceof Error ? error.message : "Erro ao exportar clientes";
+      throw new Error(errorMessage);
     }
   }
 
   /**
    * Gera relatório de análise
    */
-  async generateAnalyticsReport(params: any): Promise<any> {
+  async generateAnalyticsReport(params: Record<string, unknown>): Promise<HotmartAnalyticsResponse> {
     try {
       const queryParams = new URLSearchParams();
       Object.entries(params).forEach(([key, value]) => {
@@ -497,14 +571,15 @@ class HotmartService {
       });
 
       const response = await axios.get(
-        `${API_URL}/api/hotmart/analytics/report?${queryParams.toString()}`,
+        `${import.meta.env.VITE_API_URL || "https://aquecerapi.whatlead.com.br"}/api/hotmart/analytics/report?${queryParams.toString()}`,
         { headers: this.getAuthHeaders() }
       );
 
       return response.data.data;
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Erro ao gerar relatório:", error);
-      throw new Error(error.response?.data?.error || "Erro ao gerar relatório");
+      const errorMessage = error instanceof Error ? error.message : "Erro ao gerar relatório";
+      throw new Error(errorMessage);
     }
   }
 }
