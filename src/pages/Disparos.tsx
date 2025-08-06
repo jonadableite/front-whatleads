@@ -110,7 +110,7 @@ export default function Disparos() {
     async (campaignId: string, segment: string) => {
       try {
         const response = await api.get(
-          `/campaigns/${campaignId}/lead-count`,
+          `/api/campaigns/${campaignId}/lead-count`,
           {
             params: { segmentation: segment },
           },
@@ -468,7 +468,7 @@ export default function Disparos() {
   const refetchCampaign = async () => {
     try {
       const response = await api.get<Campaign>(
-        `/campaigns/${selectedCampaign}`,
+        `/api/campaigns/${selectedCampaign}`,
       );
       const updatedCampaign = response.data;
 
@@ -547,7 +547,7 @@ export default function Disparos() {
       }
 
       const startResponse = await api.post(
-        `/campaigns/${campaignId}/start`,
+        `/api/campaigns/${campaignId}/start`,
         payload,
       );
 
@@ -557,7 +557,7 @@ export default function Disparos() {
         formData.append('file', file);
 
         const importResponse = await api.post(
-          `/campaigns/${campaignId}/leads/import`,
+          `/api/campaigns/${campaignId}/leads/import`,
           formData,
           {
             headers: {
@@ -583,7 +583,7 @@ export default function Disparos() {
       // Verificar se existem leads na campanha
       console.log('Verificando leads existentes...');
       const campaignStats = await api.get(
-        `/campaigns/${campaignId}/stats`,
+        `/api/campaigns/${campaignId}/stats`,
       );
       if (!campaignStats.data.totalLeads) {
         throw new Error(
@@ -622,7 +622,7 @@ export default function Disparos() {
       const interval = setInterval(async () => {
         try {
           const response = await api.get(
-            `/campaigns/${campaignId}/progress`,
+            `/api/campaigns/${campaignId}/progress`,
           );
           const { status, statistics } = response.data.data;
 
