@@ -42,13 +42,13 @@ export interface ApiResponse<T = unknown> {
 export const leadsApi = {
 	// Método para buscar leads
 	fetchLeads: async () => {
-		const response = await api.get<LeadsResponse>("/leads");
+		const response = await api.get<LeadsResponse>("/api/leads");
 		return response.data;
 	},
 
 	// Método para buscar campanhas
 	fetchCampaigns: async () => {
-		const response = await api.get<ApiResponse>("/campaigns", {
+		const response = await api.get<ApiResponse>("/api/campaigns", {
 			params: {
 				status: ["draft", "active", "completed"],
 				sort: "createdAt:desc",
@@ -59,14 +59,14 @@ export const leadsApi = {
 
 	// Método para deletar lead
 	deleteLead: async (leadId: string) => {
-		const response = await api.delete<ApiResponse>(`/leads/${leadId}`);
+		const response = await api.delete<ApiResponse>(`/api/leads/${leadId}`);
 		return response.data;
 	},
 
 	// Método para atualizar lead
 	updateLead: async (leadId: string, data: Partial<Lead>) => {
 		const response = await api.put<ApiResponse<Lead>>(
-			`/leads/${leadId}`,
+			`/api/leads/${leadId}`,
 			data,
 		);
 		return response.data;
@@ -74,7 +74,7 @@ export const leadsApi = {
 
 	// Método para buscar plano do usuário
 	fetchUserPlan: async () => {
-		const response = await api.get<UserPlanResponse>("/users/plan");
+		const response = await api.get<UserPlanResponse>("/api/users/plan");
 		return response.data;
 	},
 
@@ -84,7 +84,7 @@ export const leadsApi = {
 		formData.append("file", file);
 
 		const response = await api.post<ApiResponse>(
-			`/campaigns/${campaignId}/leads/import`,
+			`/api/campaigns/${campaignId}/leads/import`,
 			formData,
 			{
 				headers: {
@@ -98,7 +98,7 @@ export const leadsApi = {
 
 	// Método para segmentar leads
 	segmentLeads: async (rules: SegmentationRule[]) => {
-		const response = await api.post<ApiResponse>("/leads/segment", {
+		const response = await api.post<ApiResponse>("/api/leads/segment", {
 			rules,
 		});
 		return response.data;

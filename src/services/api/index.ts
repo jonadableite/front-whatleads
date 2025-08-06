@@ -1,10 +1,10 @@
 import type { User } from "@/interface";
 // src/services/api/index.ts
-import { api } from "@/lib/api";
+import api from "@/lib/api";
 
 export const getAuthenticatedUser = async (): Promise<User | null> => {
   try {
-    const response = await api.main.get<User>("/user/me");
+    const response = await api.get<User>("/api/user/me");
     return response.data;
   } catch (error) {
     console.error("Erro ao buscar usuário autenticado:", error);
@@ -14,7 +14,7 @@ export const getAuthenticatedUser = async (): Promise<User | null> => {
 
 export const getFullCompanyUnities = async (companyId: string) => {
   try {
-    const response = await api.main.get(`/campaigns/${companyId}`);
+    const response = await api.get(`/api/campaigns/${companyId}`);
     return response.data;
   } catch (error) {
     console.error("Erro ao buscar dados da campanha:", error);
@@ -27,7 +27,7 @@ export const getCurrentUserCampaigns = async () => {
     const user = await getAuthenticatedUser();
     if (!user) return null;
 
-    const response = await api.main.get("/campaigns");
+    const response = await api.get("/api/campaigns");
     return response.data;
   } catch (error) {
     console.error("Erro ao buscar campanhas do usuário:", error);

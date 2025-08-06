@@ -9,7 +9,7 @@ export async function saveCreateLead(
 	dialog: any[],
 ) {
 	try {
-		const response = await api.post(`/leads`, {
+		const response = await api.post(`/api/leads`, {
 			name,
 			phone,
 			email,

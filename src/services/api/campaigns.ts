@@ -7,12 +7,12 @@ export const campaignsApi = {
 		(Campaign & { leads: CampaignLeads })[]
 	> => {
 		try {
-			const { data } = await api.get<Campaign[]>("/campaigns");
+			const { data } = await api.get<Campaign[]>("/api/campaigns");
 
 			// Buscar estatísticas em paralelo para todas as campanhas
 			const statsPromises = (Array.isArray(data) ? data : []).map((campaign) =>
 				api
-					.get(`/campaigns/${campaign.id}/stats`)
+					.get(`/api/campaigns/${campaign.id}/stats`)
 					.then((response) => ({
 						campaignId: campaign.id,
 						statistics: response.data,
@@ -42,7 +42,7 @@ export const campaignsApi = {
 
 	createCampaign: async (data: Partial<Campaign>): Promise<Campaign> => {
 		try {
-			const response = await api.post<Campaign>("/campaigns", data);
+			const response = await api.post<Campaign>("/api/campaigns", data);
 			return response.data;
 		} catch (error) {
 			console.error("Erro ao criar campanha:", error);
@@ -58,7 +58,7 @@ export const campaignsApi = {
 		data: Partial<Campaign>;
 	}): Promise<Campaign> => {
 		try {
-			const response = await api.put<Campaign>(`/campaigns/${id}`, data);
+			const response = await api.put<Campaign>(`/api/campaigns/${id}`, data);
 			return response.data;
 		} catch (error) {
 			console.error("Erro ao atualizar campanha:", error);
@@ -74,7 +74,7 @@ export const campaignsApi = {
 		data: Partial<Campaign>;
 	}): Promise<Campaign> => {
 		try {
-			const response = await api.put<Campaign>(`/campaigns/${id}`, data);
+			const response = await api.put<Campaign>(`/api/campaigns/${id}`, data);
 			return response.data;
 		} catch (error) {
 			console.error("Erro ao atualizar bot:", error);
@@ -84,7 +84,7 @@ export const campaignsApi = {
 
 	deleteCampaign: async (id: string): Promise<void> => {
 		try {
-			await api.delete(`/campaigns/${id}`);
+			await api.delete(`/api/campaigns/${id}`);
 		} catch (error) {
 			console.error("Erro ao excluir campanha:", error);
 			throw error;
@@ -93,7 +93,7 @@ export const campaignsApi = {
 
 	startCampaign: async (id: string): Promise<void> => {
 		try {
-			await api.post(`/campaigns/${id}/start`);
+			await api.post(`/api/campaigns/${id}/start`);
 		} catch (error) {
 			console.error("Erro ao iniciar campanha:", error);
 			throw error;
@@ -102,7 +102,7 @@ export const campaignsApi = {
 
 	pauseCampaign: async (id: string): Promise<void> => {
 		try {
-			await api.post(`/campaigns/${id}/pause`);
+			await api.post(`/api/campaigns/${id}/pause`);
 		} catch (error) {
 			console.error("Erro ao pausar campanha:", error);
 			throw error;
@@ -111,7 +111,7 @@ export const campaignsApi = {
 
 	stopCampaign: async (id: string): Promise<void> => {
 		try {
-			await api.post(`/campaigns/${id}/stop`);
+			await api.post(`/api/campaigns/${id}/stop`);
 		} catch (error) {
 			console.error("Erro ao parar campanha:", error);
 			throw error;
@@ -127,7 +127,7 @@ export const campaignsApi = {
 			formData.append("file", file);
 
 			const response = await api.post(
-				`/campaigns/${campaignId}/leads/import`,
+				`/api/campaigns/${campaignId}/leads/import`,
 				formData,
 				{
 					headers: {
