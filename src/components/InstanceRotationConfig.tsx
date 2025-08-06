@@ -80,7 +80,7 @@ export const InstanceRotationConfig: React.FC<
       try {
         setIsLoading(true);
         const response = await api.get(
-          '/campaigns/instances/available',
+          '/api/campaigns/instances/available',
         );
 
         // Processar dados de warmup para cada instância
@@ -129,7 +129,7 @@ export const InstanceRotationConfig: React.FC<
 
       try {
         const response = await api.get(
-          `/campaigns/${campaignId}/instances/stats`,
+          `/api/campaigns/${campaignId}/instances/stats`,
         );
         const stats = response.data.data;
         setCampaignStats(stats);
@@ -179,7 +179,7 @@ export const InstanceRotationConfig: React.FC<
           )
           .map((inst) => inst.id);
 
-        await api.post(`/campaigns/${campaignId}/instances`, {
+        await api.post(`/api/campaigns/${campaignId}/instances`, {
           instanceIds,
           useRotation: true,
           rotationStrategy,
@@ -213,7 +213,7 @@ export const InstanceRotationConfig: React.FC<
           )
           .map((inst) => inst.id);
 
-        await api.delete(`/campaigns/${campaignId}/instances`, {
+        await api.delete(`/api/campaigns/${campaignId}/instances`, {
           data: { instanceIds },
         });
 
@@ -245,7 +245,7 @@ export const InstanceRotationConfig: React.FC<
         if (!instance) return;
 
         await api.patch(
-          `/campaigns/${campaignId}/instances/toggle`,
+          `/api/campaigns/${campaignId}/instances/toggle`,
           {
             instanceId: instance.id,
             isActive,
@@ -268,7 +268,7 @@ export const InstanceRotationConfig: React.FC<
     // Resetar contadores
     const handleResetCounters = async () => {
       try {
-        await api.post(`/campaigns/${campaignId}/instances/reset`);
+        await api.post(`/api/campaigns/${campaignId}/instances/reset`);
         toast.success('Contadores resetados com sucesso');
         await loadCampaignStats();
       } catch (error: unknown) {
