@@ -1221,7 +1221,7 @@ const Campanhas: React.FC = () => {
           <div className="flex justify-center gap-4">
             <Button
               onClick={handleNewCampaign}
-              className="bg-neon-green text-deep hover:bg-neon-green/80"
+              className="bg-neon-green text-white hover:bg-neon-green/80"
               size="lg"
             >
               <FiPlus className="mr-2" />
@@ -1230,7 +1230,7 @@ const Campanhas: React.FC = () => {
             <Button
               variant="outline"
               onClick={handleImportLeads}
-              className="border-electric hover:bg-electric/20"
+              className="border-electric text-white hover:bg-electric/20"
               size="lg"
             >
               <FiUpload className="mr-2" />
@@ -1396,7 +1396,7 @@ const Campanhas: React.FC = () => {
               <Button
                 variant="outline"
                 onClick={() => setIsImportModalOpen(true)}
-                className="bg-deep/50 border-electric hover:bg-electric/20"
+                className="bg-deep/50 text-white border-electric hover:bg-electric/20"
               >
                 <FiUpload className="mr-2" /> Importar Leads
               </Button>
@@ -1413,7 +1413,7 @@ const Campanhas: React.FC = () => {
 
               <Button
                 onClick={() => setIsModalOpen(true)}
-                className="bg-neon-green text-deep hover:bg-neon-green/80"
+                className="bg-neon-green text-white hover:bg-neon-green/80"
               >
                 <FiPlus className="mr-2" /> Nova Campanha
               </Button>
