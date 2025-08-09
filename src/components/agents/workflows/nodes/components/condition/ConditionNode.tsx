@@ -26,8 +26,8 @@
 │ who changed it and the date of modification.                                 │
 └──────────────────────────────────────────────────────────────────────────────┘
 */
-/* eslint-disable no-unused-vars */
-/* eslint-disable @typescript-eslint/no-explicit-any */
+ 
+ 
 import { Handle, Node, NodeProps, Position, useEdges } from "@xyflow/react";
 import { FilterIcon } from "lucide-react";
 

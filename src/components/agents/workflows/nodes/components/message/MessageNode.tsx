@@ -26,8 +26,8 @@
 │ who changed it and the date of modification.                                 │
 └──────────────────────────────────────────────────────────────────────────────┘
 */
-/* eslint-disable no-unused-vars */
-/* eslint-disable @typescript-eslint/no-explicit-any */
+ 
+ 
 import { Handle, NodeProps, Position, useEdges } from "@xyflow/react";
 import { MessageCircle, User } from "lucide-react";
 import { MessageType } from "../../nodeFunctions";

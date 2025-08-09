@@ -22,7 +22,7 @@ import type {
   EmptyStateProps,
   StatsCardProps,
 } from '@/interface';
-import { api } from '@/lib/api';
+import api from '@/lib/api';
 import {
   Dialog,
   DialogClose,
@@ -114,13 +114,13 @@ const fetchCampaigns = async (): Promise<
   (Campaign & { leads: CampaignLeads })[]
 > => {
   try {
-    const { data } = await api.main.get<Campaign[]>('/campaigns');
+    const { data } = await api.get<Campaign[]>('/api/campaigns');
 
     // Buscar estatísticas em paralelo para todas as campanhas
     const statsPromises = (Array.isArray(data) ? data : []).map(
       (campaign) =>
-        api.main
-          .get(`/campaigns/${campaign.id}/stats`)
+        api
+          .get(`/api/campaigns/${campaign.id}/stats`)
           .then((response) => ({
             campaignId: campaign.id,
             statistics: response.data,
@@ -479,7 +479,7 @@ const Campanhas: React.FC = () => {
 
   const startCampaign = useMutation({
     mutationFn: async (id: string) => {
-      const response = await api.main.post(`/campaigns/${id}/start`);
+      const response = await api.post(`/api/campaigns/${id}/start`);
       // Forçar refetch imediato após iniciar
       await refetch();
       return response;
@@ -488,21 +488,21 @@ const Campanhas: React.FC = () => {
 
   const pauseCampaign = useMutation({
     mutationFn: (id: string) =>
-      api.main.post(`/campaigns/${id}/pause`),
+      api.post(`/api/campaigns/${id}/pause`),
   });
 
   const stopCampaign = useMutation({
     mutationFn: (id: string) =>
-      api.main.post(`/campaigns/${id}/stop`),
+      api.post(`/api/campaigns/${id}/stop`),
   });
 
   const deleteCampaign = useMutation({
-    mutationFn: (id: string) => api.main.delete(`/campaigns/${id}`),
+    mutationFn: (id: string) => api.delete(`/api/campaigns/${id}`),
   });
 
   const createCampaign = useMutation({
     mutationFn: (data: Partial<Campaign>) =>
-      api.main.post('/campaigns', data),
+      api.post('/campaigns', data),
     onSuccess: () => {
       toast.success('Campanha criada com sucesso!');
       refetch();
@@ -519,7 +519,7 @@ const Campanhas: React.FC = () => {
     }: {
       id: string;
       data: Partial<Campaign>;
-    }) => api.main.put(`/campaigns/${id}`, data),
+    }) => api.put(`/api/campaigns/${id}`, data),
     onSuccess: () => {
       toast.success('Campanha atualizada com sucesso!');
       refetch();
@@ -546,8 +546,8 @@ const Campanhas: React.FC = () => {
       const formData = new FormData();
       formData.append('file', file);
 
-      const response = await api.main.post(
-        `/campaigns/${campaignId}/leads/import`,
+      const response = await api.post(
+        `/api/campaigns/${campaignId}/leads/import`,
         formData,
         {
           headers: {
@@ -602,10 +602,9 @@ const Campanhas: React.FC = () => {
       await refetch();
 
       toast.success(
-        `Campanha ${
-          action === 'start'
-            ? 'iniciada'
-            : action === 'pause'
+        `Campanha ${action === 'start'
+          ? 'iniciada'
+          : action === 'pause'
             ? 'pausada'
             : 'parada'
         } com sucesso!`,
@@ -703,9 +702,8 @@ const Campanhas: React.FC = () => {
       {trend && (
         <div className="mt-4 flex items-center gap-2">
           <span
-            className={`text-sm ${
-              trend > 0 ? 'text-green-400' : 'text-red-400'
-            }`}
+            className={`text-sm ${trend > 0 ? 'text-green-400' : 'text-red-400'
+              }`}
           >
             {trend > 0 ? '+' : ''}
             {trend}%

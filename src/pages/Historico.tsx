@@ -1,8 +1,9 @@
+/* eslint-disable react-hooks/rules-of-hooks */
 // @ts-nocheck
 
 import { InputWithIcon } from "@/components/ui/input-with-icon";
 import { Select } from "@/components/ui/select";
-import { api } from "@/lib/api";
+import api from "@/lib/api";
 import { useQuery } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "framer-motion";
 import { useMemo, useState } from "react";
@@ -64,10 +65,9 @@ const SyncButton: React.FC<{ onClick: () => void; loading: boolean }> = ({
         flex items-center gap-2 px-4 py-2
         rounded-lg text-sm font-medium
         transition-all duration-300
-        ${
-					loading
-						? "bg-gradient-to-r from-neon-green/20 to-neon-green/10"
-						: "bg-gradient-to-r from-neon-green/10 to-neon-green/5 hover:from-neon-green/20 hover:to-neon-green/10"
+        ${loading
+					? "bg-gradient-to-r from-neon-green/20 to-neon-green/10"
+					: "bg-gradient-to-r from-neon-green/10 to-neon-green/5 hover:from-neon-green/20 hover:to-neon-green/10"
 				}
         border border-deep/30
         text-whatsapp-eletrico
@@ -160,8 +160,8 @@ const Historico: React.FC = () => {
 		queryFn: async () => {
 			try {
 				console.log("Buscando dispatches para campanha:", campaignId);
-				const response = await api.main.get(
-					`/campaigns/${campaignId}/dispatches`,
+				const response = await api.get(
+					`/api/campaigns/${campaignId}/dispatches`,
 				);
 				console.log("Resposta da API:", response.data);
 				return response.data;
@@ -202,9 +202,9 @@ const Historico: React.FC = () => {
 		return dispatches.filter((dispatch) => {
 			const searchMatch = searchTerm
 				? dispatch.instanceName
-						.toLowerCase()
-						.includes(searchTerm.toLowerCase()) ||
-					dispatch.id.toLowerCase().includes(searchTerm.toLowerCase())
+					.toLowerCase()
+					.includes(searchTerm.toLowerCase()) ||
+				dispatch.id.toLowerCase().includes(searchTerm.toLowerCase())
 				: true;
 
 			const instanceMatch = instanceFilter
@@ -213,7 +213,7 @@ const Historico: React.FC = () => {
 
 			const dateMatch = dateFilter
 				? new Date(dispatch.createdAt).toDateString() ===
-					new Date(dateFilter).toDateString()
+				new Date(dateFilter).toDateString()
 				: true;
 
 			return searchMatch && instanceMatch && dateMatch;

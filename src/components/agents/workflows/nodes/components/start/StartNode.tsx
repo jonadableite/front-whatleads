@@ -26,7 +26,7 @@
 │ who changed it and the date of modification.                                 │
 └──────────────────────────────────────────────────────────────────────────────┘
 */
-/* eslint-disable @typescript-eslint/no-explicit-any */
+ 
 import { Handle, Node, NodeProps, Position, useEdges } from "@xyflow/react";
 import { Zap } from "lucide-react";
 

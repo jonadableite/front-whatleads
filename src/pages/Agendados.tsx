@@ -8,7 +8,7 @@ import type {
 	LoadingStateProps,
 	StatsCardProps,
 } from "@/interface";
-import { api } from "@/lib/api";
+import api from "@/lib/api";
 import { useMutation, useQuery } from "@tanstack/react-query";
 import { AnimatePresence, motion } from "framer-motion";
 import React, { useMemo, useState } from "react";
@@ -154,7 +154,7 @@ const Agendados = () => {
 		queryKey: ["scheduled-campaigns"],
 		queryFn: async () => {
 			console.log("Buscando agendamentos...");
-			const response = await api.main.get("/scheduler/scheduled");
+			const response = await api.get("/scheduler/scheduled");
 			console.log("Resposta da busca:", response.data);
 			return response.data;
 		},
@@ -177,7 +177,7 @@ const Agendados = () => {
 	}, [scheduledCampaigns, searchTerm, statusFilter]);
 
 	const cancelCampaign = useMutation({
-		mutationFn: (id: string) => api.main.post(`/campaigns/${id}/cancel`),
+		mutationFn: (id: string) => api.post(`/campaigns/${id}/cancel`),
 		onSuccess: () => {
 			toast.success("Campanha cancelada com sucesso!");
 			refetch();
@@ -197,7 +197,7 @@ const Agendados = () => {
 		}: {
 			id: string;
 			data: Partial<ScheduledCampaign>;
-		}) => api.main.patch(`/campaigns/${id}`, data),
+		}) => api.patch(`/campaigns/${id}`, data),
 		onSuccess: () => {
 			toast.success("Campanha atualizada com sucesso!");
 			refetch();

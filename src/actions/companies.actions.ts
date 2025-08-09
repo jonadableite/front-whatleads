@@ -1,13 +1,13 @@
 // src/actions/companies.actions.ts
-import { api } from "@/lib/api";
+import api from "@/lib/api";
 import type { Empresa } from "@/types";
 
 export const getCompaniesAction = async (): Promise<Empresa[]> => {
 	try {
-		const { data } = await api.main.get<Empresa[]>("/companies");
+		const { data } = await api.get<Empresa[]>("/api/companies");
 		return data || [];
 	} catch (error) {
-		console.error("Error fetching companies:", error);
+		console.error("Erro ao buscar empresas:", error);
 		return [];
 	}
 };
