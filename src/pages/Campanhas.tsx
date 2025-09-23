@@ -37,7 +37,6 @@ import {
   FiBarChart2,
   FiDownload,
   FiEdit2,
-  FiExternalLink,
   FiFileText,
   FiPlay,
   FiPlus,
@@ -86,7 +85,7 @@ const cardVariants = {
 };
 
 const normalizeCampaignData = (
-  campaign: any,
+  campaign: Campaign & { statistics?: { totalLeads: number; sentCount: number; deliveredCount: number; readCount: number; failedCount: number } },
 ): Campaign & { leads: CampaignLeads } => {
   const stats = campaign.statistics || {
     totalLeads: 0,
@@ -221,203 +220,7 @@ const YouTubeModal: React.FC<{
   );
 };
 
-// Componente para a seção de ajuda
-const HelpSection: React.FC = () => {
-  const [isVideoModalOpen, setIsVideoModalOpen] = useState(false);
-  const YOUTUBE_VIDEO_ID = '_IHj4V594Ho'; // Substitua pelo ID do seu vídeo
 
-  // Função para baixar arquivo Exceal de exemplo
-  const downloadExcelTemplate = () => {
-    try {
-      // Criar dados de exemplo para o Excel (formato correto CSV)
-      const exampleData = [
-        ['Nome', 'Telefone'],
-        ['WhatLead', '5512988444921'],
-        ['João Silva', '11999999999'],
-        ['Maria Santos', '11888888888'],
-        ['Carlos Oliveira', '11777777777'],
-      ];
-
-      // Converter para CSV (separado por vírgula)
-      const csvContent = exampleData
-        .map((row) => row.join(','))
-        .join('\n');
-
-      const blob = new Blob([csvContent], {
-        type: 'text/csv;charset=utf-8;',
-      });
-
-      const link = document.createElement('a');
-
-      if (link.download !== undefined) {
-        const url = URL.createObjectURL(blob);
-        link.setAttribute('href', url);
-        link.setAttribute('download', 'template_leads_exemplo.csv');
-        link.style.visibility = 'hidden';
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-      }
-
-      toast.success('Template baixado com sucesso!');
-    } catch (error) {
-      toast.error('Erro ao baixar template');
-    }
-  };
-
-  // Função para baixar planilha para tratamento
-  const downloadProcessingTemplate = async () => {
-    try {
-      const fileUrl =
-        'https://minioapi.whatlead.com.br:443/lucas/1753721776095-tratar_base.xlsx';
-      const fileName = 'planilha_tratamento_leads.xlsx';
-
-      // Fazer fetch do arquivo
-      const response = await fetch(fileUrl);
-
-      if (!response.ok) {
-        throw new Error('Arquivo não encontrado');
-      }
-
-      // Converter para blob
-      const blob = await response.blob();
-
-      // Criar URL do blob
-      const url = window.URL.createObjectURL(blob);
-
-      // Criar link de download
-      const link = document.createElement('a');
-      link.href = url;
-      link.download = fileName;
-      link.style.visibility = 'hidden';
-
-      document.body.appendChild(link);
-      link.click();
-      document.body.removeChild(link);
-
-      // Limpar URL do blob
-      window.URL.revokeObjectURL(url);
-
-      toast.success('Planilha de tratamento baixada!');
-    } catch (error) {
-      console.error('Erro ao baixar planilha:', error);
-      toast.error('Erro ao baixar planilha - verifique sua conexão');
-    }
-  };
-
-  return (
-    <motion.div
-      initial={{ opacity: 0, y: 20 }}
-      animate={{ opacity: 1, y: 0 }}
-      className="bg-deep/30 border border-electric/20 rounded-xl p-6 space-y-6"
-    >
-      <div className="flex items-center gap-3 mb-6">
-        <div className="p-3 bg-electric/20 rounded-lg">
-          <FiFileText className="w-6 h-6 text-electric" />
-        </div>
-        <div>
-          <h3 className="text-xl font-bold text-white">
-            Centro de Ajuda
-          </h3>
-          <p className="text-white/60">
-            Ferramentas para preparar e importar seus leads
-          </p>
-        </div>
-      </div>
-
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        {/* Botão para baixar template de exemplo */}
-        <motion.div
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-        >
-          <Button
-            onClick={downloadExcelTemplate}
-            className="w-full h-auto p-4 bg-blue-500/20 hover:bg-blue-500/30 border border-blue-500/30 text-white flex flex-col items-center gap-3"
-          >
-            <FiDownload className="w-8 h-8 text-blue-400" />
-            <div className="text-center">
-              <p className="font-semibold">Template de Exemplo</p>
-              <p className="text-sm text-white/60">
-                Baixe um CSV com exemplos de como estruturar seus
-                leads
-              </p>
-            </div>
-          </Button>
-        </motion.div>
-
-        {/* Botão para baixar planilha de tratamento */}
-        <motion.div
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-        >
-          <Button
-            onClick={downloadProcessingTemplate}
-            className="w-full h-auto p-4 bg-green-500/20 hover:bg-green-500/30 border border-green-500/30 text-white flex flex-col items-center gap-3"
-          >
-            <FiFileText className="w-8 h-8 text-green-400" />
-            <div className="text-center">
-              <p className="font-semibold">Planilha de Tratamento</p>
-              <p className="text-sm text-white/60">
-                Baixe uma planilha para organizar e tratar sua base
-              </p>
-            </div>
-          </Button>
-        </motion.div>
-
-        {/* Botão para abrir vídeo tutorial */}
-        <motion.div
-          whileHover={{ scale: 1.02 }}
-          whileTap={{ scale: 0.98 }}
-        >
-          <Button
-            onClick={() => setIsVideoModalOpen(true)}
-            className="w-full h-auto p-4 bg-red-500/20 hover:bg-red-500/30 border border-red-500/30 text-white flex flex-col items-center gap-3"
-          >
-            <FiVideo className="w-8 h-8 text-red-400" />
-            <div className="text-center">
-              <p className="font-semibold">Tutorial em Vídeo</p>
-              <p className="text-sm text-white/60">
-                Assista como preparar e importar seus leads
-              </p>
-            </div>
-            <FiExternalLink className="w-4 h-4 text-white/40" />
-          </Button>
-        </motion.div>
-      </div>
-
-      {/* Dicas rápidas */}
-      <div className="bg-deep/50 rounded-lg p-4 border border-electric/10">
-        <h4 className="font-semibold text-white mb-3 flex items-center gap-2">
-          <div className="w-2 h-2 bg-electric rounded-full" />
-          Dicas Rápidas
-        </h4>
-        <ul className="space-y-2 text-sm text-white/70">
-          <li className="flex items-start gap-2">
-            <span className="text-electric">•</span>
-            Certifique-se de que os telefones estejam no formato (11)
-            99999-9999
-          </li>
-          <li className="flex items-start gap-2">
-            <span className="text-electric">•</span>
-            Remova caracteres especiais dos nomes e empresas
-          </li>
-          <li className="flex items-start gap-2">
-            <span className="text-electric">•</span>
-            Verifique se todos os emails estão válidos
-          </li>
-        </ul>
-      </div>
-
-      {/* Modal do YouTube */}
-      <YouTubeModal
-        isOpen={isVideoModalOpen}
-        onClose={() => setIsVideoModalOpen(false)}
-        videoId={YOUTUBE_VIDEO_ID}
-      />
-    </motion.div>
-  );
-};
 
 const Campanhas: React.FC = () => {
   const [searchTerm, setSearchTerm] = useState('');
@@ -455,7 +258,7 @@ const Campanhas: React.FC = () => {
       }
       return false;
     },
-    // @ts-ignore
+    // @ts-expect-error - Legacy query error handling
     onError: (err: Error) => {
       console.error('Erro na query:', err);
       setError(
@@ -502,7 +305,7 @@ const Campanhas: React.FC = () => {
 
   const createCampaign = useMutation({
     mutationFn: (data: Partial<Campaign>) =>
-      api.post('/campaigns', data),
+      api.post('/api/campaigns', data),
     onSuccess: () => {
       toast.success('Campanha criada com sucesso!');
       refetch();
@@ -977,7 +780,7 @@ const Campanhas: React.FC = () => {
         }
 
         toast.success('Modelo exemplo baixado com sucesso!');
-      } catch (error) {
+      } catch {
         toast.error('Erro ao baixar modelo exemplo');
       }
     };
@@ -1089,16 +892,7 @@ const Campanhas: React.FC = () => {
     );
   };
 
-  const LoadingState: React.FC = () => (
-    <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      className="flex justify-center items-center h-64"
-    >
-      <div className="loader ease-linear rounded-full border-8 border-t-8 border-gray-200 h-32 w-32" />
-    </motion.div>
-  );
+
 
   const EmptyState: React.FC<EmptyStateProps> = ({
     searchTerm,
