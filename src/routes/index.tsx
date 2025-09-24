@@ -8,6 +8,7 @@ import Campanhas from '@/pages/Campanhas';
 import CheckoutPage from '@/pages/CheckoutPage';
 import Dashboard from '@/pages/Dashboard';
 import Disparos from '@/pages/Disparos';
+import Documentation from '@/pages/Documentation';
 import ErrorPage from '@/pages/ErrorPage';
 import Login from '@/pages/Login';
 import PaymentSuccess from '@/pages/PaymentSuccess';
@@ -110,6 +111,10 @@ const router = createBrowserRouter([
           {
             path: '/chat',
             element: <Chat />,
+          },
+          {
+            path: '/documentacao',
+            element: <Documentation />,
           },
         ],
       },

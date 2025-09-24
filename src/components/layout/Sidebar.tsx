@@ -79,6 +79,11 @@ const sidebarItems: SidebarItem[] = [
     path: '/AgenteIA',
   },
   {
+    title: 'Documentação',
+    icon: <FileText className="w-5 h-5" />,
+    path: '/documentacao',
+  },
+  {
     title: 'Aquecimento',
     icon: <Flame className="w-5 h-5" />,
     path: 'https://aquecer.whatlead.com.br',
@@ -181,11 +186,11 @@ export function Sidebar() {
 
             // Lógica para renderizar <a> para links externos e <Link> para internos
             const LinkComponent = item.isExternal ? 'a' : Link;
-            const linkProps: any = item.isExternal
+            const linkProps = item.isExternal
               ? {
                   href: item.path,
-                  target: '_blank',
-                  rel: 'noopener noreferrer',
+                  target: '_blank' as const,
+                  rel: 'noopener noreferrer' as const,
                 }
               : { to: item.path };
 
