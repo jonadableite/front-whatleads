@@ -581,38 +581,56 @@ export default function Disparos() {
       // Adicione um delay pequeno para garantir que os leads foram processados
       await new Promise((resolve) => setTimeout(resolve, 1000));
 
-      // Verificar se existem leads na campanha
-      console.log('Verificando leads existentes...');
-      const campaignStats = await api.get(
-        `/api/campaigns/${campaignId}/stats`,
-      );
-      if (!campaignStats.data.totalLeads) {
-        throw new Error(
-          'Não há leads disponíveis para disparo nesta campanha',
+      // Verificar se existem leads na campanha apenas se for um novo disparo
+      if (dispatchMode === 'new') {
+        console.log('Verificando leads existentes...');
+        const campaignStats = await api.get(
+          `/api/campaigns/${campaignId}/stats`,
+        );
+        if (!campaignStats.data.totalLeads) {
+          throw new Error(
+            'Não há leads disponíveis para disparo nesta campanha',
+          );
+        }
+        console.log(
+          'Total de leads na campanha:',
+          campaignStats.data.totalLeads,
         );
       }
-      console.log(
-        'Total de leads na campanha:',
-        campaignStats.data.totalLeads,
-      );
 
-      if (startResponse.data.success) {
+      // Verificar se a resposta da API indica sucesso
+      if (startResponse.data && (startResponse.data.success === true || startResponse.status === 200 || startResponse.status === 201)) {
         startProgressMonitoring(campaignId);
         toast.success('Campanha iniciada com sucesso!');
       } else {
-        throw new Error(
-          startResponse.data.message || 'Erro ao iniciar campanha',
-        );
+        // Só mostrar erro se realmente houver um erro na resposta
+        const errorMessage = startResponse.data?.message || startResponse.data?.error;
+        if (errorMessage) {
+          throw new Error(errorMessage);
+        } else {
+          // Se não há mensagem de erro específica, considerar como sucesso
+          startProgressMonitoring(campaignId);
+          toast.success('Campanha iniciada com sucesso!');
+        }
       }
     } catch (error) {
       console.error('Erro ao iniciar campanha:', error);
-      toast.error(
-        error instanceof Error
-          ? error.message
-          : 'Erro ao iniciar campanha',
-      );
-      setIsModalOpen(false);
-      setCampaignStatus(null);
+      
+      // Verificar se é realmente um erro ou apenas uma resposta sem o campo success
+      if (error.response && error.response.status >= 200 && error.response.status < 300) {
+        // Se o status HTTP indica sucesso, tratar como sucesso mesmo sem o campo success
+        startProgressMonitoring(campaignId);
+        toast.success('Campanha iniciada com sucesso!');
+      } else {
+        // Só mostrar erro se for realmente um erro
+        toast.error(
+          error instanceof Error
+            ? error.message
+            : 'Erro ao iniciar campanha',
+        );
+        setIsModalOpen(false);
+        setCampaignStatus(null);
+      }
     } finally {
       setIsStarting(false);
     }

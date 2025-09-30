@@ -17,7 +17,8 @@ import type React from "react";
 import { useCallback, useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import { CheckoutForm } from "../components/CheckoutForm";
-import { stripePromise } from "../lib/stripe-client";
+import { AdblockerWarning } from "../components/AdblockerWarning";
+import { stripePromise, checkStripeAvailability } from "../lib/stripe-client";
 
 const containerVariants = {
 	hidden: { opacity: 0 },
@@ -53,10 +54,13 @@ const CheckoutPage: React.FC = () => {
 	const [billingCycle, setBillingCycle] = useState<string | null>(null);
 	const [clientSecret, setClientSecret] = useState<string | null>(null);
 	const [plan, setPlan] = useState<string | null>(null);
+	const [priceId, setPriceId] = useState<string>("");
+	const [stripeBlocked, setStripeBlocked] = useState<boolean>(false);
 
-	const fetchClientSecret = useCallback(async (priceId: string) => {
+	const fetchClientSecret = useCallback(async () => {
 		setLoading(true);
 		setError(null);
+
 		try {
 			if (!authService.isAuthenticated()) {
 				throw new Error(
@@ -104,10 +108,28 @@ const CheckoutPage: React.FC = () => {
 			}
 		} catch (err: any) {
 			console.error("Erro ao buscar clientSecret:", err);
-			setError(err.message || "Erro desconhecido ao processar o pagamento");
+			
+			// Verifica se o erro pode estar relacionado a problemas de rede/adblocker
+			let errorMessage = err.message || "Erro desconhecido ao processar o pagamento";
+			
+			if (err.message?.includes('fetch') || err.message?.includes('network') || err.message?.includes('blocked')) {
+				errorMessage += ". Se você estiver usando um adblocker, tente desativá-lo temporariamente.";
+			}
+			
+			setError(errorMessage);
 		} finally {
 			setLoading(false);
 		}
+	}, []);
+
+	// Verificar se o Stripe está disponível (não bloqueado por adblocker)
+	useEffect(() => {
+		const checkStripe = async () => {
+			const isBlocked = await checkStripeAvailability();
+			setStripeBlocked(isBlocked);
+		};
+		
+		checkStripe();
 	}, []);
 
 	useEffect(() => {
@@ -118,7 +140,7 @@ const CheckoutPage: React.FC = () => {
 
 		const {
 			plan: statePlan,
-			priceId,
+			priceId: statePriceId,
 			price: planPrice,
 			billingCycle: planBillingCycle,
 		} = location.state as {
@@ -131,13 +153,14 @@ const CheckoutPage: React.FC = () => {
 		setPlan(statePlan);
 		setPrice(planPrice);
 		setBillingCycle(planBillingCycle);
+		setPriceId(statePriceId);
 
-		if (!statePlan || !priceId) {
+		if (!statePlan || !statePriceId) {
 			setError("Plano inválido");
 			return;
 		}
 
-		fetchClientSecret(priceId);
+		fetchClientSecret();
 	}, [location.state, fetchClientSecret]);
 
 	const getPlanDetails = () => {
@@ -228,7 +251,20 @@ const CheckoutPage: React.FC = () => {
 				</div>
 
 				<AnimatePresence mode="wait">
-					{loading ? (
+					{stripeBlocked ? (
+						<motion.div
+							key="adblocker-warning"
+							initial={{ opacity: 0, scale: 0.9 }}
+							animate={{ opacity: 1, scale: 1 }}
+							exit={{ opacity: 0, scale: 0.9 }}
+							className="relative overflow-hidden rounded-2xl backdrop-blur-xl"
+						>
+							<AdblockerWarning 
+								onRetry={() => window.location.reload()} 
+								className="bg-yellow-500/10 border-yellow-500/30"
+							/>
+						</motion.div>
+					) : loading ? (
 						<motion.div
 							key="loading"
 							initial={{ opacity: 0 }}

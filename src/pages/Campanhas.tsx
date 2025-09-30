@@ -388,32 +388,41 @@ const Campanhas: React.FC = () => {
   ) => {
     try {
       if (action === 'start') {
+        // Mostrar toast de início imediato
+        toast.success('Campanha iniciada! O processamento está em andamento...');
+        
         await startCampaign.mutateAsync(id);
-        // Iniciar polling mais frequente
+        
+        // Iniciar polling mais frequente para acompanhar o progresso
         const pollInterval = setInterval(() => {
           refetch();
         }, 2000);
 
-        // Limpar polling após 30 segundos
+        // Limpar polling após 60 segundos (aumentado para acompanhar melhor)
         setTimeout(() => {
           clearInterval(pollInterval);
-        }, 30000);
+        }, 60000);
       }
-      if (action === 'pause') await pauseCampaign.mutateAsync(id);
-      if (action === 'stop') await stopCampaign.mutateAsync(id);
+      if (action === 'pause') {
+        await pauseCampaign.mutateAsync(id);
+        toast.success('Campanha pausada com sucesso!');
+      }
+      if (action === 'stop') {
+        await stopCampaign.mutateAsync(id);
+        toast.success('Campanha parada com sucesso!');
+      }
 
       await refetch();
 
-      toast.success(
-        `Campanha ${action === 'start'
-          ? 'iniciada'
-          : action === 'pause'
-            ? 'pausada'
-            : 'parada'
-        } com sucesso!`,
-      );
-    } catch {
-      toast.error('Erro ao executar ação na campanha');
+    } catch (error: any) {
+      // Melhor tratamento de erros com mensagens específicas
+      const errorMessage = error?.message || error?.response?.data?.error || 'Erro ao executar ação na campanha';
+      
+      if (errorMessage.includes('Tempo limite')) {
+        toast.error('A operação está demorando mais que o esperado. Verifique o status da campanha em alguns instantes.');
+      } else {
+        toast.error(errorMessage);
+      }
     }
   };
 

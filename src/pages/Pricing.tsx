@@ -14,6 +14,8 @@ import { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { ToastContainer, toast } from 'react-toastify';
 import 'react-toastify/dist/ReactToastify.css';
+import { AdblockerWarning } from "../components/AdblockerWarning";
+import { checkStripeAvailability } from "../lib/stripe-client";
 
 // Configuração do Stripe (substitua com seus próprios valores)
 const STRIPE_CONFIG = {
@@ -135,6 +137,7 @@ const PricingPage: React.FC = () => {
     'monthly' | 'annual'
   >('monthly');
   const [showPlans, setShowPlans] = useState(false);
+  const [stripeBlocked, setStripeBlocked] = useState<boolean>(false);
   const navigate = useNavigate();
 
   const plans: Plan[] = [
@@ -221,6 +224,16 @@ const PricingPage: React.FC = () => {
       },
     },
   ];
+
+  // Verificar se o Stripe está disponível (não bloqueado por adblocker)
+  useEffect(() => {
+    const checkStripe = async () => {
+      const isBlocked = await checkStripeAvailability();
+      setStripeBlocked(isBlocked);
+    };
+    
+    checkStripe();
+  }, []);
 
   const isPriceValid = (priceId: string | undefined): boolean => {
     return Boolean(priceId && priceId.trim() !== '');
@@ -316,6 +329,19 @@ const PricingPage: React.FC = () => {
                   negócio
                 </motion.p>
               </div>
+
+              {stripeBlocked && (
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  className="mb-8"
+                >
+                  <AdblockerWarning 
+                    onRetry={() => window.location.reload()} 
+                    className="max-w-4xl mx-auto"
+                  />
+                </motion.div>
+              )}
 
               <motion.div
                 initial={{ opacity: 0, y: 20 }}
