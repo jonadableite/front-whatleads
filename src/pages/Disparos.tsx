@@ -45,7 +45,7 @@ export default function Disparos() {
   const [selectedInstance, setSelectedInstance] = useState('');
   const [message, setMessage] = useState('');
   const [file, setFile] = useState<File | null>(null);
-  const [mediaType, setMediaType] = useState('image');
+  const [mediaType, setMediaType] = useState('none');
   const [totalNumbers, setTotalNumbers] = useState(0);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [base64Image, setBase64Image] = useState('');
@@ -426,7 +426,7 @@ export default function Disparos() {
       return false;
     }
 
-    // Validar mídia se selecionada
+    // Validar mídia apenas se um tipo de mídia foi selecionado
     if (mediaType === 'image' && !base64Image) {
       toast.error('Selecione uma imagem');
       return false;
@@ -523,6 +523,7 @@ export default function Disparos() {
           mimetype: 'audio/mpeg',
         };
       }
+      // Se mediaType for 'none', mediaPayload permanece null
 
       console.log('Media Payload preparado:', {
         mediaType,
@@ -712,6 +713,7 @@ export default function Disparos() {
             mimetype: 'audio/mpeg',
           };
         }
+        // Se mediaType for 'none', mediaPayload permanece null para agendamento
 
         console.log('Enviando requisição de agendamento:', {
           campaignId: selectedCampaign,
@@ -1126,6 +1128,12 @@ export default function Disparos() {
                       }}
                     >
                       <option
+                        value="none"
+                        className="bg-deep text-white"
+                      >
+                        Nenhuma (Apenas Texto)
+                      </option>
+                      <option
                         value="image"
                         className="bg-deep text-white"
                       >
@@ -1146,43 +1154,47 @@ export default function Disparos() {
                     </select>
                   </div>
 
-                  <div>
-                    <label className="block text-lg font-medium text-white mb-2">
-                      Upload de Mídia
-                    </label>
-                    <label className="flex items-center justify-center w-full h-[58px] bg-electric/10 border border-electric rounded-xl cursor-pointer hover:bg-electric/20 transition-all duration-300">
-                      <input
-                        type="file"
-                        onChange={handleMediaChange}
-                        accept={
-                          mediaType === 'image'
-                            ? 'image/*'
-                            : mediaType === 'audio'
-                              ? 'audio/*'
-                              : 'video/*'
-                        }
-                        className="hidden"
-                      />
-                      <div className="flex items-center gap-2 text-white">
-                        {mediaType === 'image' ? (
-                          <IoMdImage size={24} />
-                        ) : mediaType === 'audio' ? (
-                          <IoMdMusicalNote size={24} />
-                        ) : (
-                          <IoMdVideocam size={24} />
-                        )}
-                        <span>
-                          Upload{' '}
-                          {mediaType === 'image'
-                            ? 'Imagem'
-                            : mediaType === 'audio'
-                              ? 'Áudio'
-                              : 'Vídeo'}
-                        </span>
-                      </div>
-                    </label>
+                  {/* Upload de mídia - só mostra se não for 'none' */}
+                  {mediaType !== 'none' && (
+                    <div>
+                      <label className="block text-lg font-medium text-white mb-2">
+                        Upload de Mídia
+                      </label>
+                      <label className="flex items-center justify-center w-full h-[58px] bg-electric/10 border border-electric rounded-xl cursor-pointer hover:bg-electric/20 transition-all duration-300">
+                        <input
+                          type="file"
+                          onChange={handleMediaChange}
+                          accept={
+                            mediaType === 'image'
+                              ? 'image/*'
+                              : mediaType === 'audio'
+                                ? 'audio/*'
+                                : 'video/*'
+                          }
+                          className="hidden"
+                        />
+                        <div className="flex items-center gap-2 text-white">
+                          {mediaType === 'image' ? (
+                            <IoMdImage size={24} />
+                          ) : mediaType === 'audio' ? (
+                            <IoMdMusicalNote size={24} />
+                          ) : (
+                            <IoMdVideocam size={24} />
+                          )}
+                          <span>
+                            Upload{' '}
+                            {mediaType === 'image'
+                              ? 'Imagem'
+                              : mediaType === 'audio'
+                                ? 'Áudio'
+                                : 'Vídeo'}
+                          </span>
+                        </div>
+                      </label>
+                    </div>
+                  )}
 
-                    {previewUrl && (
+                    {previewUrl && mediaType !== 'none' && (
                       <div className="mt-4 rounded-xl overflow-hidden bg-electric/10 border border-electric">
                         {mediaType === 'image' && (
                           <img
@@ -1248,7 +1260,6 @@ export default function Disparos() {
                       </button>
                     </div>
                   </div>
-                </div>
 
                 {/* Configuração de Rotação de Instâncias */}
                 {selectedCampaign && (
