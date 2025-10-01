@@ -173,21 +173,16 @@ export const InstanceRotationConfig: React.FC<
       try {
         setIsConfiguring(true);
 
-        const instanceIds = instances
-          .filter((inst) =>
-            selectedInstances.includes(inst.instanceName),
-          )
-          .map((inst) => inst.id);
-
         await api.post(`/api/campaigns/${campaignId}/instances`, {
-          instanceIds,
-          useRotation: true,
+          selectedInstances,
           rotationStrategy,
-          maxMessagesPerInstance: maxMessagesPerInstance || undefined,
+          maxMessagesPerInstance: maxMessagesPerInstance || 100,
         });
 
         toast.success('Rotação de instâncias configurada com sucesso!');
+        setUseRotation(true);
         await loadCampaignStats();
+        onRotationChange?.(true);
 
         // Limpar seleção de instância única quando rotação está ativa
         onInstanceChange('');
@@ -207,15 +202,7 @@ export const InstanceRotationConfig: React.FC<
       try {
         setIsConfiguring(true);
 
-        const instanceIds = instances
-          .filter((inst) =>
-            selectedInstances.includes(inst.instanceName),
-          )
-          .map((inst) => inst.id);
-
-        await api.delete(`/api/campaigns/${campaignId}/instances`, {
-          data: { instanceIds },
-        });
+        await api.delete(`/api/campaigns/${campaignId}/instances`);
 
         toast.success('Rotação de instâncias removida');
         setUseRotation(false);
