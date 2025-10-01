@@ -21,60 +21,77 @@ import { authService } from '../services/auth.service';
 import { calculateWarmupProgress } from '../services/instance.service';
 import type { Instancia, StartCampaignPayload } from '../types';
 
+// Tipos específicos para melhor type safety
+type MediaType = 'none' | 'image' | 'audio' | 'video';
+type SendType = 'now' | 'scheduled';
+type DispatchMode = 'new' | 'existing';
+type CampaignStatus = 'draft' | 'running' | 'paused' | 'completed' | 'cancelled';
+type SegmentType = 'ALTAMENTE_ENGAJADO' | 'MODERADAMENTE_ENGAJADO' | 'LEVEMENTE_ENGAJADO' | 'BAIXO_ENGAJAMENTO';
+
+interface CampaignStatistics {
+  totalLeads: number;
+  sentCount: number;
+  deliveredCount: number;
+  readCount: number;
+  failedCount: number;
+}
+
 interface Campaign {
   id: string;
   name: string;
   description?: string;
-  status: string;
+  status: CampaignStatus;
   type: string;
   instance: string;
   connectionStatus: string;
   progress: number;
-  statistics: {
-    totalLeads: number;
-    sentCount: number;
-    deliveredCount: number;
-    readCount: number;
-    failedCount: number;
-  } | null;
+  statistics: CampaignStatistics | null;
+}
+
+interface MediaPayload {
+  type: MediaType;
+  base64: string;
+  fileName: string;
+  mimetype: string;
+}
+
+interface FormValidationResult {
+  isValid: boolean;
+  errorMessage?: string;
 }
 
 export default function Disparos() {
   const navigate = useNavigate();
+  
+  // Estados com tipagem específica
   const [instances, setInstances] = useState<Instancia[]>([]);
-  const [selectedInstance, setSelectedInstance] = useState('');
-  const [message, setMessage] = useState('');
+  const [selectedInstance, setSelectedInstance] = useState<string>('');
+  const [message, setMessage] = useState<string>('');
   const [file, setFile] = useState<File | null>(null);
-  const [mediaType, setMediaType] = useState('none');
-  const [totalNumbers, setTotalNumbers] = useState(0);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [base64Image, setBase64Image] = useState('');
-  const [base64Video, setBase64Video] = useState('');
-  const [base64Audio, setBase64Audio] = useState('');
+  const [mediaType, setMediaType] = useState<MediaType>('none');
+  const [totalNumbers, setTotalNumbers] = useState<number>(0);
+  const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
+  const [base64Image, setBase64Image] = useState<string>('');
+  const [base64Video, setBase64Video] = useState<string>('');
+  const [base64Audio, setBase64Audio] = useState<string>('');
   const [campaigns, setCampaigns] = useState<Campaign[]>([]);
-  const [selectedCampaign, setSelectedCampaign] = useState('');
-  const [sendType, setSendType] = useState<'now' | 'scheduled'>(
-    'now',
-  );
+  const [selectedCampaign, setSelectedCampaign] = useState<string>('');
+  const [sendType, setSendType] = useState<SendType>('now');
   const [scheduledDate, setScheduledDate] = useState<string>('');
   const [scheduledTime, setScheduledTime] = useState<string>('');
-  const [minDelay, setMinDelay] = useState(5);
-  const [maxDelay, setMaxDelay] = useState(30);
+  const [minDelay, setMinDelay] = useState<number>(5);
+  const [maxDelay, setMaxDelay] = useState<number>(30);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
-  const [campaignStatus, setCampaignStatus] = useState<string | null>(
-    null,
-  );
-  const [isStarting, setIsStarting] = useState(false);
-  const [isLoadingInstances, setIsLoadingInstances] = useState(false);
-  const [isLoadingCampaigns, setIsLoadingCampaigns] = useState(false);
-  const [isInitialLoading, setIsInitialLoading] = useState(true);
-  const [dispatchMode, setDispatchMode] = useState<
-    'new' | 'existing'
-  >('new');
+  const [campaignStatus, setCampaignStatus] = useState<CampaignStatus | null>(null);
+  const [isStarting, setIsStarting] = useState<boolean>(false);
+  const [isLoadingInstances, setIsLoadingInstances] = useState<boolean>(false);
+  const [isLoadingCampaigns, setIsLoadingCampaigns] = useState<boolean>(false);
+  const [isInitialLoading, setIsInitialLoading] = useState<boolean>(true);
+  const [dispatchMode, setDispatchMode] = useState<DispatchMode>('new');
   const [leadCount, setLeadCount] = useState<number | null>(null);
-  const [useRotation, setUseRotation] = useState(false);
-  const [useSegmentation, setUseSegmentation] = useState(false);
-  const [selectedSegment, setSelectedSegment] = useState('');
+  const [useRotation, setUseRotation] = useState<boolean>(false);
+  const [useSegmentation, setUseSegmentation] = useState<boolean>(false);
+  const [selectedSegment, setSelectedSegment] = useState<SegmentType | ''>('');
 
   // Função para lidar com a mudança de segmento
   const handleSegmentChange = async (
@@ -98,52 +115,94 @@ export default function Disparos() {
         toast.error(
           'Não foi possível obter a contagem de leads para este segmento.',
         );
-        setLeadCount(null);
       }
     } else {
       setLeadCount(null);
     }
   };
 
-  // Função para contagem de leads seguimentados
-  const fetchLeadCount = useCallback(
-    async (campaignId: string, segment: string) => {
-      try {
-        const response = await api.get(
-          `/api/campaigns/${campaignId}/lead-count`,
-          {
-            params: { segmentation: segment },
-          },
-        );
+  // Função para buscar contagem de leads com tipagem melhorada
+  const fetchLeadCount = async (
+    campaignId: string,
+    segment: SegmentType,
+  ): Promise<{ count: number }> => {
+    try {
+      const response = await api.get<{ count: number }>(
+        `/api/campaigns/${campaignId}/leads/count`,
+        {
+          params: { segment },
+        },
+      );
 
-        console.log('Lead Count Response:', response.data);
-        setLeadCount(response.data.data.count);
-        return response.data.data.count;
-      } catch (error) {
-        console.error('Erro ao buscar contagem de leads:', error);
-        setLeadCount(null);
-        throw error;
+      const count = response.data.count;
+      setLeadCount(count);
+      
+      // Feedback visual melhorado
+      if (count === 0) {
+        toast.warning(`Nenhum lead encontrado no segmento "${segment}"`);
+      } else {
+        toast.success(`${count} leads encontrados no segmento selecionado`);
       }
-    },
-    [],
-  );
 
-  // Função para pausar a campanha
-  // const handlePauseCampaign = async () => {
-  // 	console.log(
-  // 		"Chamando handlePauseCampaign() - Enviando requisição para pausar campanha",
-  // 	);
-  // 	try {
-  // 		await api.post(`/campaigns/${selectedCampaign}/pause`);
-  // 		toast.success("Campanha pausada com sucesso!");
-  // 	} catch (error) {
-  // 		console.error("Erro ao pausar campanha:", error);
-  // 		toast.error("Erro ao pausar campanha.");
-  // 	}
-  // };
+      return response.data;
+    } catch (error) {
+      console.error('Erro ao buscar contagem de leads:', error);
+      setLeadCount(null);
+      throw error;
+    }
+  };
+
+  // Função para lidar com mudança de arquivo com tipagem melhorada
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>): void => {
+    const selectedFile = event.target.files?.[0];
+    if (!selectedFile) {
+      setFile(null);
+      setTotalNumbers(0);
+      return;
+    }
+
+    // Validação de tipo de arquivo
+    const allowedTypes = ['.txt', '.csv'];
+    const fileExtension = selectedFile.name.toLowerCase().substring(selectedFile.name.lastIndexOf('.'));
+    
+    if (!allowedTypes.includes(fileExtension)) {
+      toast.error('Formato de arquivo não suportado. Use apenas arquivos .txt ou .csv');
+      event.target.value = '';
+      return;
+    }
+
+    // Validação de tamanho (máximo 10MB)
+    const maxSize = 10 * 1024 * 1024; // 10MB
+    if (selectedFile.size > maxSize) {
+      toast.error('Arquivo muito grande. O tamanho máximo é 10MB');
+      event.target.value = '';
+      return;
+    }
+
+    setFile(selectedFile);
+    
+    // Ler arquivo para contar números
+    const reader = new FileReader();
+    reader.onload = (e: ProgressEvent<FileReader>) => {
+      const content = e.target?.result as string;
+      if (content) {
+        const lines = content.split('\n').filter(line => line.trim().length > 0);
+        setTotalNumbers(lines.length);
+        toast.success(`${lines.length} contatos carregados com sucesso`);
+      }
+    };
+    
+    reader.onerror = () => {
+      toast.error('Erro ao ler o arquivo');
+      setFile(null);
+      setTotalNumbers(0);
+    };
+    
+    reader.readAsText(selectedFile);
+  };
 
   // Função para retomar a campanha
-  const handleResumeCampaign = async () => {
+  const handleResumeCampaign = async (): Promise<void> => {
     try {
       const selectedInstanceData = instances.find(
         (instance) => instance.id === selectedInstance,
@@ -173,19 +232,19 @@ export default function Disparos() {
       console.error('Erro ao retomar campanha:', error);
 
       // Log mais detalhado do erro
-      if (error.response) {
+      if ((error as any).response) {
         console.error(
           'Detalhes da resposta de erro:',
-          error.response.data,
+          (error as any).response.data,
         );
       }
 
-      toast.error(`Erro ao retomar campanha: ${error.message}`);
+      toast.error(`Erro ao retomar campanha: ${(error as Error).message}`);
     }
   };
 
   // Função para cancelar a campanha
-  const handleCancelCampaign = async () => {
+  const handleCancelCampaign = async (): Promise<void> => {
     try {
       await api.post(`/api/campaigns/${selectedCampaign}/stop`);
       toast.success('Campanha cancelada com sucesso!');
@@ -202,7 +261,7 @@ export default function Disparos() {
       return;
     }
 
-    const initializeData = async () => {
+    const initializeData = async (): Promise<void> => {
       let isMounted = true;
       setIsInitialLoading(true);
       try {
@@ -214,9 +273,6 @@ export default function Disparos() {
           }, 2000);
         }
       }
-      return () => {
-        isMounted = false;
-      };
     };
 
     initializeData();
@@ -227,7 +283,7 @@ export default function Disparos() {
     const hasSignificantChange = (
       prevInstances: Instancia[],
       newInstances: Instancia[],
-    ) => {
+    ): boolean => {
       if (prevInstances.length !== newInstances.length) return true;
 
       return newInstances.some((newInstance, index) => {
@@ -270,7 +326,7 @@ export default function Disparos() {
   }, [instances]); // Mantenha a dependência, mas adicione a lógica de comparação
 
   // No fetchData ou na função que atualiza as instâncias
-  const fetchData = async () => {
+  const fetchData = async (): Promise<void> => {
     try {
       setIsLoadingInstances(true);
       setIsLoadingCampaigns(true);
@@ -299,24 +355,6 @@ export default function Disparos() {
     } finally {
       setIsLoadingInstances(false);
       setIsLoadingCampaigns(false);
-    }
-  };
-
-  const handleFileChange = (
-    event: React.ChangeEvent<HTMLInputElement>,
-  ) => {
-    const file = event.target.files?.[0];
-    if (file) {
-      setFile(file);
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        const content = e.target?.result as string;
-        const lines = content
-          .split('\n')
-          .filter((line) => line.trim() !== '');
-        setTotalNumbers(lines.length);
-      };
-      reader.readAsText(file);
     }
   };
 
@@ -368,6 +406,28 @@ export default function Disparos() {
     }
   };
 
+  // Função para remover mídia selecionada
+  const handleRemoveMedia = () => {
+    // Limpar preview URL
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+      setPreviewUrl(null);
+    }
+
+    // Limpar estados de mídia
+    setBase64Image('');
+    setBase64Video('');
+    setBase64Audio('');
+
+    // Limpar input file
+    const fileInput = document.querySelector('input[type="file"][accept*="image"], input[type="file"][accept*="audio"], input[type="file"][accept*="video"]') as HTMLInputElement;
+    if (fileInput) {
+      fileInput.value = '';
+    }
+
+    toast.success('Mídia removida com sucesso');
+  };
+
   // Função para comprimir imagens
   const compressImage = (
     file: File,
@@ -405,60 +465,105 @@ export default function Disparos() {
   }, [previewUrl]);
 
   const validateForm = () => {
-    if (!selectedInstance) {
-      toast.error('Selecione uma instância');
+    // Validação de instância (apenas se não estiver usando rotação)
+    if (!useRotation && !selectedInstance) {
+      toast.error('Selecione uma instância para o disparo');
       return false;
     }
 
+    // Validação de campanha
     if (!selectedCampaign) {
-      toast.error('Selecione uma campanha');
+      toast.error('Selecione uma campanha para continuar');
       return false;
     }
 
-    if (!message) {
-      toast.error('Digite uma mensagem');
+    // Validação específica para modo "usar base existente"
+    if (dispatchMode === 'existing') {
+      const selectedCampaignData = campaigns.find(c => c.id === selectedCampaign);
+      
+      if (!selectedCampaignData) {
+        toast.error('Campanha selecionada não encontrada. Por favor, selecione uma campanha válida.');
+        return false;
+      }
+
+      // Verificar se a campanha tem leads disponíveis
+      if (useSegmentation && selectedSegment && leadCount === 0) {
+        toast.error('Não há leads disponíveis no segmento selecionado. Escolha outro segmento ou desative a segmentação.');
+        return false;
+      }
+
+      // Verificar se a campanha não está em execução (opcional - pode ser removido se quiser permitir)
+      if (selectedCampaignData.status === 'running') {
+        toast.warning('Atenção: Esta campanha já está em execução. Continuar criará um novo disparo.');
+      }
+    }
+
+    // Validação de mensagem
+    if (!message || message.trim().length === 0) {
+      toast.error('Digite uma mensagem para o disparo');
       return false;
     }
 
-    // Validar arquivo apenas no modo "new"
+    // Validação de arquivo apenas no modo "new"
     if (dispatchMode === 'new' && !file) {
-      toast.error('Selecione um arquivo de contatos');
+      toast.error('Selecione um arquivo de contatos (.txt ou .csv)');
       return false;
     }
 
-    // Validar mídia apenas se um tipo de mídia foi selecionado
+    // Validação de mídia apenas se um tipo de mídia foi selecionado
     if (mediaType === 'image' && !base64Image) {
-      toast.error('Selecione uma imagem');
+      toast.error('Selecione uma imagem ou altere o tipo de mídia para "Nenhuma"');
       return false;
     }
 
     if (mediaType === 'video' && !base64Video) {
-      toast.error('Selecione um vídeo');
+      toast.error('Selecione um vídeo ou altere o tipo de mídia para "Nenhuma"');
       return false;
     }
 
     if (mediaType === 'audio' && !base64Audio) {
-      toast.error('Selecione um áudio');
+      toast.error('Selecione um áudio ou altere o tipo de mídia para "Nenhuma"');
       return false;
     }
 
+    // Validação de agendamento
     if (sendType === 'scheduled') {
       if (!scheduledDate || !scheduledTime) {
-        toast.error('Defina a data e hora do agendamento');
+        toast.error('Defina a data e hora para o agendamento');
         return false;
       }
 
       const scheduledDateTime = new Date(
         `${scheduledDate}T${scheduledTime}`,
       );
-      if (scheduledDateTime <= new Date()) {
-        toast.error('A data de agendamento deve ser futura');
+      const now = new Date();
+      
+      if (scheduledDateTime <= now) {
+        toast.error('A data e hora do agendamento devem ser futuras');
+        return false;
+      }
+
+      // Verificar se não é muito próximo (pelo menos 5 minutos no futuro)
+      const fiveMinutesFromNow = new Date(now.getTime() + 5 * 60 * 1000);
+      if (scheduledDateTime < fiveMinutesFromNow) {
+        toast.error('O agendamento deve ser pelo menos 5 minutos no futuro');
         return false;
       }
     }
 
+    // Validação de delays
     if (minDelay >= maxDelay) {
-      toast.error('O delay máximo deve ser maior que o delay mínimo');
+      toast.error('O intervalo máximo deve ser maior que o intervalo mínimo');
+      return false;
+    }
+
+    if (minDelay < 5) {
+      toast.error('O intervalo mínimo deve ser de pelo menos 5 segundos');
+      return false;
+    }
+
+    if (maxDelay > 120) {
+      toast.error('O intervalo máximo não pode ser superior a 120 segundos');
       return false;
     }
 
@@ -1213,33 +1318,78 @@ export default function Disparos() {
                   )}
 
                     {previewUrl && mediaType !== 'none' && (
-                      <div className="mt-4 rounded-xl overflow-hidden bg-electric/10 border border-electric">
+                      <div className="mt-4 rounded-xl overflow-hidden bg-electric/10 border border-electric relative group">
+                        {/* Botão de remoção */}
+                        <button
+                          type="button"
+                          onClick={handleRemoveMedia}
+                          className="absolute top-2 right-2 z-10 bg-red-500 hover:bg-red-600 text-white rounded-full p-2 transition-all duration-200 opacity-0 group-hover:opacity-100 shadow-lg"
+                          title="Remover mídia"
+                        >
+                          <svg
+                            className="w-4 h-4"
+                            fill="none"
+                            stroke="currentColor"
+                            viewBox="0 0 24 24"
+                          >
+                            <path
+                              strokeLinecap="round"
+                              strokeLinejoin="round"
+                              strokeWidth={2}
+                              d="M6 18L18 6M6 6l12 12"
+                            />
+                          </svg>
+                        </button>
+
+                        {/* Preview da mídia */}
                         {mediaType === 'image' && (
-                          <img
-                            src={previewUrl}
-                            alt="Preview"
-                            className="w-full h-auto object-cover"
-                          />
+                          <div className="relative">
+                            <img
+                              src={previewUrl}
+                              alt="Preview da imagem"
+                              className="w-full h-auto object-cover max-h-64"
+                            />
+                            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-3">
+                              <p className="text-white text-sm font-medium">
+                                Imagem selecionada
+                              </p>
+                            </div>
+                          </div>
                         )}
                         {mediaType === 'audio' && (
-                          <audio controls className="w-full">
-                            <source
-                              src={previewUrl}
-                              type="audio/mpeg"
-                            />
-                            Seu navegador não suporta o elemento de
-                            áudio.
-                          </audio>
+                          <div className="p-4">
+                            <div className="flex items-center gap-3 mb-3">
+                              <div className="w-10 h-10 bg-neon-green/20 rounded-full flex items-center justify-center">
+                                <svg className="w-5 h-5 text-neon-green" fill="currentColor" viewBox="0 0 20 20">
+                                  <path fillRule="evenodd" d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.617.793l-4.146-3.317a1 1 0 00-.632-.226H2a1 1 0 01-1-1V7.5a1 1 0 011-1h1.605a1 1 0 00.632-.226l4.146-3.317a1 1 0 011.617.793zM14.657 5.757a1 1 0 011.414 0A9.972 9.972 0 0119 10a9.972 9.972 0 01-2.929 4.243 1 1 0 11-1.414-1.414A7.971 7.971 0 0017 10c0-1.636-.525-3.153-1.414-4.243a1 1 0 010-1.414z" clipRule="evenodd" />
+                                </svg>
+                              </div>
+                              <p className="text-white font-medium">Áudio selecionado</p>
+                            </div>
+                            <audio controls className="w-full">
+                              <source
+                                src={previewUrl}
+                                type="audio/mpeg"
+                              />
+                              Seu navegador não suporta o elemento de áudio.
+                            </audio>
+                          </div>
                         )}
                         {mediaType === 'video' && (
-                          <video controls className="w-full">
-                            <source
-                              src={previewUrl}
-                              type="video/mp4"
-                            />
-                            Seu navegador não suporta o elemento de
-                            vídeo.
-                          </video>
+                          <div className="relative">
+                            <video controls className="w-full max-h-64">
+                              <source
+                                src={previewUrl}
+                                type="video/mp4"
+                              />
+                              Seu navegador não suporta o elemento de vídeo.
+                            </video>
+                            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-3">
+                              <p className="text-white text-sm font-medium">
+                                Vídeo selecionado
+                              </p>
+                            </div>
+                          </div>
                         )}
                       </div>
                     )}
