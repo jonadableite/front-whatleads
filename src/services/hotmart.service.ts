@@ -292,7 +292,7 @@ class HotmartService {
   async getCustomerStats(): Promise<HotmartStats> {
     try {
       const response = await axios.get(
-        `${import.meta.env.VITE_API_URL || "https://aquecerapi.whatlead.com.br"}/api/hotmart/customers/stats`,
+        `${import.meta.env.VITE_API_URL || "https://aquecerapi.whatlead.com.br"}/api/hotmart/stats`,
         { headers: this.getAuthHeaders() }
       );
 
