@@ -47,7 +47,7 @@ const sidebarItems: SidebarItem[] = [
     icon: <MessageSquareText className="w-5 h-5" />,
     path: '/disparos',
     submenu: [
-      // { title: 'Grupos', path: '/disparos/grupos' }, // Item "Grupos"
+      { title: 'Grupos', path: '/disparos/grupos' }, // Item "Grupos"
       { title: 'Agendados', path: '/disparos/agendados' }, // Item "Agendados"
     ],
   },
