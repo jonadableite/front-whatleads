@@ -47,7 +47,7 @@ const sidebarItems: SidebarItem[] = [
     icon: <MessageSquareText className="w-5 h-5" />,
     path: '/disparos',
     submenu: [
-      { title: 'Grupos', path: '/disparos/grupos' }, // Item "Grupos"
+      // { title: 'Grupos', path: '/disparos/grupos' }, // Item "Grupos"
       { title: 'Agendados', path: '/disparos/agendados' }, // Item "Agendados"
     ],
   },
@@ -188,10 +188,10 @@ export function Sidebar() {
             const LinkComponent = item.isExternal ? 'a' : Link;
             const linkProps = item.isExternal
               ? {
-                  href: item.path,
-                  target: '_blank' as const,
-                  rel: 'noopener noreferrer' as const,
-                }
+                href: item.path,
+                target: '_blank' as const,
+                rel: 'noopener noreferrer' as const,
+              }
               : { to: item.path };
 
             return (
@@ -308,7 +308,7 @@ export function Sidebar() {
                               'flex items-center gap-3 px-12 py-2 text-white/70',
                               'hover:text-white transition-all duration-200',
                               location.pathname === subItem.path &&
-                                'bg-electric/30 text-white',
+                              'bg-electric/30 text-white',
                             )}
                           >
                             <span>{subItem.title}</span>

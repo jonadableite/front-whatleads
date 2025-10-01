@@ -46,6 +46,7 @@ import { toast } from 'react-toastify';
 import { apiUtils } from '../lib/api-utils';
 import { evo } from '../lib/evo';
 import { cn } from '../lib/utils';
+import { fetchGroupInviteCode } from '@/services/evolutionApi.service';
 
 interface Instancia {
   id: string;
@@ -507,11 +508,16 @@ export default function Grupos() {
 
   const fetchGroups = useCallback(
     async (instanceName: string) => {
+      console.log('fetchGroups iniciado para instância:', instanceName);
       try {
         setIsLoading(true);
+        console.log('Fazendo chamada para apiUtils.getGroups...');
         const response = await apiUtils.getGroups(instanceName) as { success: boolean; data: Grupo[] };
+        console.log('Resposta da API:', response);
+        
         if (response.success) {
           const fetchedGroups: Grupo[] = response.data || [];
+          console.log('Grupos encontrados:', fetchedGroups.length);
           setGrupos(fetchedGroups);
           if (selectedGroup) {
             const updatedSelectedGroup = fetchedGroups.find(
@@ -528,6 +534,7 @@ export default function Grupos() {
             }
           }
         } else {
+          console.error('API retornou success: false');
           toast.error('Erro ao carregar grupos');
         }
       } catch (error) {
@@ -535,6 +542,7 @@ export default function Grupos() {
         toast.error('Erro ao carregar grupos. Tente novamente.');
       } finally {
         setIsLoading(false);
+        console.log('fetchGroups finalizado');
       }
     },
     [selectedGroup],
@@ -673,13 +681,22 @@ export default function Grupos() {
   }, [previewUrl]);
 
   const handleInstanceChange = (instanceNameFromSelect: string) => {
+    console.log('handleInstanceChange chamada com:', instanceNameFromSelect);
+    console.log('Estado atual selectedInstanceName:', selectedInstanceName);
+    
     setselectedInstanceName(instanceNameFromSelect);
     setGrupos([]);
     setSelectedGroups([]);
     setSelectedGroup(null);
     setShowGroupDetailsModal(false);
+    
+    console.log('Limpando estados e chamando fetchGroups...');
+    
     if (instanceNameFromSelect) {
+      console.log('Chamando fetchGroups para instância:', instanceNameFromSelect);
       fetchGroups(instanceNameFromSelect);
+    } else {
+      console.log('instanceNameFromSelect está vazio, não chamando fetchGroups');
     }
   };
 
@@ -952,12 +969,10 @@ export default function Grupos() {
     if (!instance) return;
     try {
       setIsLoading(true);
-      const response = await apiUtils.requestWithRetry(
-        'get',
-        `/api/groups/inviteCode/${instance.instanceName}?groupJid=${groupJid}`,
-        undefined,
-        { timeout: 15000 }
-      ) as { success: boolean; data: { code: string } };
+      console.log(`[Groups] Buscando código de convite diretamente da Evolution API para grupo: ${groupJid}`);
+      const response = await fetchGroupInviteCode(instance.instanceName, groupJid);
+      console.log(`[Groups] Resposta da Evolution API:`, response);
+      
       if (response.success && selectedGroup) {
         setSelectedGroup((prev) =>
           prev
@@ -1892,7 +1907,7 @@ export default function Grupos() {
                     </SelectItem>
                   ))
                 ) : (
-                  <SelectItem value="" disabled>
+                  <SelectItem value="no-instances" disabled>
                     Nenhuma instância disponível
                   </SelectItem>
                 )}

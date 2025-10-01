@@ -24,6 +24,7 @@ const EVOLUTION_API_URL =
 const VITE_API_URL =
   import.meta.env.VITE_API_URL || 'http://localhost:9000';
 const API_KEY =
+  import.meta.env.VITE_EVOLUTION_API_KEY ||
   import.meta.env.VITE_PUBLIC_API_KEY ||
   '429683C4C977415CAAFCCE10F7D57E11';
 
@@ -222,6 +223,129 @@ export const createInstance = async (
       error?.response?.data || error,
     );
     throw error;
+  }
+};
+
+// ===== GROUP MANAGEMENT FUNCTIONS =====
+
+/**
+ * Busca todos os grupos de uma instância específica.
+ * GET /group/fetchAllGroups/:instanceName?getParticipants=true
+ */
+export const fetchAllGroups = async (
+  instanceName: string,
+  getParticipants: boolean = true,
+): Promise<any> => {
+  try {
+    console.log(`[Groups] Buscando grupos para instância: ${instanceName}`);
+    const response = await evolutionApi.get(
+      `/group/fetchAllGroups/${instanceName}?getParticipants=${getParticipants}`,
+    );
+    console.log(`[Groups] Grupos encontrados:`, response.data);
+    return { success: true, data: response.data };
+  } catch (error: any) {
+    console.error(`[Groups] Erro ao buscar grupos para ${instanceName}:`, error);
+    console.error(`[Groups] Detalhes do erro:`, error.response?.data || error.message);
+    return { success: false, error: error.response?.data || error.message };
+  }
+};
+
+/**
+ * Cria um novo grupo.
+ * POST /group/create/:instanceName
+ */
+export const createGroup = async (
+  instanceName: string,
+  payload: {
+    subject: string;
+    description?: string;
+    participants: string[];
+  },
+): Promise<any> => {
+  try {
+    console.log(`[Groups] Criando grupo para instância: ${instanceName}`);
+    console.log(`[Groups] Dados do grupo:`, payload);
+    const response = await evolutionApi.post(
+      `/group/create/${instanceName}`,
+      payload,
+    );
+    console.log(`[Groups] Grupo criado:`, response.data);
+    return { success: true, data: response.data };
+  } catch (error: any) {
+    console.error(`[Groups] Erro ao criar grupo para ${instanceName}:`, error);
+    console.error(`[Groups] Detalhes do erro:`, error.response?.data || error.message);
+    return { success: false, error: error.response?.data || error.message };
+  }
+};
+
+/**
+ * Busca informações de um grupo específico.
+ * GET /group/findGroupInfos/:instanceName?groupJid=:groupJid
+ */
+export const findGroupInfos = async (
+  instanceName: string,
+  groupJid: string,
+): Promise<any> => {
+  try {
+    console.log(`[Groups] Buscando informações do grupo ${groupJid} para instância: ${instanceName}`);
+    const response = await evolutionApi.get(
+      `/group/findGroupInfos/${instanceName}?groupJid=${groupJid}`,
+    );
+    console.log(`[Groups] Informações do grupo:`, response.data);
+    return { success: true, data: response.data };
+  } catch (error: any) {
+    console.error(`[Groups] Erro ao buscar informações do grupo ${groupJid}:`, error);
+    console.error(`[Groups] Detalhes do erro:`, error.response?.data || error.message);
+    return { success: false, error: error.response?.data || error.message };
+  }
+};
+
+/**
+ * Busca o código de convite de um grupo.
+ * GET /group/inviteCode/:instanceName?groupJid=:groupJid
+ */
+export const fetchGroupInviteCode = async (
+  instanceName: string,
+  groupJid: string,
+): Promise<any> => {
+  try {
+    console.log(`[Groups] Buscando código de convite do grupo ${groupJid} para instância: ${instanceName}`);
+    const response = await evolutionApi.get(
+      `/group/inviteCode/${instanceName}?groupJid=${groupJid}`,
+    );
+    console.log(`[Groups] Código de convite:`, response.data);
+    return { success: true, data: response.data };
+  } catch (error: any) {
+    console.error(`[Groups] Erro ao buscar código de convite do grupo ${groupJid}:`, error);
+    console.error(`[Groups] Detalhes do erro:`, error.response?.data || error.message);
+    return { success: false, error: error.response?.data || error.message };
+  }
+};
+
+/**
+ * Atualiza as configurações de um grupo.
+ * POST /group/updateSetting/:instanceName?groupJid=:groupJid
+ */
+export const updateGroupSettings = async (
+  instanceName: string,
+  groupJid: string,
+  payload: {
+    action: 'announcement' | 'not_announcement' | 'locked' | 'unlocked';
+  },
+): Promise<any> => {
+  try {
+    console.log(`[Groups] Atualizando configurações do grupo ${groupJid} para instância: ${instanceName}`);
+    console.log(`[Groups] Configurações:`, payload);
+    const response = await evolutionApi.post(
+      `/group/updateSetting/${instanceName}?groupJid=${groupJid}`,
+      payload,
+    );
+    console.log(`[Groups] Configurações atualizadas:`, response.data);
+    return { success: true, data: response.data };
+  } catch (error: any) {
+    console.error(`[Groups] Erro ao atualizar configurações do grupo ${groupJid}:`, error);
+    console.error(`[Groups] Detalhes do erro:`, error.response?.data || error.message);
+    return { success: false, error: error.response?.data || error.message };
   }
 };
 

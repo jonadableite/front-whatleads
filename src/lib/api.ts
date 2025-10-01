@@ -4,7 +4,7 @@ import axios from "axios";
 
 // Configuração base do axios sem timeout fixo
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || "https://filtro.whatlead.com.br",
+  baseURL: import.meta.env.VITE_API_URL || "http://localhost:9000",
   // Removido timeout fixo - será configurado por requisição
   headers: {
     "Content-Type": "application/json",

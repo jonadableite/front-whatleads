@@ -1,5 +1,6 @@
 // src/lib/api-utils.ts
 import api from './api';
+import { fetchAllGroups } from '@/services/evolutionApi.service';
 
 interface CacheItem {
   data: unknown;
@@ -235,17 +236,17 @@ class ApiUtils {
   }
 
   async getGroups(instanceName: string) {
-    return this.requestWithRetry(
-      'get',
-      `/api/groups/fetchAllGroups/${instanceName}?getParticipants=true`,
-      undefined,
-      {
-        timeout: 30000, // 30 segundos para grupos
-        useCache: true,
-        cacheKey: `groups:${instanceName}`,
-        cacheTTL: this.CACHE_TTL.GROUPS,
-      }
-    );
+    // Use direct Evolution API call instead of backend
+    console.log(`[ApiUtils] Fazendo chamada direta para Evolution API para instância: ${instanceName}`);
+    
+    try {
+      const result = await fetchAllGroups(instanceName, true);
+      console.log(`[ApiUtils] Resultado da Evolution API:`, result);
+      return result;
+    } catch (error) {
+      console.error(`[ApiUtils] Erro na chamada direta para Evolution API:`, error);
+      throw error;
+    }
   }
 
   async createGroup(instanceName: string, data: unknown) {
