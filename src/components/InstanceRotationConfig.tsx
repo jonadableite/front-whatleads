@@ -97,7 +97,22 @@ export const InstanceRotationConfig: React.FC<
             };
           }) => {
             const warmupStats = instance.warmupStats;
-            const warmupTime = warmupStats?.warmupTime || 0;
+            
+            // Se não tiver warmupStats, retorna progresso 0
+            if (!warmupStats || !warmupStats.warmupTime) {
+              return {
+                ...instance,
+                warmupStatus: {
+                  progress: 0,
+                  isRecommended: false,
+                  warmupHours: 0,
+                  status: 'inactive',
+                  lastUpdate: warmupStats?.createdAt || null,
+                },
+              };
+            }
+
+            const warmupTime = warmupStats.warmupTime;
             const warmupHours = warmupTime / 3600;
             const progress = Math.min((warmupHours / 400) * 100, 100);
 
@@ -137,9 +152,9 @@ export const InstanceRotationConfig: React.FC<
         if (stats.totalInstances > 0) {
           setUseRotation(true);
           setSelectedInstances(
-            stats.instances.map(
+            stats.instances?.map(
               (inst: CampaignInstance) => inst.instanceName,
-            ),
+            ) || [],
           );
           onRotationChange?.(true);
         }
@@ -583,7 +598,7 @@ export const InstanceRotationConfig: React.FC<
 
                   {/* Lista de Instâncias com Controles */}
                   <div className="space-y-2">
-                    {campaignStats.instances.map((instance) => (
+                    {campaignStats.instances?.map((instance) => (
                       <div
                         key={instance.instanceName}
                         className="flex items-center justify-between p-3 bg-electric/10 rounded-lg"
