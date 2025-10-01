@@ -278,7 +278,7 @@ class HotmartService {
         { headers: this.getAuthHeaders() }
       );
 
-      return response.data.data;
+      return response.data;
     } catch (error: unknown) {
       console.error("Erro ao buscar clientes Hotmart:", error);
       const errorMessage = error instanceof Error ? error.message : "Erro ao buscar clientes";
@@ -296,7 +296,7 @@ class HotmartService {
         { headers: this.getAuthHeaders() }
       );
 
-      return response.data.data;
+      return response.data;
     } catch (error: unknown) {
       console.error("Erro ao buscar estatísticas:", error);
       const errorMessage = error instanceof Error ? error.message : "Erro ao buscar estatísticas";
@@ -469,7 +469,7 @@ class HotmartService {
         { headers: this.getAuthHeaders() }
       );
 
-      return response.data.data;
+      return response.data;
     } catch (error: unknown) {
       console.error("Erro na sincronização:", error);
       const errorMessage = error instanceof Error ? error.message : "Erro na sincronização";

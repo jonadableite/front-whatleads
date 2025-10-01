@@ -44,7 +44,7 @@ const StatCard = ({ icon: Icon, title, value }: { icon: React.ComponentType<{ cl
 			<div className="p-2 bg-electric/10 rounded-lg">
 				<Icon className="text-electric w-6 h-6" />
 			</div>
-			<span className="text-2xl font-bold text-white ml-3">{value}</span>
+			<span className="text-2xl font-bold text-white">{value}</span>
 		</div>
 		<h3 className="text-lg text-white">{title}</h3>
 	</motion.div>
@@ -227,6 +227,13 @@ export default function AdminDashboard() {
 		} catch (error: unknown) {
 			console.error("Erro ao buscar estatísticas Hotmart:", error);
 			toast.error("Erro ao carregar estatísticas Hotmart.");
+			// Definir valores padrão em caso de erro
+			setHotmartStats({
+				totalCustomers: 0,
+				activeCustomers: 0,
+				totalRevenue: 0,
+				churnRate: 0
+			});
 		}
 	};
 
@@ -234,10 +241,17 @@ export default function AdminDashboard() {
 		setHotmartLoading(true);
 		try {
 			const response = await hotmartService.getCustomers(hotmartFilters);
-			setHotmartCustomers(response.customers);
+			// Verificar se a resposta tem a estrutura esperada
+			if (response && response.customers) {
+				setHotmartCustomers(response.customers);
+			} else {
+				console.warn("Resposta inesperada da API Hotmart:", response);
+				setHotmartCustomers([]);
+			}
 		} catch (error: unknown) {
 			console.error("Erro ao buscar clientes Hotmart:", error);
 			toast.error("Erro ao carregar clientes Hotmart.");
+			setHotmartCustomers([]);
 		} finally {
 			setHotmartLoading(false);
 		}
@@ -247,7 +261,9 @@ export default function AdminDashboard() {
 		try {
 			toast.info("Iniciando sincronização com Hotmart...");
 			const result = await hotmartService.syncWithHotmart();
-			toast.success(`Sincronização concluída: ${result.syncedCount} sincronizados`);
+			// Verificar se o resultado tem a estrutura esperada
+			const syncedCount = result?.syncedCount || 0;
+			toast.success(`Sincronização concluída: ${syncedCount} sincronizados`);
 			fetchHotmartStats();
 			fetchHotmartCustomers();
 		} catch (error: unknown) {
@@ -651,23 +667,23 @@ export default function AdminDashboard() {
 										<Tr key={customer.id} className="hover:bg-electric/10">
 											<Td>
 												<div>
-													<div className="font-medium text-white">{customer.customerName}</div>
-													<div className="text-sm text-gray-400">{customer.customerEmail}</div>
+													<div className="font-medium text-white">{customer.name || customer.customerName || 'N/A'}</div>
+													<div className="text-sm text-gray-400">{customer.email || customer.customerEmail || 'N/A'}</div>
 												</div>
 											</Td>
 											<Td>
 												<div className="text-sm">
-													<div className="font-medium">{customer.productName}</div>
-													<div className="text-gray-400">ID: {customer.productId}</div>
+													<div className="font-medium">{customer.productName || 'N/A'}</div>
+													<div className="text-gray-400">ID: {customer.productId || 'N/A'}</div>
 												</div>
 											</Td>
 											<Td>
-												<HotmartStatus status={customer.subscriptionStatus} />
+												<HotmartStatus status={customer.subscriptionStatus || 'UNKNOWN'} />
 											</Td>
 											<Td>
 												<div className="text-sm">
-													<div className="font-medium">{formatCurrency(customer.subscriptionValue)}</div>
-													<div className="text-gray-400">{customer.subscriptionFrequency}</div>
+													<div className="font-medium">{formatCurrency(customer.subscriptionValue || 0)}</div>
+													<div className="text-gray-400">{customer.subscriptionFrequency || 'N/A'}</div>
 												</div>
 											</Td>
 											<Td>
@@ -675,7 +691,7 @@ export default function AdminDashboard() {
 											</Td>
 											<Td>
 												<div className="flex flex-wrap gap-1">
-													{customer.tags.slice(0, 2).map((tag, index) => (
+													{(customer.tags || []).slice(0, 2).map((tag, index) => (
 														<span
 															key={index}
 															className="px-2 py-1 text-xs bg-electric/20 text-electric rounded-full"
@@ -683,10 +699,13 @@ export default function AdminDashboard() {
 															{tag}
 														</span>
 													))}
-													{customer.tags.length > 2 && (
+													{(customer.tags || []).length > 2 && (
 														<span className="px-2 py-1 text-xs bg-gray-600 text-gray-300 rounded-full">
-															+{customer.tags.length - 2}
+															+{(customer.tags || []).length - 2}
 														</span>
+													)}
+													{(!customer.tags || customer.tags.length === 0) && (
+														<span className="text-xs text-gray-500">Sem tags</span>
 													)}
 												</div>
 											</Td>
@@ -958,8 +977,10 @@ const HotmartStatus = ({ status }: { status: string }) => {
 				return { color: 'text-yellow-500', text: 'Atrasado' };
 			case 'TRIAL':
 				return { color: 'text-blue-500', text: 'Trial' };
+			case 'UNKNOWN':
+				return { color: 'text-gray-500', text: 'Desconhecido' };
 			default:
-				return { color: 'text-gray-500', text: status };
+				return { color: 'text-gray-500', text: status || 'N/A' };
 		}
 	};
 
