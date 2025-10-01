@@ -993,8 +993,7 @@ export default function Disparos() {
                               : 'Selecione a Instância'}
                         </option>
                         {instances.map((instance) => {
-                          const warmupProgress =
-                            instance.warmupStatus?.progress ?? 0;
+                          const warmupProgress = calculateWarmupProgress(instance);
 
                           return (
                             <option
@@ -1012,7 +1011,7 @@ export default function Disparos() {
                               {instance.instanceName}
                               {instance.warmupStatus?.isRecommended &&
                                 ' ⭐'}
-                              {warmupProgress > 0 && (
+                              {warmupProgress >= 0 && (
                                 <span
                                   className={cn(
                                     'ml-2 font-bold',
@@ -1024,7 +1023,7 @@ export default function Disparos() {
                                         : 'text-blue-500',
                                   )}
                                 >
-                                  ({warmupProgress.toFixed(1)}%)
+                                  ({warmupProgress.toFixed(2)}%)
                                 </span>
                               )}
                             </option>
@@ -1055,20 +1054,17 @@ export default function Disparos() {
                                   </div>
                                 )}
 
-                                {selectedInstanceData?.warmupStatus
-                                  ?.progress !== undefined && (
+                                {selectedInstanceData && (
                                     <div className="text-sm text-white/80 flex items-center gap-2">
                                       <div className="w-2 h-2 bg-white/50 rounded-full" />
                                       <span>
                                         Aquecimento:{' '}
                                         <span
                                           className={`${getWarmupProgressColor(
-                                            selectedInstanceData
-                                              .warmupStatus?.progress ||
-                                            0,
+                                            calculateWarmupProgress(selectedInstanceData) || 0,
                                           )}`}
                                         >
-                                          {selectedInstanceData.warmupStatus?.progress.toFixed(
+                                          {calculateWarmupProgress(selectedInstanceData).toFixed(
                                             2,
                                           )}
                                           %
