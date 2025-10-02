@@ -21,6 +21,46 @@ import { authService } from '../services/auth.service';
 import { calculateWarmupProgress } from '../services/instance.service';
 import type { Instancia, StartCampaignPayload } from '../types';
 
+// Funções utilitárias para formatação de data brasileira
+const formatDateToBrazilian = (date: Date): string => {
+  return date.toLocaleDateString('pt-BR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric'
+  });
+};
+
+const formatTimeToBrazilian = (date: Date): string => {
+  return date.toLocaleTimeString('pt-BR', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false
+  });
+};
+
+const formatDateTimeToBrazilian = (date: Date): string => {
+  return date.toLocaleString('pt-BR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false
+  });
+};
+
+// Converte data do formato brasileiro DD/MM/AAAA para formato ISO AAAA-MM-DD
+const convertBrazilianDateToISO = (brazilianDate: string): string => {
+  const [day, month, year] = brazilianDate.split('/');
+  return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+};
+
+// Converte data do formato ISO AAAA-MM-DD para formato brasileiro DD/MM/AAAA
+const convertISODateToBrazilian = (isoDate: string): string => {
+  const [year, month, day] = isoDate.split('-');
+  return `${day}/${month}/${year}`;
+};
+
 // Tipos específicos para melhor type safety
 type MediaType = 'none' | 'image' | 'audio' | 'video';
 type SendType = 'now' | 'scheduled';
@@ -62,7 +102,7 @@ interface FormValidationResult {
 
 export default function Disparos() {
   const navigate = useNavigate();
-  
+
   // Estados com tipagem específica
   const [instances, setInstances] = useState<Instancia[]>([]);
   const [selectedInstance, setSelectedInstance] = useState<string>('');
@@ -136,7 +176,7 @@ export default function Disparos() {
 
       const count = response.data.count;
       setLeadCount(count);
-      
+
       // Feedback visual melhorado
       if (count === 0) {
         toast.warning(`Nenhum lead encontrado no segmento "${segment}"`);
@@ -164,7 +204,7 @@ export default function Disparos() {
     // Validação de tipo de arquivo
     const allowedTypes = ['.txt', '.csv'];
     const fileExtension = selectedFile.name.toLowerCase().substring(selectedFile.name.lastIndexOf('.'));
-    
+
     if (!allowedTypes.includes(fileExtension)) {
       toast.error('Formato de arquivo não suportado. Use apenas arquivos .txt ou .csv');
       event.target.value = '';
@@ -180,7 +220,7 @@ export default function Disparos() {
     }
 
     setFile(selectedFile);
-    
+
     // Ler arquivo para contar números
     const reader = new FileReader();
     reader.onload = (e: ProgressEvent<FileReader>) => {
@@ -191,13 +231,13 @@ export default function Disparos() {
         toast.success(`${lines.length} contatos carregados com sucesso`);
       }
     };
-    
+
     reader.onerror = () => {
       toast.error('Erro ao ler o arquivo');
       setFile(null);
       setTotalNumbers(0);
     };
-    
+
     reader.readAsText(selectedFile);
   };
 
@@ -480,7 +520,7 @@ export default function Disparos() {
     // Validação específica para modo "usar base existente"
     if (dispatchMode === 'existing') {
       const selectedCampaignData = campaigns.find(c => c.id === selectedCampaign);
-      
+
       if (!selectedCampaignData) {
         toast.error('Campanha selecionada não encontrada. Por favor, selecione uma campanha válida.');
         return false;
@@ -537,16 +577,18 @@ export default function Disparos() {
         `${scheduledDate}T${scheduledTime}`,
       );
       const now = new Date();
-      
-      if (scheduledDateTime <= now) {
-        toast.error('A data e hora do agendamento devem ser futuras');
+
+      // Permitir agendamentos para hoje, mas com pelo menos 2 minutos no futuro
+      const twoMinutesFromNow = new Date(now.getTime() + 2 * 60 * 1000);
+      if (scheduledDateTime < twoMinutesFromNow) {
+        toast.error('O agendamento deve ser pelo menos 2 minutos no futuro');
         return false;
       }
 
-      // Verificar se não é muito próximo (pelo menos 5 minutos no futuro)
-      const fiveMinutesFromNow = new Date(now.getTime() + 5 * 60 * 1000);
-      if (scheduledDateTime < fiveMinutesFromNow) {
-        toast.error('O agendamento deve ser pelo menos 5 minutos no futuro');
+      // Verificar se a data não é muito no passado (mais de 1 dia)
+      const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+      if (scheduledDateTime < oneDayAgo) {
+        toast.error('Não é possível agendar para datas muito antigas');
         return false;
       }
     }
@@ -720,7 +762,7 @@ export default function Disparos() {
       }
     } catch (error) {
       console.error('Erro ao iniciar campanha:', error);
-      
+
       // Verificar se é realmente um erro ou apenas uma resposta sem o campo success
       if (error.response && error.response.status >= 200 && error.response.status < 300) {
         // Se o status HTTP indica sucesso, tratar como sucesso mesmo sem o campo success
@@ -1055,23 +1097,23 @@ export default function Disparos() {
                                 )}
 
                                 {selectedInstanceData && (
-                                    <div className="text-sm text-white/80 flex items-center gap-2">
-                                      <div className="w-2 h-2 bg-white/50 rounded-full" />
-                                      <span>
-                                        Aquecimento:{' '}
-                                        <span
-                                          className={`${getWarmupProgressColor(
-                                            calculateWarmupProgress(selectedInstanceData) || 0,
-                                          )}`}
-                                        >
-                                          {calculateWarmupProgress(selectedInstanceData).toFixed(
-                                            2,
-                                          )}
-                                          %
-                                        </span>
+                                  <div className="text-sm text-white/80 flex items-center gap-2">
+                                    <div className="w-2 h-2 bg-white/50 rounded-full" />
+                                    <span>
+                                      Aquecimento:{' '}
+                                      <span
+                                        className={`${getWarmupProgressColor(
+                                          calculateWarmupProgress(selectedInstanceData) || 0,
+                                        )}`}
+                                      >
+                                        {calculateWarmupProgress(selectedInstanceData).toFixed(
+                                          2,
+                                        )}
+                                        %
                                       </span>
-                                    </div>
-                                  )}
+                                    </span>
+                                  </div>
+                                )}
 
                                 {selectedInstanceData?.warmupStatus
                                   ?.isRecommended && (
@@ -1313,117 +1355,117 @@ export default function Disparos() {
                     </div>
                   )}
 
-                    {previewUrl && mediaType !== 'none' && (
-                      <div className="mt-4 rounded-xl overflow-hidden bg-electric/10 border border-electric relative group">
-                        {/* Botão de remoção */}
-                        <button
-                          type="button"
-                          onClick={handleRemoveMedia}
-                          className="absolute top-2 right-2 z-10 bg-red-500 hover:bg-red-600 text-white rounded-full p-2 transition-all duration-200 opacity-0 group-hover:opacity-100 shadow-lg"
-                          title="Remover mídia"
+                  {previewUrl && mediaType !== 'none' && (
+                    <div className="mt-4 rounded-xl overflow-hidden bg-electric/10 border border-electric relative group">
+                      {/* Botão de remoção */}
+                      <button
+                        type="button"
+                        onClick={handleRemoveMedia}
+                        className="absolute top-2 right-2 z-10 bg-red-500 hover:bg-red-600 text-white rounded-full p-2 transition-all duration-200 opacity-0 group-hover:opacity-100 shadow-lg"
+                        title="Remover mídia"
+                      >
+                        <svg
+                          className="w-4 h-4"
+                          fill="none"
+                          stroke="currentColor"
+                          viewBox="0 0 24 24"
                         >
-                          <svg
-                            className="w-4 h-4"
-                            fill="none"
-                            stroke="currentColor"
-                            viewBox="0 0 24 24"
-                          >
-                            <path
-                              strokeLinecap="round"
-                              strokeLinejoin="round"
-                              strokeWidth={2}
-                              d="M6 18L18 6M6 6l12 12"
-                            />
-                          </svg>
-                        </button>
+                          <path
+                            strokeLinecap="round"
+                            strokeLinejoin="round"
+                            strokeWidth={2}
+                            d="M6 18L18 6M6 6l12 12"
+                          />
+                        </svg>
+                      </button>
 
-                        {/* Preview da mídia */}
-                        {mediaType === 'image' && (
-                          <div className="relative">
-                            <img
+                      {/* Preview da mídia */}
+                      {mediaType === 'image' && (
+                        <div className="relative">
+                          <img
+                            src={previewUrl}
+                            alt="Preview da imagem"
+                            className="w-full h-auto object-cover max-h-64"
+                          />
+                          <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-3">
+                            <p className="text-white text-sm font-medium">
+                              Imagem selecionada
+                            </p>
+                          </div>
+                        </div>
+                      )}
+                      {mediaType === 'audio' && (
+                        <div className="p-4">
+                          <div className="flex items-center gap-3 mb-3">
+                            <div className="w-10 h-10 bg-neon-green/20 rounded-full flex items-center justify-center">
+                              <svg className="w-5 h-5 text-neon-green" fill="currentColor" viewBox="0 0 20 20">
+                                <path fillRule="evenodd" d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.617.793l-4.146-3.317a1 1 0 00-.632-.226H2a1 1 0 01-1-1V7.5a1 1 0 011-1h1.605a1 1 0 00.632-.226l4.146-3.317a1 1 0 011.617.793zM14.657 5.757a1 1 0 011.414 0A9.972 9.972 0 0119 10a9.972 9.972 0 01-2.929 4.243 1 1 0 11-1.414-1.414A7.971 7.971 0 0017 10c0-1.636-.525-3.153-1.414-4.243a1 1 0 010-1.414z" clipRule="evenodd" />
+                              </svg>
+                            </div>
+                            <p className="text-white font-medium">Áudio selecionado</p>
+                          </div>
+                          <audio controls className="w-full">
+                            <source
                               src={previewUrl}
-                              alt="Preview da imagem"
-                              className="w-full h-auto object-cover max-h-64"
+                              type="audio/mpeg"
                             />
-                            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-3">
-                              <p className="text-white text-sm font-medium">
-                                Imagem selecionada
-                              </p>
-                            </div>
+                            Seu navegador não suporta o elemento de áudio.
+                          </audio>
+                        </div>
+                      )}
+                      {mediaType === 'video' && (
+                        <div className="relative">
+                          <video controls className="w-full max-h-64">
+                            <source
+                              src={previewUrl}
+                              type="video/mp4"
+                            />
+                            Seu navegador não suporta o elemento de vídeo.
+                          </video>
+                          <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-3">
+                            <p className="text-white text-sm font-medium">
+                              Vídeo selecionado
+                            </p>
                           </div>
-                        )}
-                        {mediaType === 'audio' && (
-                          <div className="p-4">
-                            <div className="flex items-center gap-3 mb-3">
-                              <div className="w-10 h-10 bg-neon-green/20 rounded-full flex items-center justify-center">
-                                <svg className="w-5 h-5 text-neon-green" fill="currentColor" viewBox="0 0 20 20">
-                                  <path fillRule="evenodd" d="M9.383 3.076A1 1 0 0110 4v12a1 1 0 01-1.617.793l-4.146-3.317a1 1 0 00-.632-.226H2a1 1 0 01-1-1V7.5a1 1 0 011-1h1.605a1 1 0 00.632-.226l4.146-3.317a1 1 0 011.617.793zM14.657 5.757a1 1 0 011.414 0A9.972 9.972 0 0119 10a9.972 9.972 0 01-2.929 4.243 1 1 0 11-1.414-1.414A7.971 7.971 0 0017 10c0-1.636-.525-3.153-1.414-4.243a1 1 0 010-1.414z" clipRule="evenodd" />
-                                </svg>
-                              </div>
-                              <p className="text-white font-medium">Áudio selecionado</p>
-                            </div>
-                            <audio controls className="w-full">
-                              <source
-                                src={previewUrl}
-                                type="audio/mpeg"
-                              />
-                              Seu navegador não suporta o elemento de áudio.
-                            </audio>
-                          </div>
-                        )}
-                        {mediaType === 'video' && (
-                          <div className="relative">
-                            <video controls className="w-full max-h-64">
-                              <source
-                                src={previewUrl}
-                                type="video/mp4"
-                              />
-                              Seu navegador não suporta o elemento de vídeo.
-                            </video>
-                            <div className="absolute bottom-0 left-0 right-0 bg-gradient-to-t from-black/60 to-transparent p-3">
-                              <p className="text-white text-sm font-medium">
-                                Vídeo selecionado
-                              </p>
-                            </div>
-                          </div>
-                        )}
-                      </div>
-                    )}
-                  </div>
-
-                  <div>
-                    <label className="block text-lg font-medium text-white mb-2">
-                      Modo de Disparo
-                    </label>
-                    <div className="flex gap-4">
-                      <button
-                        type="button"
-                        onClick={() => setDispatchMode('new')}
-                        className={cn(
-                          'flex-1 py-3 px-4 rounded-xl flex items-center justify-center gap-2 transition-all',
-                          dispatchMode === 'new'
-                            ? 'bg-neon-green text-black font-bold'
-                            : 'bg-electric/10 text-white hover:bg-electric/20',
-                        )}
-                      >
-                        <FiUpload className="mr-2" />
-                        Importar Novos Leads
-                      </button>
-                      <button
-                        type="button"
-                        onClick={() => setDispatchMode('existing')}
-                        className={cn(
-                          'flex-1 py-3 px-4 rounded-xl flex items-center justify-center gap-2 transition-all',
-                          dispatchMode === 'existing'
-                            ? 'bg-neon-green text-black font-bold'
-                            : 'bg-electric/10 text-white hover:bg-electric/20',
-                        )}
-                      >
-                        <FiDatabase className="mr-2" />
-                        Usar Base Existente
-                      </button>
+                        </div>
+                      )}
                     </div>
+                  )}
+                </div>
+
+                <div>
+                  <label className="block text-lg font-medium text-white mb-2">
+                    Modo de Disparo
+                  </label>
+                  <div className="flex gap-4">
+                    <button
+                      type="button"
+                      onClick={() => setDispatchMode('new')}
+                      className={cn(
+                        'flex-1 py-3 px-4 rounded-xl flex items-center justify-center gap-2 transition-all',
+                        dispatchMode === 'new'
+                          ? 'bg-neon-green text-black font-bold'
+                          : 'bg-electric/10 text-white hover:bg-electric/20',
+                      )}
+                    >
+                      <FiUpload className="mr-2" />
+                      Importar Novos Leads
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => setDispatchMode('existing')}
+                      className={cn(
+                        'flex-1 py-3 px-4 rounded-xl flex items-center justify-center gap-2 transition-all',
+                        dispatchMode === 'existing'
+                          ? 'bg-neon-green text-black font-bold'
+                          : 'bg-electric/10 text-white hover:bg-electric/20',
+                      )}
+                    >
+                      <FiDatabase className="mr-2" />
+                      Usar Base Existente
+                    </button>
                   </div>
+                </div>
 
                 {/* Configuração de Rotação de Instâncias */}
                 {selectedCampaign && (
@@ -1563,7 +1605,7 @@ export default function Disparos() {
                           onChange={(e) =>
                             setScheduledDate(e.target.value)
                           }
-                          min={new Date().toISOString().split('T')[0]}
+                          min={new Date(new Date().getTime() - 24 * 60 * 60 * 1000).toISOString().split('T')[0]}
                           className="w-full p-4 bg-electric/10 border border-electric rounded-xl text-white focus:ring-2 focus:ring-neon-green transition-all"
                         />
                       </div>
