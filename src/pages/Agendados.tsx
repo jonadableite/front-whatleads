@@ -1,7 +1,7 @@
 import { Button } from "@/components/ui/button";
 import { InputWithIcon } from "@/components/ui/input-with-icon";
 import { Modal } from "@/components/ui/modal";
-import { Select } from "@/components/ui/select";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "@/components/ui/toast";
 import type {
 	ApiResponse,
@@ -139,7 +139,7 @@ StatsCard.displayName = "StatsCard";
 
 const Agendados = () => {
 	const [searchTerm, setSearchTerm] = useState("");
-	const [statusFilter, setStatusFilter] = useState("");
+	const [statusFilter, setStatusFilter] = useState("all");
 	const [selectedCampaign, setSelectedCampaign] =
 		useState<ScheduledCampaign | null>(null);
 	const [isEditModalOpen, setIsEditModalOpen] = useState(false);
@@ -172,7 +172,7 @@ const Agendados = () => {
 		return scheduledCampaigns.filter(
 			(campaign) =>
 				campaign.name.toLowerCase().includes(searchTerm.toLowerCase()) &&
-				(!statusFilter || campaign.status === statusFilter),
+				(statusFilter === "all" || campaign.status === statusFilter),
 		);
 	}, [scheduledCampaigns, searchTerm, statusFilter]);
 
@@ -240,17 +240,18 @@ const Agendados = () => {
 						icon={<FiSearch className="w-5 h-5" />}
 					/>
 				</div>
-				<Select
-					value={statusFilter}
-					onChange={(e) => setStatusFilter(e.target.value)}
-					className="bg-deep/50 border-electric text-white"
-				>
-					<option value="" className=" text-gray-300">Todos os status</option>
-					<option value="scheduled" className=" text-gray-300">Agendada</option>
-					<option value="running" className=" text-gray-300">Em execução</option>
-					<option value="paused" className=" text-gray-300">Pausada</option>
-					<option value="cancelled" className=" text-gray-300">Cancelada</option>
-					<option value="completed" className=" text-gray-300">Concluída</option>
+				<Select value={statusFilter} onValueChange={setStatusFilter}>
+					<SelectTrigger className="bg-deep/50 border-electric text-white">
+						<SelectValue placeholder="Todos os status" />
+					</SelectTrigger>
+					<SelectContent>
+						<SelectItem value="all">Todos os status</SelectItem>
+						<SelectItem value="scheduled">Agendada</SelectItem>
+						<SelectItem value="running">Em execução</SelectItem>
+						<SelectItem value="paused">Pausada</SelectItem>
+						<SelectItem value="cancelled">Cancelada</SelectItem>
+						<SelectItem value="completed">Concluída</SelectItem>
+					</SelectContent>
 				</Select>
 			</div>
 

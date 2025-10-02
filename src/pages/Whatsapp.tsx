@@ -576,6 +576,18 @@ export default function WhatsappPage() {
     try {
       setLoading(true);
       await deleteInstance(instanceId);
+      
+      // Limpar cache do frontend se existir
+      if (typeof window !== 'undefined') {
+        // Limpar qualquer cache relacionado a instâncias
+        const cacheKeys = Object.keys(localStorage);
+        cacheKeys.forEach(key => {
+          if (key.includes('instances') || key.includes('instance')) {
+            localStorage.removeItem(key);
+          }
+        });
+      }
+      
       toast({
         title: 'Instância Deletada',
         description: `${instanceName} foi deletada com sucesso`,
