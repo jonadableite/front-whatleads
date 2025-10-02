@@ -6,11 +6,11 @@ import { Input } from '../components/ui/input';
 import { Table, Thead, Tbody, Tr, Th, Td } from '../components/ui/table';
 import { toast } from '../components/ui/toast';
 import { hotmartService, HotmartSalesHistoryResponse, HotmartSalesSummaryResponse, HotmartSalesUsersResponse, HotmartSalesCommissionsResponse } from '../services/hotmart.service';
-import { 
-  Calendar, 
-  DollarSign, 
-  Users, 
-  TrendingUp, 
+import {
+  Calendar,
+  DollarSign,
+  Users,
+  TrendingUp,
   RefreshCw,
   Download,
   Filter,
@@ -85,11 +85,10 @@ const StatCard: React.FC<StatCardProps> = ({ icon: Icon, title, value, descripti
 const TabButton: React.FC<TabButtonProps> = ({ active, onClick, children, icon: Icon }) => (
   <button
     onClick={onClick}
-    className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-all duration-300 ${
-      active
+    className={`flex items-center space-x-2 px-4 py-2 rounded-lg transition-all duration-300 ${active
         ? 'bg-electric text-black font-medium'
         : 'bg-deep/60 text-white/80 hover:bg-deep/80 hover:text-white'
-    }`}
+      }`}
   >
     <Icon className="w-4 h-4" />
     <span>{children}</span>
@@ -103,13 +102,13 @@ const HotmartSales: React.FC = () => {
     start: new Date(Date.now() - 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
     end: new Date().toISOString().split('T')[0]
   });
-  
+
   // Estados para cada tipo de dados
   const [salesHistory, setSalesHistory] = useState<HotmartSalesHistoryResponse | null>(null);
   const [salesSummary, setSalesSummary] = useState<HotmartSalesSummaryResponse | null>(null);
   const [salesUsers, setSalesUsers] = useState<HotmartSalesUsersResponse | null>(null);
   const [salesCommissions, setSalesCommissions] = useState<HotmartSalesCommissionsResponse | null>(null);
-  
+
   // Filtros
   const [filters, setFilters] = useState<Filters>({
     productId: '',
@@ -418,7 +417,7 @@ const HotmartSales: React.FC = () => {
                         />
                       </div>
                     </div>
-                    
+
                     {salesHistory?.items && salesHistory.items.length > 0 ? (
                       <div className="overflow-x-auto">
                         <Table className="w-full">
@@ -452,13 +451,12 @@ const HotmartSales: React.FC = () => {
                                   {formatCurrency(item.purchase.price.value, item.purchase.price.currency_value)}
                                 </Td>
                                 <Td>
-                                  <span className={`px-2 py-1 rounded-full text-xs ${
-                                    item.purchase.status === 'APPROVED' 
+                                  <span className={`px-2 py-1 rounded-full text-xs ${item.purchase.status === 'APPROVED'
                                       ? 'bg-green-500/20 text-green-400'
                                       : item.purchase.status === 'CANCELLED'
-                                      ? 'bg-red-500/20 text-red-400'
-                                      : 'bg-yellow-500/20 text-yellow-400'
-                                  }`}>
+                                        ? 'bg-red-500/20 text-red-400'
+                                        : 'bg-yellow-500/20 text-yellow-400'
+                                    }`}>
                                     {item.purchase.status || 'N/A'}
                                   </span>
                                 </Td>

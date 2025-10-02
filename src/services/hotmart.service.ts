@@ -1,5 +1,5 @@
 // src/services/hotmart.service.ts
-import axios from "axios";
+import { apiInternal } from "./api";
 import { authService } from "./auth.service";
 
 // Interfaces para os tipos de dados Hotmart
@@ -464,13 +464,6 @@ export interface HotmartSalesPriceDetailsResponse {
 }
 
 class HotmartService {
-  private getAuthHeaders() {
-    const token = authService.getTokenInterno();
-    return {
-      Authorization: `Bearer ${token}`,
-    };
-  }
-
   /**
    * Lista todos os clientes Hotmart
    */
@@ -486,9 +479,8 @@ class HotmartService {
       if (filters.isActive !== undefined) params.append("isActive", filters.isActive.toString());
       if (filters.search) params.append("search", filters.search);
 
-      const response = await axios.get(
-        `${import.meta.env.VITE_API_URL || "https://aquecerapi.whatlead.com.br"}/api/hotmart/customers?${params.toString()}`,
-        { headers: this.getAuthHeaders() }
+      const response = await apiInternal.get(
+        `/api/hotmart/customers?${params.toString()}`
       );
 
       return response.data;
@@ -504,9 +496,8 @@ class HotmartService {
    */
   async getCustomerStats(): Promise<HotmartStats> {
     try {
-      const response = await axios.get(
-        `${import.meta.env.VITE_API_URL || "https://aquecerapi.whatlead.com.br"}/api/hotmart/stats`,
-        { headers: this.getAuthHeaders() }
+      const response = await apiInternal.get(
+        `/api/hotmart/stats`
       );
 
       return response.data;
@@ -522,9 +513,8 @@ class HotmartService {
    */
   async getCustomer(id: string): Promise<HotmartCustomer> {
     try {
-      const response = await axios.get(
-        `${import.meta.env.VITE_API_URL || "https://aquecerapi.whatlead.com.br"}/api/hotmart/customers/${id}`,
-        { headers: this.getAuthHeaders() }
+      const response = await apiInternal.get(
+        `/api/hotmart/customers/${id}`
       );
 
       return response.data.data;
@@ -540,10 +530,9 @@ class HotmartService {
    */
   async updateCustomer(id: string, updateData: Partial<HotmartCustomer>): Promise<HotmartCustomer> {
     try {
-      const response = await axios.put(
-        `${import.meta.env.VITE_API_URL || "https://aquecerapi.whatlead.com.br"}/api/hotmart/customers/${id}`,
-        updateData,
-        { headers: this.getAuthHeaders() }
+      const response = await apiInternal.put(
+        `/api/hotmart/customers/${id}`,
+        updateData
       );
 
       return response.data.data;
@@ -559,9 +548,8 @@ class HotmartService {
    */
   async getCustomerEvents(customerId: string, page = 1, limit = 20): Promise<HotmartEventResponse> {
     try {
-      const response = await axios.get(
-        `${import.meta.env.VITE_API_URL || "https://aquecerapi.whatlead.com.br"}/api/hotmart/customers/${customerId}/events?page=${page}&limit=${limit}`,
-        { headers: this.getAuthHeaders() }
+      const response = await apiInternal.get(
+        `/api/hotmart/customers/${customerId}/events?page=${page}&limit=${limit}`
       );
 
       return response.data.data;
@@ -577,9 +565,8 @@ class HotmartService {
    */
   async getCustomerTransactions(customerId: string, page = 1, limit = 20): Promise<HotmartTransactionResponse> {
     try {
-      const response = await axios.get(
-        `${import.meta.env.VITE_API_URL || "https://aquecerapi.whatlead.com.br"}/api/hotmart/customers/${customerId}/transactions?page=${page}&limit=${limit}`,
-        { headers: this.getAuthHeaders() }
+      const response = await apiInternal.get(
+        `/api/hotmart/customers/${customerId}/transactions?page=${page}&limit=${limit}`
       );
 
       return response.data.data;
@@ -602,9 +589,8 @@ class HotmartService {
         }
       });
 
-      const response = await axios.get(
-        `${import.meta.env.VITE_API_URL || "https://aquecerapi.whatlead.com.br"}/api/hotmart/subscriptions?${params.toString()}`,
-        { headers: this.getAuthHeaders() }
+      const response = await apiInternal.get(
+        `/api/hotmart/subscriptions?${params.toString()}`
       );
 
       return response.data.data;
@@ -620,9 +606,8 @@ class HotmartService {
    */
   async getSubscriptionDetails(subscriberCode: string): Promise<HotmartSubscription> {
     try {
-      const response = await axios.get(
-        `${import.meta.env.VITE_API_URL || "https://aquecerapi.whatlead.com.br"}/api/hotmart/subscriptions/${subscriberCode}`,
-        { headers: this.getAuthHeaders() }
+      const response = await apiInternal.get(
+        `/api/hotmart/subscriptions/${subscriberCode}`
       );
 
       return response.data.data;
@@ -638,10 +623,9 @@ class HotmartService {
    */
   async cancelSubscription(subscriberCode: string, sendEmail = true): Promise<Record<string, unknown>> {
     try {
-      const response = await axios.post(
-        `${import.meta.env.VITE_API_URL || "https://aquecerapi.whatlead.com.br"}/api/hotmart/subscriptions/${subscriberCode}/cancel`,
-        { sendEmail },
-        { headers: this.getAuthHeaders() }
+      const response = await apiInternal.post(
+        `/api/hotmart/subscriptions/${subscriberCode}/cancel`,
+        { sendEmail }
       );
 
       return response.data.data;
@@ -657,10 +641,9 @@ class HotmartService {
    */
   async reactivateSubscription(subscriberCode: string, chargeNow = false): Promise<Record<string, unknown>> {
     try {
-      const response = await axios.post(
-        `${import.meta.env.VITE_API_URL || "https://aquecerapi.whatlead.com.br"}/api/hotmart/subscriptions/${subscriberCode}/reactivate`,
-        { chargeNow },
-        { headers: this.getAuthHeaders() }
+      const response = await apiInternal.post(
+        `/api/hotmart/subscriptions/${subscriberCode}/reactivate`,
+        { chargeNow }
       );
 
       return response.data.data;
@@ -676,10 +659,9 @@ class HotmartService {
    */
   async syncWithHotmart(): Promise<HotmartSyncResponse> {
     try {
-      const response = await axios.post(
-        `${import.meta.env.VITE_API_URL || "https://aquecerapi.whatlead.com.br"}/api/hotmart/sync`,
-        {},
-        { headers: this.getAuthHeaders() }
+      const response = await apiInternal.post(
+        `/api/hotmart/sync`,
+        {}
       );
 
       return response.data;
@@ -695,10 +677,9 @@ class HotmartService {
    */
   async addCustomerNote(customerId: string, notes: string): Promise<HotmartCustomer> {
     try {
-      const response = await axios.post(
-        `${import.meta.env.VITE_API_URL || "https://aquecerapi.whatlead.com.br"}/api/hotmart/customers/${customerId}/notes`,
-        { notes },
-        { headers: this.getAuthHeaders() }
+      const response = await apiInternal.post(
+        `/api/hotmart/customers/${customerId}/notes`,
+        { notes }
       );
 
       return response.data.data;
@@ -714,10 +695,9 @@ class HotmartService {
    */
   async addCustomerTags(customerId: string, tags: string[]): Promise<HotmartCustomer> {
     try {
-      const response = await axios.post(
-        `${import.meta.env.VITE_API_URL || "https://aquecerapi.whatlead.com.br"}/api/hotmart/customers/${customerId}/tags`,
-        { tags },
-        { headers: this.getAuthHeaders() }
+      const response = await apiInternal.post(
+        `/api/hotmart/customers/${customerId}/tags`,
+        { tags }
       );
 
       return response.data.data;
@@ -733,10 +713,9 @@ class HotmartService {
    */
   async removeCustomerTags(customerId: string, tags: string[]): Promise<HotmartCustomer> {
     try {
-      const response = await axios.delete(
-        `${import.meta.env.VITE_API_URL || "https://aquecerapi.whatlead.com.br"}/api/hotmart/customers/${customerId}/tags`,
+      const response = await apiInternal.delete(
+        `/api/hotmart/customers/${customerId}/tags`,
         {
-          headers: this.getAuthHeaders(),
           data: { tags },
         }
       );
@@ -754,11 +733,10 @@ class HotmartService {
    */
   async exportCustomers(filters: Record<string, unknown> = {}, format = "csv"): Promise<string> {
     try {
-      const response = await axios.post(
-        `${import.meta.env.VITE_API_URL || "https://aquecerapi.whatlead.com.br"}/api/hotmart/export?format=${format}`,
+      const response = await apiInternal.post(
+        `/api/hotmart/export?format=${format}`,
         filters,
         {
-          headers: this.getAuthHeaders(),
           responseType: "text"
         }
       );
@@ -783,9 +761,8 @@ class HotmartService {
         }
       });
 
-      const response = await axios.get(
-        `${import.meta.env.VITE_API_URL || "https://aquecerapi.whatlead.com.br"}/api/hotmart/analytics/report?${queryParams.toString()}`,
-        { headers: this.getAuthHeaders() }
+      const response = await apiInternal.get(
+        `/api/hotmart/analytics/report?${queryParams.toString()}`
       );
 
       return response.data.data;
@@ -808,9 +785,8 @@ class HotmartService {
         }
       });
 
-      const response = await axios.get(
-        `${import.meta.env.VITE_API_URL || "https://aquecerapi.whatlead.com.br"}/api/hotmart/sales/history?${queryParams.toString()}`,
-        { headers: this.getAuthHeaders() }
+      const response = await apiInternal.get(
+        `/api/hotmart/sales/history?${queryParams.toString()}`
       );
 
       return response.data;
@@ -833,9 +809,8 @@ class HotmartService {
         }
       });
 
-      const response = await axios.get(
-        `${import.meta.env.VITE_API_URL || "https://aquecerapi.whatlead.com.br"}/api/hotmart/sales/summary?${queryParams.toString()}`,
-        { headers: this.getAuthHeaders() }
+      const response = await apiInternal.get(
+        `/api/hotmart/sales/summary?${queryParams.toString()}`
       );
 
       return response.data;
@@ -858,9 +833,8 @@ class HotmartService {
         }
       });
 
-      const response = await axios.get(
-        `${import.meta.env.VITE_API_URL || "https://aquecerapi.whatlead.com.br"}/api/hotmart/sales/users?${queryParams.toString()}`,
-        { headers: this.getAuthHeaders() }
+      const response = await apiInternal.get(
+        `/api/hotmart/sales/users?${queryParams.toString()}`
       );
 
       return response.data;
@@ -883,9 +857,8 @@ class HotmartService {
         }
       });
 
-      const response = await axios.get(
-        `${import.meta.env.VITE_API_URL || "https://aquecerapi.whatlead.com.br"}/api/hotmart/sales/commissions?${queryParams.toString()}`,
-        { headers: this.getAuthHeaders() }
+      const response = await apiInternal.get(
+        `/api/hotmart/sales/commissions?${queryParams.toString()}`
       );
 
       return response.data;
@@ -908,9 +881,8 @@ class HotmartService {
         }
       });
 
-      const response = await axios.get(
-        `${import.meta.env.VITE_API_URL || "https://aquecerapi.whatlead.com.br"}/api/hotmart/sales/price-details?${queryParams.toString()}`,
-        { headers: this.getAuthHeaders() }
+      const response = await apiInternal.get(
+        `/api/hotmart/sales/price-details?${queryParams.toString()}`
       );
 
       return response.data;
