@@ -246,8 +246,221 @@ export interface HotmartExportResponse {
 }
 
 export interface HotmartAnalyticsResponse {
-  data: Record<string, unknown>;
-  summary: Record<string, unknown>;
+  totalRevenue: number;
+  totalTransactions: number;
+  averageTicket: number;
+  conversionRate: number;
+  churnRate: number;
+  monthlyRecurringRevenue: number;
+  customerLifetimeValue: number;
+  topProducts: Array<{
+    productId: string;
+    productName: string;
+    revenue: number;
+    transactions: number;
+  }>;
+  revenueByMonth: Array<{
+    month: string;
+    revenue: number;
+    transactions: number;
+  }>;
+  customersByStatus: Array<{
+    status: string;
+    count: number;
+  }>;
+}
+
+// Interfaces para os novos endpoints de vendas
+export interface HotmartSalesHistoryParams {
+  start_date: string;
+  end_date: string;
+  product_id?: string;
+  buyer_email?: string;
+  transaction_status?: string;
+  max_results?: number;
+  page_token?: string;
+}
+
+export interface HotmartSalesHistoryResponse {
+  items: Array<{
+    transaction: string;
+    product: {
+      id: number;
+      name: string;
+      ucode: string;
+    };
+    buyer: {
+      name: string;
+      email: string;
+      document?: string;
+      phone?: string;
+    };
+    purchase: {
+      order_date: number;
+      approved_date?: number;
+      status: string;
+      price: {
+        value: number;
+        currency_value: string;
+      };
+      payment: {
+        method: string;
+        type: string;
+        installments_number?: number;
+      };
+    };
+    subscription?: {
+      subscriber: {
+        code: string;
+      };
+      plan: {
+        name: string;
+        id: number;
+      };
+      status: string;
+      date_next_charge?: number;
+    };
+    commissions?: Array<{
+      source: string;
+      value: number;
+      currency_value: string;
+    }>;
+  }>;
+  page_info: {
+    next_page_token?: string;
+    total_results: number;
+  };
+}
+
+export interface HotmartSalesSummaryParams {
+  start_date: string;
+  end_date: string;
+  product_id?: string;
+  currency_code?: string;
+}
+
+export interface HotmartSalesSummaryResponse {
+  items: Array<{
+    currency_code: string;
+    total_value: number;
+    total_commissions: number;
+    total_transactions: number;
+  }>;
+}
+
+export interface HotmartSalesUsersParams {
+  start_date: string;
+  end_date: string;
+  product_id?: string;
+  buyer_email?: string;
+  max_results?: number;
+  page_token?: string;
+}
+
+export interface HotmartSalesUsersResponse {
+  items: Array<{
+    user_id: string;
+    name: string;
+    email: string;
+    document?: string;
+    phone?: string;
+    address?: {
+      country?: string;
+      state?: string;
+      city?: string;
+      zip_code?: string;
+      address?: string;
+      number?: string;
+      complement?: string;
+      neighborhood?: string;
+    };
+    role: string; // BUYER, PRODUCER, AFFILIATE, CO_PRODUCER
+    transactions: Array<{
+      transaction: string;
+      product_id: number;
+      value: number;
+      currency_code: string;
+      date: number;
+    }>;
+  }>;
+  page_info: {
+    next_page_token?: string;
+    total_results: number;
+  };
+}
+
+export interface HotmartSalesCommissionsParams {
+  start_date: string;
+  end_date: string;
+  product_id?: string;
+  max_results?: number;
+  page_token?: string;
+}
+
+export interface HotmartSalesCommissionsResponse {
+  items: Array<{
+    transaction: string;
+    product: {
+      id: number;
+      name: string;
+    };
+    commissions: Array<{
+      source: string;
+      source_name: string;
+      value: number;
+      percentage: number;
+      currency_code: string;
+      type: string; // PRODUCER, AFFILIATE, CO_PRODUCER
+    }>;
+    purchase_date: number;
+    total_value: number;
+    currency_code: string;
+  }>;
+  page_info: {
+    next_page_token?: string;
+    total_results: number;
+  };
+}
+
+export interface HotmartSalesPriceDetailsParams {
+  start_date: string;
+  end_date: string;
+  product_id?: string;
+  transaction_id?: string;
+  max_results?: number;
+  page_token?: string;
+}
+
+export interface HotmartSalesPriceDetailsResponse {
+  items: Array<{
+    transaction: string;
+    product: {
+      id: number;
+      name: string;
+    };
+    price_details: {
+      total_value: number;
+      base_value: number;
+      discount_value: number;
+      tax_value: number;
+      currency_code: string;
+      discounts: Array<{
+        type: string;
+        value: number;
+        percentage?: number;
+      }>;
+      taxes: Array<{
+        type: string;
+        value: number;
+        percentage?: number;
+      }>;
+    };
+    purchase_date: number;
+  }>;
+  page_info: {
+    next_page_token?: string;
+    total_results: number;
+  };
 }
 
 class HotmartService {
@@ -579,6 +792,131 @@ class HotmartService {
     } catch (error: unknown) {
       console.error("Erro ao gerar relatório:", error);
       const errorMessage = error instanceof Error ? error.message : "Erro ao gerar relatório";
+      throw new Error(errorMessage);
+    }
+  }
+
+  /**
+   * Busca histórico de vendas da Hotmart
+   */
+  async getSalesHistory(params: HotmartSalesHistoryParams): Promise<HotmartSalesHistoryResponse> {
+    try {
+      const queryParams = new URLSearchParams();
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          queryParams.append(key, value.toString());
+        }
+      });
+
+      const response = await axios.get(
+        `${import.meta.env.VITE_API_URL || "https://aquecerapi.whatlead.com.br"}/api/hotmart/sales/history?${queryParams.toString()}`,
+        { headers: this.getAuthHeaders() }
+      );
+
+      return response.data;
+    } catch (error: unknown) {
+      console.error("Erro ao buscar histórico de vendas:", error);
+      const errorMessage = error instanceof Error ? error.message : "Erro ao buscar histórico de vendas";
+      throw new Error(errorMessage);
+    }
+  }
+
+  /**
+   * Busca sumário de vendas da Hotmart
+   */
+  async getSalesSummary(params: HotmartSalesSummaryParams): Promise<HotmartSalesSummaryResponse> {
+    try {
+      const queryParams = new URLSearchParams();
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          queryParams.append(key, value.toString());
+        }
+      });
+
+      const response = await axios.get(
+        `${import.meta.env.VITE_API_URL || "https://aquecerapi.whatlead.com.br"}/api/hotmart/sales/summary?${queryParams.toString()}`,
+        { headers: this.getAuthHeaders() }
+      );
+
+      return response.data;
+    } catch (error: unknown) {
+      console.error("Erro ao buscar sumário de vendas:", error);
+      const errorMessage = error instanceof Error ? error.message : "Erro ao buscar sumário de vendas";
+      throw new Error(errorMessage);
+    }
+  }
+
+  /**
+   * Busca participantes de vendas da Hotmart
+   */
+  async getSalesUsers(params: HotmartSalesUsersParams): Promise<HotmartSalesUsersResponse> {
+    try {
+      const queryParams = new URLSearchParams();
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          queryParams.append(key, value.toString());
+        }
+      });
+
+      const response = await axios.get(
+        `${import.meta.env.VITE_API_URL || "https://aquecerapi.whatlead.com.br"}/api/hotmart/sales/users?${queryParams.toString()}`,
+        { headers: this.getAuthHeaders() }
+      );
+
+      return response.data;
+    } catch (error: unknown) {
+      console.error("Erro ao buscar participantes de vendas:", error);
+      const errorMessage = error instanceof Error ? error.message : "Erro ao buscar participantes de vendas";
+      throw new Error(errorMessage);
+    }
+  }
+
+  /**
+   * Busca comissões de vendas da Hotmart
+   */
+  async getSalesCommissions(params: HotmartSalesCommissionsParams): Promise<HotmartSalesCommissionsResponse> {
+    try {
+      const queryParams = new URLSearchParams();
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          queryParams.append(key, value.toString());
+        }
+      });
+
+      const response = await axios.get(
+        `${import.meta.env.VITE_API_URL || "https://aquecerapi.whatlead.com.br"}/api/hotmart/sales/commissions?${queryParams.toString()}`,
+        { headers: this.getAuthHeaders() }
+      );
+
+      return response.data;
+    } catch (error: unknown) {
+      console.error("Erro ao buscar comissões de vendas:", error);
+      const errorMessage = error instanceof Error ? error.message : "Erro ao buscar comissões de vendas";
+      throw new Error(errorMessage);
+    }
+  }
+
+  /**
+   * Busca detalhes de preços de vendas da Hotmart
+   */
+  async getSalesPriceDetails(params: HotmartSalesPriceDetailsParams): Promise<HotmartSalesPriceDetailsResponse> {
+    try {
+      const queryParams = new URLSearchParams();
+      Object.entries(params).forEach(([key, value]) => {
+        if (value !== undefined && value !== null) {
+          queryParams.append(key, value.toString());
+        }
+      });
+
+      const response = await axios.get(
+        `${import.meta.env.VITE_API_URL || "https://aquecerapi.whatlead.com.br"}/api/hotmart/sales/price-details?${queryParams.toString()}`,
+        { headers: this.getAuthHeaders() }
+      );
+
+      return response.data;
+    } catch (error: unknown) {
+      console.error("Erro ao buscar detalhes de preços:", error);
+      const errorMessage = error instanceof Error ? error.message : "Erro ao buscar detalhes de preços";
       throw new Error(errorMessage);
     }
   }

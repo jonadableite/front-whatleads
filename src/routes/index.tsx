@@ -25,6 +25,7 @@ import Chat from '../pages/Chat';
 import Contatos from '../pages/Contatos';
 import Grupos from '../pages/Grupos';
 import Historico from '../pages/Historico';
+import HotmartSales from '../pages/HotmartSales';
 import PasswordRecovery from '../pages/PasswordRecovery';
 import WhatsappPage from '../pages/Whatsapp';
 
@@ -115,6 +116,10 @@ const router = createBrowserRouter([
           {
             path: '/documentacao',
             element: <Documentation />,
+          },
+          {
+            path: '/hotmart/vendas',
+            element: <HotmartSales />,
           },
         ],
       },

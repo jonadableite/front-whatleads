@@ -15,6 +15,7 @@ import {
   Menu,
   MessageCircle,
   MessageSquareText,
+  ShoppingCart,
   Sparkles,
   Users,
   X,
@@ -82,6 +83,11 @@ const sidebarItems: SidebarItem[] = [
     title: 'Documentação',
     icon: <FileText className="w-5 h-5" />,
     path: '/documentacao',
+  },
+  {
+    title: 'Vendas Hotmart',
+    icon: <ShoppingCart className="w-5 h-5" />,
+    path: '/hotmart/vendas',
   },
   {
     title: 'Aquecimento',
