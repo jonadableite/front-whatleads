@@ -588,7 +588,7 @@ export default function Disparos() {
       // Verificar se a data não é muito no passado (mais de 1 dia)
       const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
       if (scheduledDateTime < oneDayAgo) {
-        toast.error('Não é possível agendar para datas muito antigas');
+        toast.error('Não é possível agendar para datas antigas');
         return false;
       }
     }
@@ -888,7 +888,7 @@ export default function Disparos() {
         });
 
         const response = await api.post(
-          `/scheduler/${selectedCampaign}/schedule`,
+          `/api/scheduler/${selectedCampaign}/schedule`,
           {
             scheduledDate: scheduledDateTime.toISOString(),
             instanceName: selectedInstanceData.instanceName,
@@ -1026,7 +1026,7 @@ export default function Disparos() {
                       >
                         <option
                           value=""
-                          className="bg-deep text-white"
+                          className="bg-gray-800 text-gray-300"
                         >
                           {isLoadingInstances
                             ? 'Carregando instâncias...'
@@ -1042,7 +1042,7 @@ export default function Disparos() {
                               key={instance.id}
                               value={instance.id}
                               className={cn(
-                                'bg-deep text-white',
+                                'bg-gray-800 text-gray-300',
                                 instance.warmupStatus
                                   ?.isRecommended &&
                                 'text-neon-green',
@@ -1203,7 +1203,7 @@ export default function Disparos() {
                       >
                         <option
                           value=""
-                          className="bg-deep text-white"
+                          className="bg-gray-800 text-gray-300"
                         >
                           {isLoadingCampaigns
                             ? 'Carregando campanhas...'
@@ -1214,7 +1214,7 @@ export default function Disparos() {
                             key={campaign.id}
                             value={campaign.id}
                             className={cn(
-                              'bg-deep text-white',
+                              'bg-gray-800 text-gray-300',
                               campaign.status === 'running' &&
                               'text-neon-green',
                             )}
@@ -1290,25 +1290,25 @@ export default function Disparos() {
                     >
                       <option
                         value="none"
-                        className="bg-deep text-white"
+                        className="bg-gray-800 text-gray-300"
                       >
                         Nenhuma (Apenas Texto)
                       </option>
                       <option
                         value="image"
-                        className="bg-deep text-white"
+                        className="bg-gray-800 text-gray-300"
                       >
                         Imagem
                       </option>
                       <option
                         value="audio"
-                        className="bg-deep text-white"
+                        className="bg-gray-800 text-gray-300"
                       >
                         Áudio
                       </option>
                       <option
                         value="video"
-                        className="bg-deep text-white"
+                        className="bg-gray-800 text-gray-300"
                       >
                         Vídeo
                       </option>
@@ -1508,17 +1508,17 @@ export default function Disparos() {
                           onChange={handleSegmentChange}
                           className="w-full p-4 bg-deep/50 border border-electric rounded-xl text-white focus:ring-2 focus:ring-neon-green transition-all"
                         >
-                          <option value="">Todos os segmentos</option>
-                          <option value="ALTAMENTE_ENGAJADO">
+                          <option value="" className="bg-gray-800 text-gray-300">Todos os segmentos</option>
+                          <option value="ALTAMENTE_ENGAJADO" className="bg-gray-800 text-gray-300">
                             Altamente Engajado
                           </option>
-                          <option value="MODERADAMENTE_ENGAJADO">
+                          <option value="MODERADAMENTE_ENGAJADO" className="bg-gray-800 text-gray-300">
                             Moderadamente Engajado
                           </option>
-                          <option value="LEVEMENTE_ENGAJADO">
+                          <option value="LEVEMENTE_ENGAJADO" className="bg-gray-800 text-gray-300">
                             Levemente Engajado
                           </option>
-                          <option value="BAIXO_ENGAJAMENTO">
+                          <option value="BAIXO_ENGAJAMENTO" className="bg-gray-800 text-gray-300">
                             Baixo Engajamento
                           </option>
                         </select>

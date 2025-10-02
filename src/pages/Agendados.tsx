@@ -154,7 +154,7 @@ const Agendados = () => {
 		queryKey: ["scheduled-campaigns"],
 		queryFn: async () => {
 			console.log("Buscando agendamentos...");
-			const response = await api.get("/scheduler/scheduled");
+			const response = await api.get("/api/scheduler/scheduled");
 			console.log("Resposta da busca:", response.data);
 			return response.data;
 		},
@@ -177,7 +177,7 @@ const Agendados = () => {
 	}, [scheduledCampaigns, searchTerm, statusFilter]);
 
 	const cancelCampaign = useMutation({
-		mutationFn: (id: string) => api.post(`/campaigns/${id}/cancel`),
+		mutationFn: (id: string) => api.post(`/api/campaigns/${id}/cancel`),
 		onSuccess: () => {
 			toast.success("Campanha cancelada com sucesso!");
 			refetch();
@@ -245,12 +245,12 @@ const Agendados = () => {
 					onChange={(e) => setStatusFilter(e.target.value)}
 					className="bg-deep/50 border-electric text-white"
 				>
-					<option value="">Todos os status</option>
-					<option value="scheduled">Agendada</option>
-					<option value="running">Em execução</option>
-					<option value="paused">Pausada</option>
-					<option value="cancelled">Cancelada</option>
-					<option value="completed">Concluída</option>
+					<option value="" className=" text-gray-300">Todos os status</option>
+					<option value="scheduled" className=" text-gray-300">Agendada</option>
+					<option value="running" className=" text-gray-300">Em execução</option>
+					<option value="paused" className=" text-gray-300">Pausada</option>
+					<option value="cancelled" className=" text-gray-300">Cancelada</option>
+					<option value="completed" className=" text-gray-300">Concluída</option>
 				</Select>
 			</div>
 
