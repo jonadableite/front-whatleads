@@ -181,12 +181,12 @@ export const setPresence = async (
 
 /**
  * Deleta uma instância do backend (não da Evolution API).
- * DELETE /api/instances/:id
+ * DELETE /api/instances/instance/:id
  */
 export const deleteInstance = async (
   instanceId: string
 ): Promise<{ message: string }> => {
-  const response = await backendApi.delete(`/api/instances/${instanceId}`);
+  const response = await backendApi.delete(`/api/instances/instance/${instanceId}`);
   return response.data;
 };
 
