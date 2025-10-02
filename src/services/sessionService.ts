@@ -1,4 +1,4 @@
-import * as api from './api';
+import { apiInternal } from './api';
 
 export interface ChatSession {
   id: string;
@@ -79,15 +79,15 @@ export const generateExternalId = () => {
 };
 
 export const listSessions = (clientId: string) =>
-  api.get<ChatSession[]>(`/api/v1/sessions/client/${clientId}`);
+  apiInternal.get<ChatSession[]>(`/api/v1/sessions/client/${clientId}`);
 
 export const getSessionMessages = (sessionId: string) =>
-  api.get<ChatMessage[]>(`/api/v1/sessions/${sessionId}/messages`);
+  apiInternal.get<ChatMessage[]>(`/api/v1/sessions/${sessionId}/messages`);
 
 export const createSession = (clientId: string, agentId: string) => {
   const externalId = generateExternalId();
   const sessionId = `${externalId}_${agentId}`;
-  return api.post<ChatSession>(`/api/v1/sessions/`, {
+  return apiInternal.post<ChatSession>(`/api/v1/sessions/`, {
     id: sessionId,
     client_id: clientId,
     agent_id: agentId,
@@ -95,7 +95,7 @@ export const createSession = (clientId: string, agentId: string) => {
 };
 
 export const deleteSession = (sessionId: string) => {
-  return api.delete<ChatSession>(`/api/v1/sessions/${sessionId}`);
+  return apiInternal.delete<ChatSession>(`/api/v1/sessions/${sessionId}`);
 };
 
 export const sendMessage = (

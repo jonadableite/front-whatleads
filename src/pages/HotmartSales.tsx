@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '../components/ui/card'
 import { Button } from '../components/ui/button';
 import { Input } from '../components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '../components/ui/select';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '../components/ui/table';
+import { Table, Thead, Tbody, Tr, Th, Td } from '../components/ui/table';
 import { Badge } from '../components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '../components/ui/tabs';
 import { Calendar, Download, Filter, RefreshCw, Search, TrendingUp, Users, DollarSign, ShoppingCart } from 'lucide-react';
@@ -297,44 +297,44 @@ const HotmartSales: React.FC = () => {
                     Total de resultados: {salesHistory.page_info.total_results}
                   </div>
                   <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Transação</TableHead>
-                        <TableHead>Produto</TableHead>
-                        <TableHead>Comprador</TableHead>
-                        <TableHead>Valor</TableHead>
-                        <TableHead>Status</TableHead>
-                        <TableHead>Data</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
+                    <Thead>
+                      <Tr>
+                        <Th>Transação</Th>
+                        <Th>Produto</Th>
+                        <Th>Comprador</Th>
+                        <Th>Valor</Th>
+                        <Th>Status</Th>
+                        <Th>Data</Th>
+                      </Tr>
+                    </Thead>
+                    <Tbody>
                       {salesHistory.items.map((item) => (
-                        <TableRow key={item.transaction}>
-                          <TableCell className="font-mono text-sm">{item.transaction}</TableCell>
-                          <TableCell>
+                        <Tr key={item.transaction}>
+                          <Td className="font-mono text-sm">{item.transaction}</Td>
+                          <Td>
                             <div>
                               <div className="font-medium">{item.product.name}</div>
                               <div className="text-sm text-muted-foreground">ID: {item.product.id}</div>
                             </div>
-                          </TableCell>
-                          <TableCell>
+                          </Td>
+                          <Td>
                             <div>
                               <div className="font-medium">{item.buyer.name}</div>
                               <div className="text-sm text-muted-foreground">{item.buyer.email}</div>
                             </div>
-                          </TableCell>
-                          <TableCell>
+                          </Td>
+                          <Td>
                             {formatCurrency(item.purchase.price.value, item.purchase.price.currency_value)}
-                          </TableCell>
-                          <TableCell>
+                          </Td>
+                          <Td>
                             {getStatusBadge(item.purchase.status)}
-                          </TableCell>
-                          <TableCell>
+                          </Td>
+                          <Td>
                             {timestampToDate(item.purchase.order_date)}
-                          </TableCell>
-                        </TableRow>
+                          </Td>
+                        </Tr>
                       ))}
-                    </TableBody>
+                    </Tbody>
                   </Table>
                 </div>
               ) : (
@@ -410,35 +410,35 @@ const HotmartSales: React.FC = () => {
                     Total de resultados: {salesUsers.page_info.total_results}
                   </div>
                   <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Nome</TableHead>
-                        <TableHead>Email</TableHead>
-                        <TableHead>Papel</TableHead>
-                        <TableHead>Transações</TableHead>
-                        <TableHead>Localização</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
+                    <Thead>
+                      <Tr>
+                        <Th>Nome</Th>
+                        <Th>Email</Th>
+                        <Th>Papel</Th>
+                        <Th>Transações</Th>
+                        <Th>Localização</Th>
+                      </Tr>
+                    </Thead>
+                    <Tbody>
                       {salesUsers.items.map((user) => (
-                        <TableRow key={user.user_id}>
-                          <TableCell className="font-medium">{user.name}</TableCell>
-                          <TableCell>{user.email}</TableCell>
-                          <TableCell>
+                        <Tr key={user.user_id}>
+                          <Td className="font-medium">{user.name}</Td>
+                          <Td>{user.email}</Td>
+                          <Td>
                             <Badge variant="outline">{user.role}</Badge>
-                          </TableCell>
-                          <TableCell>{user.transactions.length}</TableCell>
-                          <TableCell>
+                          </Td>
+                          <Td>{user.transactions.length}</Td>
+                          <Td>
                             {user.address && (
                               <div className="text-sm">
                                 {user.address.city}, {user.address.state}
                                 {user.address.country && ` - ${user.address.country}`}
                               </div>
                             )}
-                          </TableCell>
-                        </TableRow>
+                          </Td>
+                        </Tr>
                       ))}
-                    </TableBody>
+                    </Tbody>
                   </Table>
                 </div>
               ) : (
@@ -467,29 +467,29 @@ const HotmartSales: React.FC = () => {
                     Total de resultados: {salesCommissions.page_info.total_results}
                   </div>
                   <Table>
-                    <TableHeader>
-                      <TableRow>
-                        <TableHead>Transação</TableHead>
-                        <TableHead>Produto</TableHead>
-                        <TableHead>Valor Total</TableHead>
-                        <TableHead>Comissões</TableHead>
-                        <TableHead>Data</TableHead>
-                      </TableRow>
-                    </TableHeader>
-                    <TableBody>
+                    <Thead>
+                      <Tr>
+                        <Th>Transação</Th>
+                        <Th>Produto</Th>
+                        <Th>Valor Total</Th>
+                        <Th>Comissões</Th>
+                        <Th>Data</Th>
+                      </Tr>
+                    </Thead>
+                    <Tbody>
                       {salesCommissions.items.map((item) => (
-                        <TableRow key={item.transaction}>
-                          <TableCell className="font-mono text-sm">{item.transaction}</TableCell>
-                          <TableCell>
+                        <Tr key={item.transaction}>
+                          <Td className="font-mono text-sm">{item.transaction}</Td>
+                          <Td>
                             <div>
                               <div className="font-medium">{item.product.name}</div>
                               <div className="text-sm text-muted-foreground">ID: {item.product.id}</div>
                             </div>
-                          </TableCell>
-                          <TableCell>
+                          </Td>
+                          <Td>
                             {formatCurrency(item.total_value, item.currency_code)}
-                          </TableCell>
-                          <TableCell>
+                          </Td>
+                          <Td>
                             <div className="space-y-1">
                               {item.commissions.map((commission, idx) => (
                                 <div key={idx} className="text-sm">
@@ -501,13 +501,13 @@ const HotmartSales: React.FC = () => {
                                 </div>
                               ))}
                             </div>
-                          </TableCell>
-                          <TableCell>
+                          </Td>
+                          <Td>
                             {timestampToDate(item.purchase_date)}
-                          </TableCell>
-                        </TableRow>
+                          </Td>
+                        </Tr>
                       ))}
-                    </TableBody>
+                    </Tbody>
                   </Table>
                 </div>
               ) : (
