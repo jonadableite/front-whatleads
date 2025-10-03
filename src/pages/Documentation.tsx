@@ -107,8 +107,8 @@ const Documentation = () => {
                   Análises e relatórios detalhados
                 </li>
                 <li className="flex items-center gap-2">
-                    <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
-                    Aquecimento avançado
+                  <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
+                  Aquecimento avançado
                 </li>
               </ul>
             </div>
@@ -152,7 +152,7 @@ const Documentation = () => {
               Passo 1: Conectar Instâncias WhatsApp
             </h2>
             <p className="text-gray-300 text-lg leading-relaxed mb-6">
-              O primeiro e mais importante passo é conectar suas instâncias do WhatsApp. 
+              O primeiro e mais importante passo é conectar suas instâncias do WhatsApp.
               Sem isso, nenhuma funcionalidade da plataforma funcionará.
             </p>
           </div>
@@ -163,7 +163,7 @@ const Documentation = () => {
               <span className="text-neon-blue font-semibold">Primeiro Passo Essencial</span>
             </div>
             <p className="text-gray-300">
-              Antes de qualquer ação na plataforma, você deve conectar pelo menos duas instância do WhatsApp. 
+              Antes de qualquer ação na plataforma, você deve conectar pelo menos duas instância do WhatsApp.
               Esta é a base para todas as funcionalidades da plataforma.
             </p>
           </div>
@@ -238,7 +238,7 @@ const Documentation = () => {
               <span className="text-shock-pink font-semibold">Segundo Passo da Jornada</span>
             </div>
             <p className="text-gray-300">
-              Após conectar suas instâncias, crie campanhas organizadas por segmento ou objetivo. 
+              Após conectar suas instâncias, crie campanhas organizadas por segmento ou objetivo.
               Cada campanha servirá como container para seus leads e disparos.
             </p>
           </div>
@@ -316,7 +316,7 @@ const Documentation = () => {
               <span className="text-neon-green font-semibold">Terceiro Passo da Jornada</span>
             </div>
             <p className="text-gray-300">
-              Com campanhas criadas, importe sua base de leads vinculando-os às campanhas correspondentes. 
+              Com campanhas criadas, importe sua base de leads vinculando-os às campanhas correspondentes.
               Isso permitirá segmentação e personalização das mensagens.
             </p>
           </div>
@@ -324,7 +324,7 @@ const Documentation = () => {
           {/* Passo a Passo Visual */}
           <div className="bg-deep/60 backdrop-blur-xl rounded-2xl p-6 border border-electric/30">
             <h3 className="text-xl font-semibold text-neon-blue mb-6">🎯 Passo a Passo: Como Importar sua Base</h3>
-            
+
             <div className="space-y-6">
               {/* Passo 1 */}
               <div className="flex gap-4 p-4 bg-gray-800/30 rounded-xl border-l-4 border-neon-green">
@@ -387,7 +387,7 @@ const Documentation = () => {
                 <div className="flex-1">
                   <h4 className="text-white font-semibold mb-2 text-lg">🎯 IMPORTAR BASE DE LEADS (Etapa Crítica)</h4>
                   <p className="text-gray-200 mb-4">Esta é a etapa onde a maioria dos usuários tem dúvidas. Siga exatamente estas instruções:</p>
-                  
+
                   <div className="space-y-3">
                     <div className="bg-gray-900/70 rounded-lg p-4 border border-orange-500/30">
                       <h5 className="text-orange-400 font-semibold mb-2">📂 1. Clique no botão "Importar Leads"</h5>
@@ -397,7 +397,7 @@ const Documentation = () => {
                         <li>• Clique nele para abrir o modal de importação</li>
                       </ul>
                     </div>
-                    
+
                     <div className="bg-gray-900/70 rounded-lg p-4 border border-orange-500/30">
                       <h5 className="text-orange-400 font-semibold mb-2">📋 2. Selecione a Campanha no Modal</h5>
                       <ul className="space-y-1 text-gray-300 text-sm">
@@ -442,7 +442,7 @@ const Documentation = () => {
           {/* Recursos de Apoio */}
           <div className="bg-deep/60 backdrop-blur-xl rounded-2xl p-6 border border-electric/30">
             <h3 className="text-xl font-semibold text-neon-purple mb-6">📚 Recursos de Apoio</h3>
-            
+
             <div className="grid md:grid-cols-2 gap-6">
               {/* Arquivo de Exemplo */}
               <div className="bg-gradient-to-br from-green-500/10 to-blue-500/10 rounded-xl p-6 border border-green-500/30">
@@ -455,7 +455,7 @@ const Documentation = () => {
                 <p className="text-gray-300 text-sm mb-4">
                   Baixe nosso modelo de planilha pré-formatado com exemplos de dados para facilitar sua importação.
                 </p>
-                <button 
+                <button
                   onClick={() => {
                     try {
                       const exampleData = [
@@ -506,7 +506,7 @@ const Documentation = () => {
                 <p className="text-gray-300 text-sm mb-4">
                   Assista ao tutorial completo de como importar sua base de leads passo a passo.
                 </p>
-                <button 
+                <button
                   onClick={() => {
                     const videoUrl = 'https://www.youtube.com/watch?v=_IHj4V594Ho';
                     window.open(videoUrl, '_blank', 'noopener,noreferrer');
@@ -586,7 +586,7 @@ const Documentation = () => {
             </div>
             <div className="mt-4 p-4 bg-blue-900/20 rounded-lg border border-blue-500/30">
               <p className="text-blue-300 text-sm">
-                <strong>💡 Dica:</strong> Mantenha exatamente estes nomes de colunas: "Nome", "Telefone", "Email", "Segmento". 
+                <strong>💡 Dica:</strong> Mantenha exatamente estes nomes de colunas: "Nome", "Telefone", "Email", "Segmento".
                 O sistema reconhece automaticamente essas colunas padrão.
               </p>
             </div>
@@ -618,7 +618,7 @@ const Documentation = () => {
               <span className="text-orange-500 font-semibold">Passo Crítico - Altamente Recomendado</span>
             </div>
             <p className="text-gray-300">
-              Antes de fazer disparos em massa, é essencial aquecer suas instâncias do WhatsApp. 
+              Antes de fazer disparos em massa, é essencial aquecer suas instâncias do WhatsApp.
               Isso evita bloqueios e garante melhor entregabilidade das mensagens.
             </p>
           </div>
@@ -676,7 +676,7 @@ const Documentation = () => {
                   </ul>
                 </div>
               </div>
-              
+
               <div className="bg-deep/80 rounded-xl p-4">
                 <h4 className="text-white font-semibold mb-3 flex items-center gap-2">
                   <FileText className="w-4 h-4 text-neon-blue" />
@@ -709,7 +709,7 @@ const Documentation = () => {
                   </div>
                 </div>
               </div>
-              
+
               <div className="grid md:grid-cols-4 gap-4">
                 <div className="bg-deep/80 rounded-xl p-4 text-center">
                   <div className="text-2xl font-bold text-neon-green mb-2">Dia 1-3</div>
@@ -757,7 +757,7 @@ const Documentation = () => {
               <span className="text-neon-green font-semibold">Último Passo da Jornada</span>
             </div>
             <p className="text-gray-300">
-              Com instâncias conectadas, campanhas criadas, leads importados e WhatsApp aquecido, 
+              Com instâncias conectadas, campanhas criadas, leads importados e WhatsApp aquecido,
               você está pronto para realizar disparos em massa com segurança e eficiência.
             </p>
           </div>
@@ -802,14 +802,14 @@ const Documentation = () => {
                   Configuração de Disparo
                 </h4>
                 <div className="bg-gray-900 rounded-lg p-4 font-mono text-sm text-gray-300">
-                  1. Selecione a campanha e base de leads<br/>
-                  2. Configure rotação de instâncias (RANDOM/SEQUENTIAL/LOAD_BALANCED)<br/>
-                  3. Defina limites por instância e intervalos<br/>
-                  4. Configure horários de funcionamento<br/>
+                  1. Selecione a campanha e base de leads<br />
+                  2. Configure rotação de instâncias (RANDOM/SEQUENTIAL/LOAD_BALANCED)<br />
+                  3. Defina limites por instância e intervalos<br />
+                  4. Configure horários de funcionamento<br />
                   5. Inicie o disparo com monitoramento automático
                 </div>
               </div>
-              
+
               <div className="bg-deep/80 rounded-xl p-4">
                 <h4 className="text-neon-blue font-semibold mb-3 flex items-center gap-2">
                   <TrendingUp className="w-4 h-4" />
@@ -823,7 +823,7 @@ const Documentation = () => {
                   <li>• Sistema anti-bloqueio avançado</li>
                 </ul>
               </div>
-              
+
               <div className="bg-deep/80 rounded-xl p-4">
                 <h4 className="text-neon-pink font-semibold mb-3">📊 Monitoramento em Tempo Real</h4>
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
@@ -845,16 +845,16 @@ const Documentation = () => {
                   </div>
                 </div>
               </div>
-              
+
               <div className="bg-deep/80 rounded-xl p-4">
                 <h4 className="text-neon-yellow font-semibold mb-3">💬 Exemplo de Mensagem Personalizada</h4>
                 <div className="bg-gray-900 rounded-lg p-4 font-mono text-sm text-gray-300 mb-4">
-                  Olá {'{nome}'}! 👋<br/><br/>
-                  Temos uma oferta especial para você!<br/>
-                  🎉 50% OFF em todos os produtos<br/><br/>
-                  Válido até amanhã às 23:59h<br/>
-                  Link: https://meusite.com/oferta<br/><br/>
-                  Atenciosamente,<br/>
+                  Olá {'{nome}'}! 👋<br /><br />
+                  Temos uma oferta especial para você!<br />
+                  🎉 50% OFF em todos os produtos<br /><br />
+                  Válido até amanhã às 23:59h<br />
+                  Link: https://meusite.com/oferta<br /><br />
+                  Atenciosamente,<br />
                   Equipe {'{empresa}'}
                 </div>
                 <div className="grid md:grid-cols-2 gap-4">
@@ -909,69 +909,6 @@ const Documentation = () => {
             </p>
           </div>
 
-          <div className="grid md:grid-cols-2 gap-6">
-            <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-lg p-6">
-              <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-                <MessageCircle className="w-5 h-5 text-neon-purple" />
-                Sistema de Chat Integrado
-              </h3>
-              <ul className="space-y-2 text-gray-300">
-                <li>• Acesse "Chat IA" no menu lateral</li>
-                <li>• Visualize conversas em tempo real</li>
-                <li>• Interface de chat moderna e intuitiva</li>
-                <li>• Histórico completo de conversas</li>
-                <li>• Gestão de múltiplas instâncias</li>
-              </ul>
-            </div>
-
-            <div className="bg-gray-800/50 backdrop-blur-sm border border-gray-700 rounded-lg p-6">
-              <h3 className="text-lg font-semibold text-white mb-4 flex items-center gap-2">
-                <Users className="w-5 h-5 text-neon-pink" />
-                CRM Integrado
-              </h3>
-              <ul className="space-y-2 text-gray-300">
-                <li>• Perfis detalhados de clientes</li>
-                <li>• Estatísticas de leads e conversões</li>
-                <li>• Segmentação automática de contatos</li>
-                <li>• Histórico de interações completo</li>
-                <li>• Métricas de atendimento em tempo real</li>
-              </ul>
-            </div>
-          </div>
-
-          <div className="bg-deep/60 backdrop-blur-xl rounded-2xl p-6 border border-electric/30 mt-6">
-            <h3 className="text-xl font-semibold text-neon-blue mb-4">💬 Funcionalidades do Chat IA</h3>
-            <div className="grid md:grid-cols-2 gap-6">
-              <div className="bg-deep/80 rounded-xl p-4">
-                <h4 className="text-neon-green font-semibold mb-3 flex items-center gap-2">
-                  <MessageCircle className="w-4 h-4" />
-                  Interface de Chat
-                </h4>
-                <ul className="space-y-2 text-gray-300 text-sm">
-                  <li>• Chat em tempo real com clientes</li>
-                  <li>• Suporte a múltiplas conversas simultâneas</li>
-                  <li>• Envio de mídias (imagens, vídeos, documentos)</li>
-                  <li>• Status de entrega e leitura das mensagens</li>
-                  <li>• Busca avançada no histórico de conversas</li>
-                </ul>
-              </div>
-              
-              <div className="bg-deep/80 rounded-xl p-4">
-                <h4 className="text-neon-blue font-semibold mb-3 flex items-center gap-2">
-                  <Database className="w-4 h-4" />
-                  Gestão de Contatos
-                </h4>
-                <ul className="space-y-2 text-gray-300 text-sm">
-                  <li>• Criação automática de perfis de clientes</li>
-                  <li>• Tags e categorização de contatos</li>
-                  <li>• Notas e observações personalizadas</li>
-                  <li>• Integração com campanhas de marketing</li>
-                  <li>• Exportação de dados de contatos</li>
-                </ul>
-              </div>
-            </div>
-          </div>
-
           <div className="bg-deep/60 backdrop-blur-xl rounded-2xl p-6 border border-electric/30 mt-6">
             <h3 className="text-xl font-semibold text-neon-purple mb-4">🤖 Sistema de Agentes IA Avançado</h3>
             <div className="space-y-6">
@@ -991,7 +928,7 @@ const Documentation = () => {
                   <li>• Conexões visuais entre nós</li>
                 </ul>
               </div>
-              
+
               <div className="bg-deep/80 rounded-xl p-4">
                 <h4 className="text-neon-blue font-semibold mb-3 flex items-center gap-2">
                   <Settings className="w-4 h-4" />
@@ -1065,14 +1002,14 @@ const Documentation = () => {
               <div className="bg-deep/80 rounded-xl p-4">
                 <h4 className="text-neon-green font-semibold mb-3">Canvas Interativo</h4>
                 <div className="bg-gray-900 rounded-lg p-4 font-mono text-sm text-gray-300 mb-4">
-                  • Editor visual com zoom e pan<br/>
-                  • Biblioteca de nós arrastavéis<br/>
-                  • Conexões automáticas entre nós<br/>
-                  • Preview em tempo real<br/>
+                  • Editor visual com zoom e pan<br />
+                  • Biblioteca de nós arrastavéis<br />
+                  • Conexões automáticas entre nós<br />
+                  • Preview em tempo real<br />
                   • Salvamento automático
                 </div>
               </div>
-              
+
               <div className="bg-deep/80 rounded-xl p-4">
                 <h4 className="text-neon-blue font-semibold mb-3">Tipos de Nós Disponíveis</h4>
                 <div className="grid md:grid-cols-3 gap-4">
@@ -1103,6 +1040,208 @@ const Documentation = () => {
                 </div>
               </div>
             </div>
+          </div>
+        </div>
+      ),
+    },
+    {
+      id: 'agentes',
+      title: 'Agentes de IA',
+      icon: <Bot className="w-5 h-5" />,
+      content: (
+        <div className="space-y-6">
+          <div>
+            <h2 className="text-3xl font-bold text-white mb-4 flex items-center gap-3">
+              <div className="p-2 bg-gradient-to-r from-neon-blue to-electric rounded-lg">
+                <Bot className="w-6 h-6 text-white" />
+              </div>
+              Agentes de IA Conversacionais
+            </h2>
+            <p className="text-gray-300 text-lg leading-relaxed mb-6">
+              Crie agentes inteligentes que podem conversar automaticamente com seus leads,
+              responder perguntas e qualificar prospects 24/7.
+            </p>
+          </div>
+
+          <div className="bg-gradient-to-r from-neon-blue/10 to-electric/10 border border-neon-blue/30 rounded-lg p-6 mb-6">
+            <div className="flex items-center gap-3 mb-4">
+              <Bot className="w-5 h-5 text-neon-blue" />
+              <span className="text-neon-blue font-semibold">Primeiro Passo: Configurar API Keys</span>
+            </div>
+            <p className="text-gray-300">
+              Antes de criar agentes, você precisa configurar as chaves de API dos provedores de IA.
+              Sem isso, os agentes não conseguirão funcionar.
+            </p>
+          </div>
+
+          {/* Seção Principal: Como obter API Key da OpenAI */}
+          <div className="bg-deep/60 backdrop-blur-xl rounded-2xl p-6 border border-electric/30">
+            <h3 className="text-2xl font-semibold text-neon-blue mb-6 flex items-center gap-3">
+              🔑 Como Pegar a API Key da OpenAI — Passo a Passo
+            </h3>
+
+            <div className="space-y-6">
+              {/* Passo 1 */}
+              <div className="flex gap-4 p-6 bg-gradient-to-r from-neon-blue/20 to-electric/20 rounded-xl border-2 border-neon-blue/50">
+                <div className="flex-shrink-0">
+                  <div className="w-10 h-10 bg-gradient-to-r from-neon-blue to-electric rounded-full flex items-center justify-center text-white font-bold text-lg">1</div>
+                </div>
+                <div className="flex-1">
+                  <h4 className="text-white font-semibold mb-3 text-lg">🌐 Acesse a Plataforma OpenAI</h4>
+                  <div className="bg-gray-900/70 rounded-lg p-4 border border-neon-blue/30">
+                    <p className="text-gray-200 mb-3">Vá para <span className="text-neon-blue font-mono bg-gray-800 px-2 py-1 rounded">https://platform.openai.com/</span></p>
+                    <ul className="space-y-2 text-gray-300 text-sm">
+                      <li>• Entre com sua conta OpenAI (ou crie uma nova)</li>
+                      <li>• Se for novo usuário, pode ser necessário verificar o número de telefone</li>
+                      <li>• Aguarde a aprovação da conta (pode levar alguns minutos)</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+
+              {/* Passo 2 */}
+              <div className="flex gap-4 p-6 bg-gradient-to-r from-electric/20 to-neon-green/20 rounded-xl border-2 border-electric/50">
+                <div className="flex-shrink-0">
+                  <div className="w-10 h-10 bg-gradient-to-r from-electric to-neon-green rounded-full flex items-center justify-center text-black font-bold text-lg">2</div>
+                </div>
+                <div className="flex-1">
+                  <h4 className="text-white font-semibold mb-3 text-lg">🔧 Abra o Painel de API Keys</h4>
+                  <div className="bg-gray-900/70 rounded-lg p-4 border border-electric/30">
+                    <p className="text-gray-200 mb-3">No Dashboard, procure a seção <span className="text-electric font-semibold">"API keys"</span> ou <span className="text-electric font-semibold">"View API keys"</span></p>
+                    <ul className="space-y-2 text-gray-300 text-sm">
+                      <li>• Geralmente fica no menu lateral esquerdo</li>
+                      <li>• Ou no menu superior da plataforma</li>
+                      <li>• É onde você gerencia e cria todas as suas chaves</li>
+                    </ul>
+                  </div>
+                </div>
+              </div>
+
+              {/* Passo 3 - DESTAQUE PRINCIPAL */}
+              <div className="flex gap-4 p-6 bg-gradient-to-r from-neon-green/20 to-neon-yellow/20 rounded-xl border-2 border-neon-green/50">
+                <div className="flex-shrink-0">
+                  <div className="w-10 h-10 bg-gradient-to-r from-neon-green to-neon-yellow rounded-full flex items-center justify-center text-black font-bold text-lg">3</div>
+                </div>
+                <div className="flex-1">
+                  <h4 className="text-white font-semibold mb-3 text-lg">🔐 Crie uma Nova Chave Secreta</h4>
+                  <div className="bg-gray-900/70 rounded-lg p-4 border border-neon-green/30">
+                    <p className="text-gray-200 mb-3">Clique em <span className="text-neon-green font-semibold">"Create new secret key"</span> ou <span className="text-neon-green font-semibold">"+ Create new secret key"</span></p>
+                    <ul className="space-y-2 text-gray-300 text-sm mb-4">
+                      <li>• Dê um nome (label) para identificar a chave (ex: "WhatLead Bot")</li>
+                      <li>• Escolha o projeto/organização (se aplicável)</li>
+                      <li>• Confirme para gerar a chave</li>
+                    </ul>
+                    <div className="bg-yellow-500/10 border border-yellow-500/30 rounded-lg p-3">
+                      <p className="text-yellow-300 text-sm font-semibold">⚠️ IMPORTANTE: A chave só será mostrada UMA VEZ!</p>
+                      <p className="text-yellow-200 text-sm">Copie e guarde em local seguro imediatamente.</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Passo 4 */}
+              <div className="flex gap-4 p-6 bg-gradient-to-r from-neon-pink/20 to-shock/20 rounded-xl border-2 border-neon-pink/50">
+                <div className="flex-shrink-0">
+                  <div className="w-10 h-10 bg-gradient-to-r from-neon-pink to-shock rounded-full flex items-center justify-center text-white font-bold text-lg">4</div>
+                </div>
+                <div className="flex-1">
+                  <h4 className="text-white font-semibold mb-3 text-lg">📋 Adicione no WhatLead</h4>
+                  <div className="bg-gray-900/70 rounded-lg p-4 border border-neon-pink/30">
+                    <p className="text-gray-200 mb-3">Agora cole a chave no WhatLead:</p>
+                    <ol className="space-y-2 text-gray-300 text-sm">
+                      <li>1. Vá para <span className="text-neon-pink font-semibold">Agentes → Gerenciar Chaves de API</span></li>
+                      <li>2. Clique em <span className="text-neon-pink font-semibold">"Nova Chave"</span></li>
+                      <li>3. Preencha os campos:</li>
+                      <li className="ml-4">• <strong>Nome:</strong> Ex: "OpenAI GPT-4"</li>
+                      <li className="ml-4">• <strong>Provider:</strong> Selecione "OpenAI"</li>
+                      <li className="ml-4">• <strong>Key Value:</strong> Cole sua chave (sk-...)</li>
+                      <li>4. Clique em <span className="text-neon-pink font-semibold">"Adicionar"</span></li>
+                    </ol>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Exemplo Visual da Chave */}
+            <div className="mt-6 bg-gray-900/50 rounded-xl p-4 border border-gray-600">
+              <h5 className="text-white font-semibold mb-3 flex items-center gap-2">
+                <FileText className="w-4 h-4 text-neon-blue" />
+                Exemplo de Chave OpenAI
+              </h5>
+              <div className="bg-black/50 rounded-lg p-3 font-mono text-sm">
+                <span className="text-gray-500">sk-proj-</span><span className="text-neon-green">AbCdEfGhIjKlMnOpQrStUvWxYz1234567890</span><span className="text-gray-500">...</span>
+              </div>
+              <p className="text-gray-400 text-xs mt-2">* Sempre começa com "sk-" seguido de caracteres aleatórios</p>
+            </div>
+          </div>
+
+          {/* Outros Provedores */}
+          <div className="bg-deep/60 backdrop-blur-xl rounded-2xl p-6 border border-electric/30">
+            <h3 className="text-xl font-semibold text-electric mb-4">🔗 Outros Provedores Suportados</h3>
+            <div className="grid md:grid-cols-2 lg:grid-cols-3 gap-4">
+              <div className="bg-deep/80 rounded-xl p-4 border border-gray-600">
+                <h4 className="text-neon-blue font-semibold mb-2">Anthropic (Claude)</h4>
+                <p className="text-gray-300 text-sm mb-2">console.anthropic.com</p>
+                <p className="text-gray-400 text-xs">Chaves começam com "sk-ant-"</p>
+              </div>
+              <div className="bg-deep/80 rounded-xl p-4 border border-gray-600">
+                <h4 className="text-neon-green font-semibold mb-2">Google (Gemini)</h4>
+                <p className="text-gray-300 text-sm mb-2">aistudio.google.com</p>
+                <p className="text-gray-400 text-xs">Chaves começam com "AIza"</p>
+              </div>
+              <div className="bg-deep/80 rounded-xl p-4 border border-gray-600">
+                <h4 className="text-neon-pink font-semibold mb-2">Groq</h4>
+                <p className="text-gray-300 text-sm mb-2">console.groq.com</p>
+                <p className="text-gray-400 text-xs">Chaves começam com "gsk_"</p>
+              </div>
+            </div>
+          </div>
+
+          {/* Criando Agentes */}
+          <div className="bg-deep/60 backdrop-blur-xl rounded-2xl p-6 border border-electric/30">
+            <h3 className="text-xl font-semibold text-shock-pink mb-4">🤖 Criando Seu Primeiro Agente</h3>
+            <div className="space-y-4">
+              <div className="bg-deep/80 rounded-xl p-4">
+                <h4 className="text-white font-semibold mb-3">Após configurar as API Keys:</h4>
+                <ol className="space-y-2 text-gray-300">
+                  <li className="flex items-center gap-3">
+                    <span className="bg-shock-pink text-black rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold">1</span>
+                    Vá para "Agentes" no menu lateral
+                  </li>
+                  <li className="flex items-center gap-3">
+                    <span className="bg-neon-blue text-black rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold">2</span>
+                    Clique em "Novo Agente"
+                  </li>
+                  <li className="flex items-center gap-3">
+                    <span className="bg-neon-green text-black rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold">3</span>
+                    Configure nome, descrição e personalidade
+                  </li>
+                  <li className="flex items-center gap-3">
+                    <span className="bg-electric text-black rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold">4</span>
+                    Selecione a API Key configurada
+                  </li>
+                  <li className="flex items-center gap-3">
+                    <span className="bg-neon-yellow text-black rounded-full w-6 h-6 flex items-center justify-center text-sm font-bold">5</span>
+                    Teste o agente antes de ativar
+                  </li>
+                </ol>
+              </div>
+            </div>
+          </div>
+
+          {/* Dicas de Segurança */}
+          <div className="bg-red-500/10 border border-red-500/30 rounded-xl p-6">
+            <h4 className="text-red-300 font-semibold mb-3 flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5" />
+              🔒 Dicas de Segurança
+            </h4>
+            <ul className="space-y-2 text-gray-300 text-sm">
+              <li>• <strong>Nunca compartilhe</strong> suas chaves de API com terceiros</li>
+              <li>• <strong>Monitore o uso</strong> regularmente no painel do provedor</li>
+              <li>• <strong>Configure limites</strong> de gastos nos provedores</li>
+              <li>• <strong>Revogue chaves</strong> antigas ou não utilizadas</li>
+              <li>• <strong>Use nomes descritivos</strong> para identificar cada chave</li>
+            </ul>
           </div>
         </div>
       ),
@@ -1186,7 +1325,7 @@ const Documentation = () => {
                 Nossa equipe de suporte está sempre pronta para ajudar você a aproveitar ao máximo a plataforma.
               </p>
               <div className="flex justify-center">
-                <button 
+                <button
                   className="bg-gradient-to-r from-neon-green to-neon-blue hover:from-neon-blue hover:to-neon-green text-black font-semibold px-6 py-3 rounded-lg transition-all duration-300"
                   onClick={() => window.open('https://wa.me/5512988444921', '_blank')}
                 >
