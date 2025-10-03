@@ -249,10 +249,7 @@ export function LLMAgentConfig({
                     value={model.value}
                     className="data-[selected]:bg-[#0D0C15] data-[highlighted]:bg-[#0D0C15] !text-white focus:!text-white hover:text-[#8234b2] data-[selected]:!text-[#8234b2] cursor-pointer py-3"
                   >
-                    <div className="flex flex-col items-start">
-                      <span className="font-medium text-sm">{model.label}</span>
-                      <span className="text-xs text-gray-400 mt-0.5">{model.provider}</span>
-                    </div>
+                    {model.label} ({model.provider})
                   </SelectItem>
                 ))
             ) : (

@@ -624,16 +624,7 @@ export function AIAgentDialog({
 												<SelectContent>
 													{agents.map((agent) => (
 														<SelectItem key={agent.id} value={agent.id}>
-															<div className="flex flex-col">
-																<span className="font-medium">
-																	{agent.name}
-																</span>
-																{agent.description && (
-																	<span className="text-sm text-gray-500">
-																		{agent.description}
-																	</span>
-																)}
-															</div>
+															{agent.name} {agent.description && `- ${agent.description}`}
 														</SelectItem>
 													))}
 												</SelectContent>

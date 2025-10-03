@@ -1,0 +1,171 @@
+/* src/styles/spintax.css */
+
+/* Estilos para SpinTaxEditor no tema dark */
+.spintax-editor-dark textarea {
+  background: rgba(49, 118, 246, 0.1) !important;
+  border: 1px solid #3176f6 !important;
+  border-radius: 12px !important;
+  color: white !important;
+  padding: 16px !important;
+  min-height: 120px !important;
+  resize: vertical !important;
+  transition: all 0.3s ease !important;
+}
+
+.spintax-editor-dark textarea:focus {
+  ring: 2px !important;
+  ring-color: #4f46e5 !important;
+  border-color: #4f46e5 !important;
+  outline: none !important;
+}
+
+.spintax-editor-dark textarea::placeholder {
+  color: rgba(255, 255, 255, 0.5) !important;
+}
+
+/* Estilos para validação */
+.spintax-editor-dark textarea.border-red-300 {
+  border-color: #ef4444 !important;
+  background: rgba(239, 68, 68, 0.1) !important;
+}
+
+.spintax-editor-dark textarea.border-yellow-300 {
+  border-color: #f59e0b !important;
+  background: rgba(245, 158, 11, 0.1) !important;
+}
+
+.spintax-editor-dark textarea.border-green-300 {
+  border-color: #10b981 !important;
+  background: rgba(16, 185, 129, 0.1) !important;
+}
+
+/* Estilos para preview panel */
+.spintax-editor-dark .bg-gray-50 {
+  background: rgba(49, 118, 246, 0.05) !important;
+  border: 1px solid rgba(49, 118, 246, 0.2) !important;
+}
+
+.spintax-editor-dark .bg-white {
+  background: rgba(0, 0, 0, 0.3) !important;
+  border-color: rgba(49, 118, 246, 0.2) !important;
+  color: white !important;
+}
+
+.spintax-editor-dark .bg-white:hover {
+  background: rgba(49, 118, 246, 0.1) !important;
+}
+
+.spintax-editor-dark .bg-blue-100 {
+  background: rgba(49, 118, 246, 0.2) !important;
+  border-color: rgba(79, 70, 229, 0.4) !important;
+}
+
+.spintax-editor-dark .bg-blue-50 {
+  background: rgba(49, 118, 246, 0.1) !important;
+  border-color: rgba(79, 70, 229, 0.3) !important;
+}
+
+.spintax-editor-dark .text-gray-700 {
+  color: rgba(255, 255, 255, 0.9) !important;
+}
+
+.spintax-editor-dark .text-gray-500 {
+  color: rgba(255, 255, 255, 0.7) !important;
+}
+
+.spintax-editor-dark .text-gray-600 {
+  color: rgba(255, 255, 255, 0.8) !important;
+}
+
+.spintax-editor-dark .text-blue-700 {
+  color: #3176f6 !important;
+}
+
+.spintax-editor-dark .text-blue-600 {
+  color: rgba(49, 118, 246, 0.9) !important;
+}
+
+/* Estilos para botões */
+.spintax-editor-dark .bg-blue-100 {
+  background: rgba(49, 118, 246, 0.2) !important;
+}
+
+.spintax-editor-dark .bg-blue-100:hover {
+  background: rgba(79, 70, 229, 0.3) !important;
+}
+
+.spintax-editor-dark .bg-gray-100 {
+  background: rgba(49, 118, 246, 0.1) !important;
+  color: white !important;
+}
+
+.spintax-editor-dark .bg-gray-100:hover {
+  background: rgba(79, 70, 229, 0.2) !important;
+}
+
+/* Estilos específicos para focus do textarea */
+.spintax-editor-dark textarea:focus {
+  ring-color: #4f46e5 !important;
+  border-color: #3176f6 !important;
+  box-shadow: 0 0 0 2px rgba(79, 70, 229, 0.2) !important;
+}
+
+/* Estilos para botões de ação */
+.spintax-editor-dark button {
+  transition: all 0.2s ease-in-out !important;
+}
+
+.spintax-editor-dark button:hover {
+  transform: translateY(-1px) !important;
+}
+
+/* Estilos para mensagens de erro */
+.spintax-editor-dark .bg-red-50 {
+  background: rgba(239, 68, 68, 0.1) !important;
+  border-color: rgba(239, 68, 68, 0.3) !important;
+}
+
+.spintax-editor-dark .text-red-700 {
+  color: #ff6b6b !important;
+}
+
+.spintax-editor-dark .text-red-600 {
+  color: #ff8a8a !important;
+}
+
+.spintax-editor-dark .text-red-500 {
+  color: #ffa8a8 !important;
+}
+
+.spintax-editor-dark .bg-red-100 {
+  background: rgba(239, 68, 68, 0.2) !important;
+}
+
+/* Estilos para mensagens de aviso */
+.spintax-editor-dark .bg-yellow-50 {
+  background: rgba(245, 158, 11, 0.1) !important;
+  border-color: rgba(245, 158, 11, 0.3) !important;
+}
+
+.spintax-editor-dark .text-yellow-700 {
+  color: #fbbf24 !important;
+}
+
+.spintax-editor-dark .text-yellow-600 {
+  color: #fcd34d !important;
+}
+
+.spintax-editor-dark .text-yellow-500 {
+  color: #fde68a !important;
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+  .spintax-editor-dark .grid-cols-2 {
+    grid-template-columns: 1fr !important;
+  }
+
+  .spintax-editor-dark .md\\:grid-cols-4 {
+    grid-template-columns: repeat(2, 1fr) !important;
+  }
+}

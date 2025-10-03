@@ -15,11 +15,13 @@ import { toast } from 'react-toastify';
 import { GetInstancesAction } from '../actions';
 import { InstanceRotationConfig } from '../components/InstanceRotationConfig';
 import { ProgressModal } from '../components/ProgressModal';
+import { SpinTaxEditor } from '../components/SpinTaxEditor';
 import api from '../lib/api';
 import { cn, getWarmupProgressColor } from '../lib/utils';
 import { authService } from '../services/auth.service';
 import { calculateWarmupProgress } from '../services/instance.service';
 import type { Instancia, StartCampaignPayload } from '../types';
+import { SpinTaxValidationResult } from '../types/spintax.types';
 
 // Funções utilitárias para formatação de data brasileira
 const formatDateToBrazilian = (date: Date): string => {
@@ -132,6 +134,7 @@ export default function Disparos() {
   const [useRotation, setUseRotation] = useState<boolean>(false);
   const [useSegmentation, setUseSegmentation] = useState<boolean>(false);
   const [selectedSegment, setSelectedSegment] = useState<SegmentType | ''>('');
+  const [spinTaxValidation, setSpinTaxValidation] = useState<SpinTaxValidationResult | null>(null);
 
   // Função para lidar com a mudança de segmento
   const handleSegmentChange = async (
@@ -302,7 +305,7 @@ export default function Disparos() {
     }
 
     const initializeData = async (): Promise<void> => {
-      let isMounted = true;
+      const isMounted = true;
       setIsInitialLoading(true);
       try {
         await fetchData();
@@ -541,6 +544,12 @@ export default function Disparos() {
     // Validação de mensagem
     if (!message || message.trim().length === 0) {
       toast.error('Digite uma mensagem para o disparo');
+      return false;
+    }
+
+    // Validação SpinTax
+    if (spinTaxValidation && !spinTaxValidation.isValid) {
+      toast.error('Corrija os erros de sintaxe SpinTax antes de continuar');
       return false;
     }
 
@@ -1258,12 +1267,14 @@ export default function Disparos() {
                     <label className="block text-lg font-medium text-white mb-2">
                       Mensagem
                     </label>
-                    <textarea
+                    <SpinTaxEditor
                       value={message}
-                      onChange={(e) => setMessage(e.target.value)}
-                      rows={6}
-                      className="w-full p-4 bg-electric/10 border border-electric rounded-xl text-white focus:ring-2 focus:ring-neon-green resize-none transition-all"
-                      placeholder="Digite sua mensagem aqui..."
+                      onChange={setMessage}
+                      onValidation={setSpinTaxValidation}
+                      placeholder="Digite sua mensagem aqui...\n\nExemplo com SpinTax: {Olá|Oi|E aí} {pessoal|galera|amigos}! Como {vocês estão|vai|está tudo}?"
+                      showPreview={true}
+                      previewCount={3}
+                      className="spintax-editor-dark"
                     />
                   </div>
                 </div>
