@@ -177,13 +177,17 @@ export function BasicInfoTab({
       )}
 
       {values.type === "llm" && (
-        <LLMAgentConfig
-          apiKeys={apiKeys}
-          availableModels={availableModels}
-          values={values}
-          onChange={onChange}
-          onOpenApiKeysDialog={onOpenApiKeysDialog}
-        />
+        <>
+          {/* Debug logs */}
+          {console.log("BasicInfoTab - Rendering LLMAgentConfig with availableModels:", availableModels)}
+          <LLMAgentConfig
+            apiKeys={apiKeys}
+            availableModels={availableModels}
+            values={values}
+            onChange={onChange}
+            onOpenApiKeysDialog={onOpenApiKeysDialog}
+          />
+        </>
       )}
 
       {values.type === "loop" && values.config?.max_iterations && (

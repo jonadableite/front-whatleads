@@ -1,31 +1,4 @@
-/*
-┌──────────────────────────────────────────────────────────────────────────────┐
-│ @author: Davidson Gomes                                                      │
-│ @file: /app/agents/config/LLMAgentConfig.tsx                                 │
-│ Developed by: Davidson Gomes                                                 │
-│ Creation date: May 13, 2025                                                  │
-│ Contact: contato@evolution-api.com                                           │
-├──────────────────────────────────────────────────────────────────────────────┤
-│ @copyright © Evolution API 2025. All rights reserved.                        │
-│ Licensed under the Apache License, Version 2.0                               │
-│                                                                              │
-│ You may not use this file except in compliance with the License.             │
-│ You may obtain a copy of the License at                                      │
-│                                                                              │
-│    http://www.apache.org/licenses/LICENSE-2.0                                │
-│                                                                              │
-│ Unless required by applicable law or agreed to in writing, software          │
-│ distributed under the License is distributed on an "AS IS" BASIS,            │
-│ WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.     │
-│ See the License for the specific language governing permissions and          │
-│ limitations under the License.                                               │
-├──────────────────────────────────────────────────────────────────────────────┤
-│ @important                                                                   │
-│ For any future changes to the code in this file, it is recommended to        │
-│ include, together with the modification, the information of the developer    │
-│ who changed it and the date of modification.                                 │
-└──────────────────────────────────────────────────────────────────────────────┘
-*/
+
 "use client";
 
 import { Badge } from "@/components/ui/badge";
@@ -82,6 +55,12 @@ export function LLMAgentConfig({
   const [isInstructionModalOpen, setIsInstructionModalOpen] = useState(false);
   const [expandedInstructionText, setExpandedInstructionText] = useState("");
 
+  // Debug logs para verificar os dados
+  console.log("LLMAgentConfig - availableModels:", availableModels);
+  console.log("LLMAgentConfig - availableModels length:", availableModels?.length);
+  console.log("LLMAgentConfig - apiKeys:", apiKeys);
+  console.log("LLMAgentConfig - values:", values);
+
   useEffect(() => {
     setInstructionText(values.instruction || "");
   }, [values.instruction]);
@@ -114,7 +93,7 @@ export function LLMAgentConfig({
     <div className="space-y-4">
       <div className="grid grid-cols-4 items-center gap-4">
         <Label htmlFor="role" className="text-right text-gray-300">
-          Role
+          Função
         </Label>
         <div className="col-span-3">
           <Input
@@ -126,19 +105,19 @@ export function LLMAgentConfig({
                 role: e.target.value,
               })
             }
-            placeholder="Ex: Research Assistant, Customer Support, etc."
+            placeholder="Ex: Assistente de Pesquisa, Suporte ao Cliente, etc."
             className="bg-[#16151D] border-[#0D0C15] text-white"
           />
           <div className="mt-1 text-xs text-gray-400">
             <span className="inline-block h-3 w-3 mr-1">ℹ️</span>
-            <span>Define the role or persona that the agent will assume</span>
+            <span>Defina a função ou persona que o agente irá assumir</span>
           </div>
         </div>
       </div>
 
       <div className="grid grid-cols-4 items-center gap-4">
         <Label htmlFor="goal" className="text-right text-gray-300">
-          Goal
+          Objetivo
         </Label>
         <div className="col-span-3">
           <Input
@@ -150,7 +129,7 @@ export function LLMAgentConfig({
                 goal: e.target.value,
               })
             }
-            placeholder="Ex: Find and organize information, Assist customers with inquiries, etc."
+            placeholder="Ex: Encontrar e organizar informações, Auxiliar clientes com dúvidas, etc."
             className="bg-[#16151D] border-[#0D0C15] text-white"
           />
           <div className="mt-1 text-xs text-gray-400">
@@ -176,7 +155,7 @@ export function LLMAgentConfig({
               }
             >
               <SelectTrigger className="flex-1 bg-[#16151D] border-[#0D0C15] text-white">
-                <SelectValue placeholder="Select an API key" />
+                <SelectValue placeholder="Selecione uma chave de API" />
               </SelectTrigger>
               <SelectContent className="bg-[#16151D] border-[#0D0C15] text-white">
                 {apiKeys.length > 0 ? (
@@ -205,12 +184,13 @@ export function LLMAgentConfig({
             </Select>
 
             <Button
-              variant="ghost"
-              size="sm"
               onClick={onOpenApiKeysDialog}
-              className="ml-2 bg-[#16151D] text-[#8234b2] hover:bg-[#0D0C15]"
+              variant="outline"
+              size="sm"
+              className="ml-2 bg-[#16151D] border-[#0D0C15] text-gray-300 hover:bg-[#0D0C15] hover:text-white"
             >
-              <Plus className="h-4 w-4" />
+              <Plus className="h-4 w-4 mr-1" />
+              Adicionar
             </Button>
           </div>
 
@@ -218,7 +198,7 @@ export function LLMAgentConfig({
             <div className="flex items-center text-xs text-gray-400">
               <span className="inline-block h-3 w-3 mr-1 text-gray-400">i</span>
               <span>
-                You need to{" "}
+                Você precisa{" "}
                 <Button
                   variant="link"
                   onClick={onOpenApiKeysDialog}
@@ -235,10 +215,10 @@ export function LLMAgentConfig({
 
       <div className="grid grid-cols-4 items-center gap-4">
         <Label htmlFor="model" className="text-right text-gray-300">
-          Model
+          Modelo
         </Label>
         <Select
-          value={values.model}
+          value={values.model || ""}
           onValueChange={(value) =>
             onChange({
               ...values,
@@ -247,58 +227,46 @@ export function LLMAgentConfig({
           }
         >
           <SelectTrigger className="col-span-3 bg-[#16151D] border-[#0D0C15] text-white">
-            <SelectValue placeholder="Select the model" />
+            <SelectValue placeholder="Selecione o modelo" />
           </SelectTrigger>
-          <SelectContent className="bg-[#16151D] border-[#0D0C15] text-white p-0">
-            <div className="sticky top-0 z-10 p-2 bg-[#16151D] border-b border-[#0D0C15]">
-              <Input
-                placeholder="Search models..."
-                className="bg-[#0D0C15] border-[#0D0C15] text-white h-8"
-                onChange={(e) => {
-                  const searchQuery = e.target.value.toLowerCase();
-                  const items = document.querySelectorAll('[data-model-item="true"]');
-                  items.forEach((item) => {
-                    const text = item.textContent?.toLowerCase() || '';
-                    if (text.includes(searchQuery)) {
-                      (item as HTMLElement).style.display = 'flex';
-                    } else {
-                      (item as HTMLElement).style.display = 'none';
-                    }
-                  });
-                }}
-              />
-            </div>
-            <div className="max-h-[200px] overflow-y-auto py-1">
-              {availableModels
-                .filter((model) => {
-                  if (!values.api_key_id) return true;
-
-                  const selectedKey = apiKeys.find(
-                    (key) => key.id === values.api_key_id
-                  );
-
-                  if (!selectedKey) return true;
-
-                  return model.provider === selectedKey.provider;
+          <SelectContent className="bg-[#16151D] border-[#0D0C15] text-white max-h-60 overflow-y-auto">
+            {availableModels && availableModels.length > 0 ? (
+              availableModels
+                .filter((modelo) => {
+                  if (!values.api_key_id) {
+                    return false;
+                  }
+                  const selectedKey = apiKeys.find(key => key.id === values.api_key_id);
+                  if (!selectedKey) {
+                    return false;
+                  }
+                  // Comparação case-insensitive entre providers
+                  return modelo.provider.toLowerCase() === selectedKey.provider.toLowerCase();
                 })
                 .map((model) => (
                   <SelectItem
                     key={model.value}
                     value={model.value}
-                    className="data-[selected]:bg-[#0D0C15] data-[highlighted]:bg-[#0D0C15] !text-white focus:!text-white hover:text-[#8234b2] data-[selected]:!text-[#8234b2]"
-                    data-model-item="true"
+                    className="data-[selected]:bg-[#0D0C15] data-[highlighted]:bg-[#0D0C15] !text-white focus:!text-white hover:text-[#8234b2] data-[selected]:!text-[#8234b2] cursor-pointer py-3"
                   >
-                    {model.label}
+                    <div className="flex flex-col items-start">
+                      <span className="font-medium text-sm">{model.label}</span>
+                      <span className="text-xs text-gray-400 mt-0.5">{model.provider}</span>
+                    </div>
                   </SelectItem>
-                ))}
-            </div>
+                ))
+            ) : (
+              <div className="text-gray-500 px-2 py-1.5">
+                Nenhum modelo disponível
+              </div>
+            )}
           </SelectContent>
         </Select>
       </div>
 
       <div className="grid grid-cols-4 items-center gap-4">
         <Label htmlFor="instruction" className="text-right text-gray-300">
-          Instructions
+          Instruções
         </Label>
         <div className="col-span-3">
           <div className="relative">
@@ -340,7 +308,7 @@ export function LLMAgentConfig({
               value={expandedInstructionText}
               onChange={(e) => setExpandedInstructionText(e.target.value)}
               className="flex-1 min-h-full bg-[#16151D] border-[#0D0C15] text-white p-4 focus:border-[#8234b2] focus:ring-[#8234b2] focus:ring-opacity-50 resize-none"
-              placeholder="Enter detailed instructions for the agent..."
+              placeholder="Digite instruções detalhadas para o agente..."
             />
           </div>
 
@@ -350,7 +318,7 @@ export function LLMAgentConfig({
               onClick={() => setIsInstructionModalOpen(false)}
               className="bg-[#16151D] border-[#0D0C15] text-gray-300 hover:bg-[#0D0C15] hover:text-white"
             >
-              Cancel
+              Cancelar
             </Button>
             <Button
               onClick={handleSaveExpandedInstruction}

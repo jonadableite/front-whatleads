@@ -16,7 +16,8 @@ import { ScrollArea } from '@/components/ui/scroll-area';
 import { useAgentWebSocket } from '@/hooks/use-agent-webSocket';
 import { useToast } from '@/hooks/use-toast';
 import { getAccessTokenFromCookie } from '@/lib/utils';
-import { listAgents } from '@/services/agentService';
+import { useUser } from '@/contexts/UserContext';
+import { listAgents, getSharedAgent } from '@/services/agentService';
 import {
   ChatMessage,
   ChatPart,
@@ -47,6 +48,23 @@ import { ChatMessage as ChatMessageComponent } from '../components/chat/ChatMess
 import { SessionList } from '../components/chat/SessionList';
 import { FileData } from '../lib/file-utils';
 
+interface Agent {
+  id: string;
+  name: string;
+  description?: string;
+  type?: string;
+  model?: string;
+  client_id?: string;
+  created_at?: string;
+}
+
+interface SharedAgentInfo {
+  id: string;
+  apiKey: string;
+  name?: string;
+  description?: string;
+}
+
 interface FunctionMessageContent {
   title: string;
   content: string;
@@ -55,7 +73,8 @@ interface FunctionMessageContent {
 
 export default function Chat() {
   const [isLoading, setIsLoading] = useState(true);
-  const [agents, setAgents] = useState<any[]>([]);
+  const [agents, setAgents] = useState<Agent[]>([]);
+  const [sharedAgents, setSharedAgents] = useState<Agent[]>([]);
   const [sessions, setSessions] = useState<ChatSession[]>([]);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
@@ -82,11 +101,8 @@ export default function Chat() {
   const { toast } = useToast();
   const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false);
 
-  const user =
-    typeof window !== 'undefined'
-      ? JSON.parse(localStorage.getItem('user') || '{}')
-      : {};
-  const clientId = user?.client_id || 'test';
+  // Usar o contexto do usuário para obter clientId
+  const { user, clientId } = useUser();
 
   const scrollToBottom = () => {
     if (messagesContainerRef.current) {
@@ -97,13 +113,40 @@ export default function Chat() {
 
   useEffect(() => {
     const loadData = async () => {
-      setIsLoading(true);
-      try {
-        const agentsResponse = await listAgents(clientId);
-        setAgents(agentsResponse.data);
+      // Verificar se clientId está disponível
+      if (!clientId) {
+        console.log('ClientId não disponível ainda, aguardando...');
+        return;
+      }
 
-        const sessionsResponse = await listSessions(clientId);
-        setSessions(sessionsResponse.data);
+      setIsLoading(true);
+      
+      try {
+        // Carregar agentes
+        try {
+          const agentsResponse = await listAgents(clientId, 0, 100);
+          setAgents(agentsResponse.data);
+        } catch (agentsError) {
+          console.error('Error loading agents:', agentsError);
+          setAgents([]);
+        }
+
+        // Carregar sessões
+        try {
+          const sessionsResponse = await listSessions(clientId);
+          setSessions(sessionsResponse.data);
+        } catch (sessionsError) {
+          console.error('Error loading sessions:', sessionsError);
+          setSessions([]);
+        }
+
+        // Carregar agentes compartilhados do localStorage
+        try {
+          await loadSharedAgents();
+        } catch (sharedError) {
+          console.error('Error loading shared agents:', sharedError);
+          setSharedAgents([]);
+        }
       } catch (error) {
         console.error('Error loading data:', error);
       } finally {
@@ -113,6 +156,52 @@ export default function Chat() {
 
     loadData();
   }, [clientId]);
+
+  const loadSharedAgents = async () => {
+    if (typeof window === 'undefined') return;
+
+    try {
+      const savedAgentsJson = localStorage.getItem('shared_agents') || '[]';
+      const savedAgents = JSON.parse(savedAgentsJson) as SharedAgentInfo[];
+      
+      const sharedAgentPromises = savedAgents.map(async (savedAgent) => {
+        try {
+          // Definir a API key temporariamente para buscar o agente
+          const currentApiKey = localStorage.getItem('shared_agent_api_key');
+          localStorage.setItem('shared_agent_api_key', savedAgent.apiKey);
+          
+          const response = await getSharedAgent(savedAgent.id);
+          
+          // Restaurar a API key anterior
+          if (currentApiKey) {
+            localStorage.setItem('shared_agent_api_key', currentApiKey);
+          } else {
+            localStorage.removeItem('shared_agent_api_key');
+          }
+          
+          return {
+            ...response.data,
+            name: response.data.name || savedAgent.name || 'Agente Compartilhado',
+            description: response.data.description || savedAgent.description || 'Agente compartilhado via link'
+          };
+        } catch (error) {
+          console.error(`Error loading shared agent ${savedAgent.id}:`, error);
+          // Retornar um agente básico se não conseguir carregar
+          return {
+            id: savedAgent.id,
+            name: savedAgent.name || 'Agente Compartilhado',
+            description: savedAgent.description || 'Agente compartilhado via link',
+            type: 'shared'
+          };
+        }
+      });
+
+      const loadedSharedAgents = await Promise.all(sharedAgentPromises);
+      setSharedAgents(loadedSharedAgents);
+    } catch (error) {
+      console.error('Error loading shared agents:', error);
+    }
+  };
 
   useEffect(() => {
     if (!selectedSession) {
@@ -184,15 +273,17 @@ export default function Chat() {
     }
   };
 
-  const filteredAgents = agents.filter(
-    (agent) =>
-      agent.name
+  const filteredAgents = [...agents, ...sharedAgents].filter(
+    (agent) => {
+      console.log('Filtrando agente:', agent);
+      return agent.name
         .toLowerCase()
         .includes(agentSearchTerm.toLowerCase()) ||
       (agent.description &&
         agent.description
           .toLowerCase()
-          .includes(agentSearchTerm.toLowerCase())),
+          .includes(agentSearchTerm.toLowerCase()));
+    }
   );
 
   const selectAgent = (agentId: string) => {
@@ -200,6 +291,21 @@ export default function Chat() {
     setSelectedSession(null);
     setMessages([]);
     setIsNewChatDialogOpen(false);
+
+    // Se for um agente compartilhado, definir a API key correta
+    const sharedAgent = sharedAgents.find(agent => agent.id === agentId);
+    if (sharedAgent && typeof window !== 'undefined') {
+      const savedAgentsJson = localStorage.getItem('shared_agents') || '[]';
+      try {
+        const savedAgents = JSON.parse(savedAgentsJson) as SharedAgentInfo[];
+        const savedAgent = savedAgents.find(a => a.id === agentId);
+        if (savedAgent) {
+          localStorage.setItem('shared_agent_api_key', savedAgent.apiKey);
+        }
+      } catch (error) {
+        console.error('Error setting shared agent API key:', error);
+      }
+    }
   };
 
   const handleSendMessage = async (e: React.FormEvent) => {
@@ -288,7 +394,7 @@ export default function Chat() {
     );
   };
 
-  const currentAgent = agents.find(
+  const currentAgent = [...agents, ...sharedAgents].find(
     (agent) => agent.id === currentAgentId,
   );
 
@@ -347,10 +453,18 @@ export default function Chat() {
   const getMessageText = (
     message: ChatMessage,
   ): string | FunctionMessageContent => {
+    console.log('Processing message in getMessageText:', message);
     const author = message.author;
     const parts = message.content.parts;
+    console.log('Message parts:', parts);
 
-    if (!parts || parts.length === 0) return 'Empty content';
+    if (!parts || parts.length === 0) {
+      return {
+        author,
+        content: 'Empty content',
+        title: 'Message',
+      } as FunctionMessageContent;
+    }
 
     const functionCallPart = parts.find(
       (part) => part.functionCall || part.function_call,
@@ -457,7 +571,11 @@ Args: ${
       } as FunctionMessageContent;
     }
 
-    return 'Empty content';
+    return {
+      author,
+      content: 'Empty content',
+      title: 'Message',
+    } as FunctionMessageContent;
   };
 
   const toggleFunctionExpansion = (messageId: string) => {
@@ -530,8 +648,15 @@ Args: ${
     }
   };
 
-  const onEvent = useCallback((event: any) => {
+  const onEvent = useCallback((event: ChatMessage) => {
+    console.log('[Chat] Mensagem recebida do WebSocket:', event);
+    console.log('Message content parts:', event.content?.parts);
+    console.log('Message author:', event.author);
     setMessages((prev) => [...prev, event]);
+    // Definir isSending como false quando receber uma mensagem do agente
+    if (event.author !== 'user') {
+      setIsSending(false);
+    }
   }, []);
 
   const onTurnComplete = useCallback(() => {
@@ -542,7 +667,7 @@ Args: ${
     setIsAgentInfoDialogOpen(true);
   };
 
-  const handleAgentUpdated = (updatedAgent: any) => {
+  const handleAgentUpdated = (updatedAgent: Agent) => {
     setAgents(
       agents.map((agent) =>
         agent.id === updatedAgent.id ? updatedAgent : agent,
@@ -762,7 +887,7 @@ Args: ${
         open={isNewChatDialogOpen}
         onOpenChange={setIsNewChatDialogOpen}
       >
-        <DialogContent className="bg-deep border-deep text-white shadow-xl">
+        <DialogContent className="bg-deep border-electric text-white shadow-xl">
           <DialogHeader>
             <div className="flex items-center gap-2 mb-1">
               <div className="p-1.5 rounded-full bg-blue-500/20">
@@ -784,7 +909,7 @@ Args: ${
               </div>
               <Input
                 placeholder="Search agents..."
-                className="pl-10 bg-deep/40 border-deep/50 text-white focus-visible:ring-blue-500/50 focus-visible:border-blue-500/50 shadow-inner rounded-xl"
+                className="pl-10 bg-electric/20 border-electric text-white focus-visible:ring-blue-500/50 focus-visible:border-blue-500/50 shadow-inner rounded-xl"
                 value={agentSearchTerm}
                 onChange={(e) => setAgentSearchTerm(e.target.value)}
               />
@@ -798,9 +923,7 @@ Args: ${
               )}
             </div>
 
-            <div className="text-sm text-neutral-300 mb-2">
-              Escolha um agente:
-            </div>
+            <div className="text-sm text-neutral-300 mb-2">Escolha um agente:</div>
 
             <ScrollArea className="h-[300px] pr-2">
               {isLoading ? (
@@ -809,33 +932,30 @@ Args: ${
                     <Loader2 className="h-8 w-8 text-blue-400 animate-spin" />
                     <div className="absolute inset-0 rounded-full blur-md bg-blue-400/20 animate-pulse"></div>
                   </div>
-                  <p className="text-neutral-400 mt-4">
-                    Carregando agentes...
-                  </p>
+                  <p className="text-neutral-400 mt-4">Carregando agentes...</p>
                 </div>
               ) : filteredAgents.length > 0 ? (
                 <div className="space-y-2">
                   {filteredAgents.map((agent) => (
                     <div
                       key={agent.id}
-                      className="p-3 rounded-md cursor-pointer transition-all bg-deep hover:bg-deep/90 border border-deep/30 hover:border-blue-500/30 shadow-sm hover:shadow-md group"
+                      className="p-3 rounded-md cursor-pointer transition-all bg-electric/20 hover:bg-electric/30 border border-electric hover:border-blue-500/50 shadow-sm hover:shadow-md group"
                       onClick={() => selectAgent(agent.id)}
                     >
                       <div className="flex items-center gap-2 mb-1">
                         <div className="p-1 rounded-full bg-blue-500/20 group-hover:bg-blue-500/30 transition-colors">
-                          <MessageSquare
-                            size={14}
-                            className="text-blue-400"
-                          />
+                          <MessageSquare size={14} className="text-blue-400" />
                         </div>
                         <span className="font-medium text-white group-hover:text-blue-50">
                           {agent.name}
                         </span>
                       </div>
                       <div className="flex items-center justify-between mt-1">
-                        <Badge className="text-xs bg-deep/60 text-blue-400 border border-blue-500/30">
-                          {agent.type}
-                        </Badge>
+                        {agent.type && (
+                          <Badge className="text-xs bg-electric/30 text-blue-400 border border-blue-500/30">
+                            {agent.type}
+                          </Badge>
+                        )}
                         {agent.model && (
                           <span className="text-xs text-neutral-400">
                             {agent.model}
@@ -869,9 +989,9 @@ Args: ${
             <Button
               onClick={() => setIsNewChatDialogOpen(false)}
               variant="outline"
-              className="bg-deep/40 border-deep/50 text-neutral-300 hover:bg-deep/50 hover:text-white hover:border-neutral-600"
+              className="bg-electric/20 border-electric text-neutral-300 hover:bg-electric/30 hover:text-white hover:border-blue-500/50"
             >
-              Cancel
+              Cancelar
             </Button>
           </DialogFooter>
         </DialogContent>
