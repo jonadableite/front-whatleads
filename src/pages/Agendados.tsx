@@ -23,13 +23,42 @@ import {
 	FiUsers,
 } from "react-icons/fi";
 
+// Funções utilitárias para formatação de data brasileira
+const formatDateToBrazilian = (date: Date): string => {
+	return date.toLocaleDateString('pt-BR', {
+		day: '2-digit',
+		month: '2-digit',
+		year: 'numeric'
+	});
+};
+
+const formatTimeToBrazilian = (date: Date): string => {
+	return date.toLocaleTimeString('pt-BR', {
+		hour: '2-digit',
+		minute: '2-digit',
+		hour12: false
+	});
+};
+
+const formatDateTimeToBrazilian = (date: Date): string => {
+	return date.toLocaleString('pt-BR', {
+		day: '2-digit',
+		month: '2-digit',
+		year: 'numeric',
+		hour: '2-digit',
+		minute: '2-digit',
+		hour12: false
+	});
+};
+
 export interface ScheduledCampaign {
 	id: string;
 	campaignId: string;
 	name: string;
 	scheduledDate: string;
-	status: string;
+	status: 'pending' | 'running' | 'completed' | 'failed' | 'cancelled';
 	instance: string;
+	instanceName: string;
 	message?: string;
 	mediaType?: string;
 	mediaUrl?: string;
@@ -39,9 +68,23 @@ export interface ScheduledCampaign {
 	startedAt?: string;
 	completedAt?: string;
 	totalLeads: number;
+	createdAt: string;
+	updatedAt: string;
+	campaign?: {
+		id: string;
+		name: string;
+		description?: string;
+		type: string;
+		mediaType?: string;
+		mediaUrl?: string;
+		mediaCaption?: string;
+		leads?: { id: string }[];
+	};
 	statistics?: {
 		sentCount: number;
 		deliveredCount: number;
+		readCount: number;
+		failedCount: number;
 	};
 }
 
@@ -246,11 +289,11 @@ const Agendados = () => {
 					</SelectTrigger>
 					<SelectContent>
 						<SelectItem value="all">Todos os status</SelectItem>
-						<SelectItem value="scheduled">Agendada</SelectItem>
+						<SelectItem value="pending">Pendente</SelectItem>
 						<SelectItem value="running">Em execução</SelectItem>
-						<SelectItem value="paused">Pausada</SelectItem>
-						<SelectItem value="cancelled">Cancelada</SelectItem>
 						<SelectItem value="completed">Concluída</SelectItem>
+						<SelectItem value="failed">Falhou</SelectItem>
+						<SelectItem value="cancelled">Cancelada</SelectItem>
 					</SelectContent>
 				</Select>
 			</div>
@@ -266,11 +309,18 @@ const Agendados = () => {
 				) : (
 					<>
 						{/* Stats */}
-						<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+						<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6">
 							<StatsCard
-								title="Total Agendadas"
+								title="Total"
 								value={filteredCampaigns.length}
 								icon={<FiCalendar className="w-6 h-6" />}
+							/>
+							<StatsCard
+								title="Pendentes"
+								value={
+									filteredCampaigns.filter((c) => c.status === "pending").length
+								}
+								icon={<FiClock className="w-6 h-6" />}
 							/>
 							<StatsCard
 								title="Em Execução"
@@ -280,17 +330,19 @@ const Agendados = () => {
 								icon={<FiPlay className="w-6 h-6" />}
 							/>
 							<StatsCard
+								title="Concluídas"
+								value={
+									filteredCampaigns.filter((c) => c.status === "completed").length
+								}
+								icon={<FiBarChart2 className="w-6 h-6" />}
+							/>
+							<StatsCard
 								title="Total de Leads"
 								value={filteredCampaigns.reduce(
 									(acc, curr) => acc + (curr.totalLeads || 0),
 									0,
 								)}
 								icon={<FiUsers className="w-6 h-6" />}
-							/>
-							<StatsCard
-								title="Taxa de Entrega"
-								value={`${calculateDeliveryRate(filteredCampaigns)}%`}
-								icon={<FiBarChart2 className="w-6 h-6" />}
 							/>
 						</div>
 
@@ -317,11 +369,11 @@ const Agendados = () => {
 										<div className="flex items-center gap-2 text-white/60">
 											<FiCalendar />
 											<span>
-												{new Date(campaign.scheduledDate).toLocaleDateString()}
+												{formatDateToBrazilian(new Date(campaign.scheduledDate))}
 											</span>
 											<FiClock />
 											<span>
-												{new Date(campaign.scheduledDate).toLocaleTimeString()}
+												{formatTimeToBrazilian(new Date(campaign.scheduledDate))}
 											</span>
 										</div>
 
@@ -334,11 +386,33 @@ const Agendados = () => {
 											</div>
 											<div>
 												<p className="text-white/60">Instância</p>
-												<p className="text-xl font-bold text-white">
-													{campaign.instance}
+												<p className="text-sm font-medium text-white">
+													{campaign.instanceName}
 												</p>
 											</div>
 										</div>
+
+										{/* Informações adicionais de data */}
+										{(campaign.startedAt || campaign.completedAt) && (
+											<div className="space-y-2 pt-2 border-t border-white/10">
+												{campaign.startedAt && (
+													<div className="flex items-center gap-2 text-sm text-white/60">
+														<span>Iniciado em:</span>
+														<span className="text-white">
+															{formatDateTimeToBrazilian(new Date(campaign.startedAt))}
+														</span>
+													</div>
+												)}
+												{campaign.completedAt && (
+													<div className="flex items-center gap-2 text-sm text-white/60">
+														<span>Concluído em:</span>
+														<span className="text-white">
+															{formatDateTimeToBrazilian(new Date(campaign.completedAt))}
+														</span>
+													</div>
+												)}
+											</div>
+										)}
 
 										<div className="flex justify-end gap-2">
 											<Button
@@ -435,29 +509,29 @@ const calculateDeliveryRate = (campaigns: ScheduledCampaign[]): string => {
 
 const StatusBadge: React.FC<{ status: string }> = ({ status }) => {
 	const statusConfig = {
-		scheduled: {
-			class: "bg-purple-500",
-			label: "Agendada",
+		pending: {
+			class: "bg-yellow-500",
+			label: "Pendente",
 		},
 		running: {
 			class: "bg-green-500 animate-pulse",
 			label: "Em execução",
 		},
-		paused: {
-			class: "bg-yellow-500",
-			label: "Pausada",
-		},
-		cancelled: {
-			class: "bg-red-500",
-			label: "Cancelada",
-		},
 		completed: {
 			class: "bg-blue-500",
 			label: "Concluída",
 		},
+		failed: {
+			class: "bg-red-500",
+			label: "Falhou",
+		},
+		cancelled: {
+			class: "bg-gray-500",
+			label: "Cancelada",
+		},
 	};
 
-	const config = statusConfig[status] || statusConfig.scheduled;
+	const config = statusConfig[status] || statusConfig.pending;
 
 	return (
 		<span
