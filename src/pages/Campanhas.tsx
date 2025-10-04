@@ -390,9 +390,9 @@ const Campanhas: React.FC = () => {
       if (action === 'start') {
         // Mostrar toast de início imediato
         toast.success('Campanha iniciada! O processamento está em andamento...');
-        
+
         await startCampaign.mutateAsync(id);
-        
+
         // Iniciar polling mais frequente para acompanhar o progresso
         const pollInterval = setInterval(() => {
           refetch();
@@ -417,7 +417,7 @@ const Campanhas: React.FC = () => {
     } catch (error: any) {
       // Melhor tratamento de erros com mensagens específicas
       const errorMessage = error?.message || error?.response?.data?.error || 'Erro ao executar ação na campanha';
-      
+
       if (errorMessage.includes('Tempo limite')) {
         toast.error('A operação está demorando mais que o esperado. Verifique o status da campanha em alguns instantes.');
       } else {

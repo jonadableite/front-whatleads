@@ -58,26 +58,16 @@ export function InstanceSettingsDialog({
 
 	// Função para buscar configurações atuais da instância
 	const fetchCurrentSettings = useCallback(async () => {
-		console.log("Attempting to fetch settings for instance:", instanceName);
-		console.log("API Key present:", !!apiKey);
-		console.log("API URL present:", !!apiUrl);
-
 		if (!instanceName || !apiKey || !apiUrl) {
-			console.warn(
-				"Missing instanceName, apiKey, or apiUrl for fetching settings. Check environment variables VITE_PUBLIC_API_KEY and VITE_EVOLUTION_API_URL.",
-			);
 			setSettings(defaultSettings);
 			setLoadingGet(false);
-			console.log("Falling back to default settings due to missing config.");
 			return;
 		}
 
 		setLoadingGet(true);
 		setSettings(null);
-		console.log("Loading settings... settings state set to null.");
 
 		const url = `${apiUrl}/settings/find/${instanceName}`;
-		console.log("Fetching from URL:", url);
 
 		try {
 			const response = await fetch(url, {
@@ -88,11 +78,8 @@ export function InstanceSettingsDialog({
 				},
 			});
 
-			console.log("Fetch response status:", response.status);
-
 			if (response.ok) {
 				const data = await response.json();
-				console.log("Fetch successful. Received data:", data);
 
 				if (data) {
 					const loadedSettings: InstanceSettings = {
@@ -106,29 +93,17 @@ export function InstanceSettingsDialog({
 						readStatus: data.readStatus ?? defaultSettings.readStatus,
 					};
 					setSettings(loadedSettings);
-					console.log("Settings updated with fetched data:", loadedSettings);
 				} else {
-					console.log(
-						"Fetch successful but no data received. Using default settings.",
-					);
 					setSettings(defaultSettings);
 				}
 			} else {
-				console.error(
-					`Failed to fetch settings for ${instanceName}: ${response.status}`,
-				);
 				const errorData = await response.text().catch(() => "No error message");
-				console.error("Response body:", errorData);
 				setSettings(defaultSettings);
-				console.log("Falling back to default settings due to API error.");
 			}
 		} catch (error: unknown) {
-			console.error("Error during fetch:", error);
 			setSettings(defaultSettings);
-			console.log("Falling back to default settings due to fetch exception.");
 		} finally {
 			setLoadingGet(false);
-			console.log("Loading finished. loadingGet set to false.");
 		}
 	}, [instanceName, apiKey, apiUrl]);
 
@@ -212,7 +187,6 @@ export function InstanceSettingsDialog({
 				throw new Error(errorData.message || "Falha ao salvar configurações");
 			}
 		} catch (error: unknown) {
-			console.error("Erro ao salvar configurações:", error);
 			let errorMessage =
 				"Não foi possível salvar as configurações da instância";
 			if (error instanceof Error) {

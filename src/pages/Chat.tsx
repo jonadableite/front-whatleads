@@ -120,7 +120,7 @@ export default function Chat() {
       }
 
       setIsLoading(true);
-      
+
       try {
         // Carregar agentes
         try {
@@ -163,22 +163,22 @@ export default function Chat() {
     try {
       const savedAgentsJson = localStorage.getItem('shared_agents') || '[]';
       const savedAgents = JSON.parse(savedAgentsJson) as SharedAgentInfo[];
-      
+
       const sharedAgentPromises = savedAgents.map(async (savedAgent) => {
         try {
           // Definir a API key temporariamente para buscar o agente
           const currentApiKey = localStorage.getItem('shared_agent_api_key');
           localStorage.setItem('shared_agent_api_key', savedAgent.apiKey);
-          
+
           const response = await getSharedAgent(savedAgent.id);
-          
+
           // Restaurar a API key anterior
           if (currentApiKey) {
             localStorage.setItem('shared_agent_api_key', currentApiKey);
           } else {
             localStorage.removeItem('shared_agent_api_key');
           }
-          
+
           return {
             ...response.data,
             name: response.data.name || savedAgent.name || 'Agente Compartilhado',
@@ -279,10 +279,10 @@ export default function Chat() {
       return agent.name
         .toLowerCase()
         .includes(agentSearchTerm.toLowerCase()) ||
-      (agent.description &&
-        agent.description
-          .toLowerCase()
-          .includes(agentSearchTerm.toLowerCase()));
+        (agent.description &&
+          agent.description
+            .toLowerCase()
+            .includes(agentSearchTerm.toLowerCase()));
     }
   );
 
@@ -488,11 +488,10 @@ export default function Chat() {
         author,
         title: `📞 Function call: ${name}`,
         content: `ID: ${id}
-Args: ${
-          Object.keys(args).length > 0
+Args: ${Object.keys(args).length > 0
             ? `\n${JSON.stringify(args, null, 2)}`
             : '{}'
-        }`,
+          }`,
       } as FunctionMessageContent;
     }
 
@@ -509,9 +508,8 @@ Args: ${
 
       let resultText = '';
       if (status === 'error') {
-        resultText = `Error: ${
-          response.error_message || 'Unknown error'
-        }`;
+        resultText = `Error: ${response.error_message || 'Unknown error'
+          }`;
       } else if (response.report) {
         resultText = `Result: ${response.report}`;
       } else if (response.result && response.result.content) {
@@ -735,9 +733,8 @@ Args: ${
                         <MessageSquare className="h-5 w-5 text-blue-400" />
                       </div>
                       {selectedSession
-                        ? `Session ${
-                            sessionInfo?.externalId || selectedSession
-                          }`
+                        ? `Session ${sessionInfo?.externalId || selectedSession
+                        }`
                         : 'Nova conversa'}
                     </h2>
 

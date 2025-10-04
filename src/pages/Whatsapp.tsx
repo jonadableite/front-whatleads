@@ -25,13 +25,10 @@ import {
   createInstance,
   deleteInstance,
   fetchBots,
-  fetchUserInstances,
   getConnectionState,
   logoutInstance,
   restartInstance,
 } from '@/services/evolutionApi.service';
-import { Instance, InstancesApiResponse } from '@/types/instance';
-import axios from 'axios';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   AlertCircle,
@@ -55,16 +52,8 @@ import { useNavigate } from 'react-router-dom';
 import { AIAgentDialog } from '../components/instancia/AIAgentDialog';
 import { InstanceSettingsDialog } from '../components/instancia/InstanceSettingsDialog';
 import { ProxyConfigModal } from '../components/instancia/ProxyConfigModal';
-
-// Constantes
-const API_BASE_URL = import.meta.env.VITE_API_URL || '';
-
-// Interfaces para tipagem
-interface User {
-  id: string;
-  name: string;
-  email: string;
-}
+import useSWR from 'swr';
+import { fetcher } from '@/lib/fetcher';
 
 // Status icons mapping
 const StatusIcon = ({ status }: { status: string }) => {
@@ -101,61 +90,21 @@ const getStatusText = (status: string) => {
   }
 };
 
-// Profile Avatar Component
-const ProfileAvatar = ({ instance }: { instance: Instance }) => {
-  const isOnline =
-    instance.connectionStatus === 'OPEN' ||
-    instance.connectionStatus === 'online';
-  return (
-    <div className="relative">
-      <Avatar className="w-16 h-16 border-2 border-[#091E3B] shadow-md">
-        <AvatarImage
-          src={instance.profilePicUrl || instance.profilePicUrl}
-          alt={instance.profileName || instance.instanceName}
-          className="object-cover"
-        />
-
-        <AvatarFallback className="bg-gradient-to-br from-electric to-blue-700 text-white text-lg font-bold">
-          {instance.profileName || instance.instanceName ? (
-            (instance.profileName || instance.instanceName)
-              .charAt(0)
-              .toUpperCase()
-          ) : (
-            <MessageCircle className="w-8 h-8" />
-          )}
-        </AvatarFallback>
-      </Avatar>
-
-      <div
-        className={cn(
-          'absolute -bottom-1 -right-1 w-5 h-5 rounded-full border-2 border-[#091E3B]',
-          isOnline ? 'bg-green-500' : 'bg-gray-400',
-        )}
-      />
-    </div>
-  );
-};
-
 export default function WhatsappPage() {
   const navigate = useNavigate();
   const [mounted, setMounted] = useState(false);
-  const [instances, setInstances] = useState<Instance[]>([]);
   const [instanceAgents, setInstanceAgents] = useState<
     Record<string, number>
   >({});
   const [instanceAgentStatus, setInstanceAgentStatus] = useState<
     Record<string, 'active' | 'inactive'>
   >({});
-  const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
-  const [dialogOPEN, setDialogOPEN] = useState(false);
   const [qrCodeDialog, setQrCodeDialog] = useState(false);
   const [qrCodeData, setQrCodeData] = useState<string>('');
-  const [qrCodeInstance, setQrCodeInstance] = useState<string>('');
   const [isMonitoring, setIsMonitoring] = useState(false);
   const [connectionProgress, setConnectionProgress] = useState(0);
-  const [user, setUser] = useState<User | null>(null);
 
   const [showSettingsDialog, setShowSettingsDialog] = useState(false);
   const [
@@ -175,9 +124,7 @@ export default function WhatsappPage() {
     useState<string | null>(null);
   const [proxyDialogOPEN, setProxyDialogOPEN] = useState(false);
 
-  const monitoringInterval = useRef<NodeJS.Timeout | null>(null);
-  const autoRefreshInterval = useRef<NodeJS.Timeout | null>(null);
-  const isLoadingRef = useRef(false);
+  const monitoringInterval = useRef<ReturnType<typeof setInterval> | null>(null);
 
   const [form, setForm] = useState<{
     id?: string;
@@ -190,116 +137,24 @@ export default function WhatsappPage() {
     qrcode: true,
   });
 
-  const [currentPlan, setCurrentPlan] = useState('');
-  const [instanceLimit, setInstanceLimit] = useState(1);
-  const [remainingSlots, setRemainingSlots] = useState(0);
-  const [pollingIntervals, setPollingIntervals] = useState<{
-    [key: string]: any;
-  }>({});
-  const [planDetails, setPlanDetails] = useState<{
-    limits: any;
-    usage: any;
-    plan: any;
-    type?: string;
-    isInTrial?: boolean;
-    trialEndDate?: string | null;
-    leadsLimit?: number;
-    currentLeads?: number;
-    leadsPercentage?: number;
-  }>({});
-  const [isCreatingInstance, setIsCreatingInstance] = useState(false);
+  // SWR hooks para buscar dados
+  const { data: planData } = useSWR(
+    '/api/users/plan-status',
+    fetcher
+  );
 
-  // Função para definir o diálogo do agente
-  const setSelectedAgentDialog = (instanceName: string) => {
-    setSelectedInstanceForAgent(instanceName);
-    setAgentDialogOPEN(true);
-  };
+  const { data: instancesData, mutate: mutateInstances } = useSWR(
+    '/api/instances',
+    fetcher
+  );
 
-  const fetchUserPlan = async () => {
-    const currentUser = authService.getUser();
-    if (!currentUser || !currentUser.id) {
-      console.warn(
-        'Usuário não autenticado ou ID do usuário ausente. Não foi possível buscar o plano.',
-      );
-      // Limpar estados relevantes
-      setCurrentPlan('N/A');
-      setInstanceLimit(0);
-      setRemainingSlots(0);
-      setPlanDetails({}); // Limpa os detalhes completos também
-      return;
-    }
+  // Processamento dos dados do plano
+  const currentPlan = planData?.plan?.name || 'N/A';
+  const instanceLimit = planData?.limits?.maxInstances || 0;
+  const planDetails = planData || {};
 
-    try {
-      const token = authService.getTokenInterno();
-      if (!token) {
-        console.error(
-          'Token interno não encontrado para buscar o plano. O usuário pode precisar fazer login novamente.',
-        );
-        setCurrentPlan('N/A');
-        setInstanceLimit(0);
-        setRemainingSlots(0);
-        setPlanDetails({});
-        return;
-      }
-
-      const response = await axios.get(
-        `${API_BASE_URL}/api/users/plan-status`,
-        {
-          headers: {
-            Authorization: `Bearer ${token}`,
-          },
-        },
-      );
-
-      console.log(
-        'Informações do plano recuperadas com sucesso:',
-        response.data,
-      );
-
-      // Validação mais robusta da estrutura da resposta
-      if (
-        !response.data ||
-        !response.data.plan ||
-        !response.data.limits ||
-        !response.data.usage
-      ) {
-        console.error(
-          'Estrutura de resposta de plano inesperada:',
-          response.data,
-        );
-        toast({
-          title: 'Erro',
-          description: 'Erro ao carregar detalhes do plano.',
-          variant: 'destructive',
-        });
-        setCurrentPlan('N/A');
-        setInstanceLimit(0);
-        setRemainingSlots(0);
-        setPlanDetails({});
-        return;
-      }
-
-      const { plan, limits, usage } = response.data;
-
-      setCurrentPlan(plan.name || 'Plano Desconhecido');
-      const limit = limits.maxInstances || 0; // Usar maxInstances conforme API
-      setInstanceLimit(limit);
-      setRemainingSlots(Math.max(0, limit - usage.currentInstances)); // Usar currentInstances conforme API
-
-      // Armazena detalhes completos do plano, incluindo limits e usage
-      setPlanDetails(response.data);
-    } catch (error) {
-      console.error('Erro ao buscar status do plano:', error);
-      handleConnectionError(error);
-
-      setCurrentPlan('Erro ao carregar');
-      setInstanceLimit(0);
-      setRemainingSlots(0);
-      setPlanDetails({});
-    } finally {
-      // setLoadingPlan(false);
-    }
-  };
+  // Processamento dos dados das instâncias
+  const instances = instancesData?.instances || [];
 
   const loadInstancesAgents = useCallback(
     async (instanceNames?: string[] | string) => {
@@ -322,10 +177,10 @@ export default function WhatsappPage() {
           return;
         }
 
-        console.log(
-          '🔄 Loading agents for instances:',
-          namesToProcess,
-        );
+        // console.log(
+        //   '🔄 Loading agents for instances:',
+        //   namesToProcess,
+        // );
         const agentCounts: Record<string, number> = {};
         // Objeto para armazenar o status ativo/inativo
         const agentStatuses: Record<string, 'active' | 'inactive'> =
@@ -349,9 +204,9 @@ export default function WhatsappPage() {
               ? 'active'
               : 'inactive';
 
-            console.log(
-              `📊 Instance ${instanceName} has ${agentCounts[instanceName]} agents. Agent Status: ${agentStatuses[instanceName]}`,
-            );
+            // console.log(
+            //   `📊 Instance ${instanceName} has ${agentCounts[instanceName]} agents. Agent Status: ${agentStatuses[instanceName]}`,
+            // );
           } catch (error) {
             console.error(
               `❌ Error loading agents for ${instanceName}:`,
@@ -377,53 +232,6 @@ export default function WhatsappPage() {
     await loadInstancesAgents(instances.map((i) => i.instanceName));
   }, [loadInstancesAgents, instances]); // Adicionar 'instances' como dependência
 
-  const loadInstances = useCallback(async () => {
-    if (isLoadingRef.current) {
-      console.log(
-        '🔄 Load instances already in progress, skipping...',
-      );
-      return;
-    }
-    try {
-      isLoadingRef.current = true;
-      console.log('🔄 Loading instances...');
-
-      // Suposição: fetchUserInstances retorna um objeto { instances: Instance[], ... }
-      const response: InstancesApiResponse =
-        await fetchUserInstances();
-
-      console.log(
-        '📋 User instances received:',
-        response.instances.length,
-      );
-
-      // Atualiza o estado de instâncias APENAS se houver mudanças
-      setInstances((prevInstances) => {
-        const hasChanges =
-          JSON.stringify(prevInstances) !==
-          JSON.stringify(response.instances);
-
-        if (hasChanges) {
-          console.log('✅ Instances updated with changes');
-          return response.instances; // Atualiza com o array correto
-        } else {
-          console.log('📊 No changes in instances data');
-          return prevInstances;
-        }
-      });
-
-      // Se precisar chamar outra função após atualizar instances, faça isso aqui ou via useEffect com [instances]
-    } catch (error) {
-      console.error('❌ Error loading instances:', error);
-      setInstances([]); // limpa instâncias
-      setInstanceAgents({}); // limpa agentes
-      setInstanceAgentStatus({}); // limpa status agentes
-    } finally {
-      isLoadingRef.current = false;
-      setLoading(false);
-    }
-  }, []);
-
   // UseEffect para carregar instâncias na montagem e recarregar agentes quando 'instances' muda
   useEffect(() => {
     let mounted = true;
@@ -435,13 +243,6 @@ export default function WhatsappPage() {
         if (!userData) {
           navigate('/login');
           return;
-        }
-
-        if (mounted) {
-          setUser(userData);
-          setLoading(true);
-          await loadInstances(); // Carrega as instâncias
-          // loadInstancesAgents será chamado automaticamente pelo useEffect abaixo quando instances for atualizado
         }
       } catch (error) {
         console.error('❌ Error initializing app:', error);
@@ -456,19 +257,19 @@ export default function WhatsappPage() {
     return () => {
       mounted = false;
     };
-  }, [navigate, loadInstances]);
+  }, [navigate]);
 
   // ✅ NOVO useEffect: Para carregar os agentes sempre que a lista de instâncias mudar
   useEffect(() => {
     if (instances.length > 0) {
-      console.log('Instances state updated, loading agents...');
+      // console.log('Instances state updated, loading agents...');
       loadInstancesAgents(); // Chama loadInstancesAgents quando 'instances' muda
     } else {
       // Limpa o estado de agentes se não houver instâncias
       setInstanceAgents({});
       setInstanceAgentStatus({});
     }
-  }, [instances, loadInstancesAgents]);
+  }, [instances]); // Removendo loadInstancesAgents das dependências para evitar loop infinito
 
   // Função para lidar com erros de conexão (mantida)
   const handleConnectionError = useCallback((error: unknown) => {
@@ -496,7 +297,7 @@ export default function WhatsappPage() {
       setLoading(true);
       const response = await connectInstance(instanceName);
 
-      console.log('🔍 Connect response:', response); // Para debug
+      // console.log('🔍 Connect response:', response); // Para debug
 
       // Verificar pelo campo correto 'base64' ou 'qrcode'
       if (response && typeof response === 'object') {
@@ -504,7 +305,6 @@ export default function WhatsappPage() {
         if (typeof qrCode === 'string' && qrCode) {
           // Verifica se qrCode não é vazio
           setQrCodeData(qrCode);
-          setQrCodeInstance(instanceName);
           setQrCodeDialog(true);
           startConnectionMonitoring(instanceName);
         } else {
@@ -545,7 +345,7 @@ export default function WhatsappPage() {
         title: 'Instância Reiniciada',
         description: `${instanceName} foi reiniciado com sucesso`,
       });
-      await loadInstances(); // Recarrega instâncias para atualizar status
+      mutateInstances(); // Recarrega instâncias para atualizar status
     } catch (error) {
       handleConnectionError(error);
     } finally {
@@ -561,7 +361,7 @@ export default function WhatsappPage() {
         title: 'Logout Realizado',
         description: `${instanceName} foi desconectado`,
       });
-      await loadInstances(); // Recarrega instâncias para atualizar status
+      mutateInstances(); // Recarrega instâncias para atualizar status
     } catch (error) {
       handleConnectionError(error);
     } finally {
@@ -576,7 +376,7 @@ export default function WhatsappPage() {
     try {
       setLoading(true);
       await deleteInstance(instanceId);
-      
+
       // Limpar cache do frontend se existir
       if (typeof window !== 'undefined') {
         // Limpar qualquer cache relacionado a instâncias
@@ -587,12 +387,12 @@ export default function WhatsappPage() {
           }
         });
       }
-      
+
       toast({
         title: 'Instância Deletada',
         description: `${instanceName} foi deletada com sucesso`,
       });
-      await loadInstances(); // Recarrega instâncias para remover a deletada
+      mutateInstances(); // Recarrega instâncias para remover a deletada
     } catch (error) {
       handleConnectionError(error);
     } finally {
@@ -605,14 +405,15 @@ export default function WhatsappPage() {
       setLoading(true);
       const response = await createInstance(form);
 
-      console.log('🔍 Create instance response:', response); // Para debug
+      // console.log('🔍 Create instance response:', response); // Para debug
 
       toast({
         title: 'Instância Criada',
         description: 'Nova instância criada com sucesso',
       });
 
-      setDialogOPEN(false);
+      // Fechar o modal de criação
+      setIsModalOpen(false);
 
       // Se a resposta contém QR code, abrir o modal e monitorar
       if (response && (response.base64 || response.qrcode)) {
@@ -620,7 +421,6 @@ export default function WhatsappPage() {
         if (typeof qrCode === 'string' && qrCode) {
           // Verifica se qrCode não é vazio
           setQrCodeData(qrCode);
-          setQrCodeInstance(form.instanceName);
           setQrCodeDialog(true);
           startConnectionMonitoring(form.instanceName);
         } else {
@@ -636,7 +436,7 @@ export default function WhatsappPage() {
         qrcode: true,
       });
 
-      await loadInstances(); // Recarrega instâncias para incluir a nova
+      mutateInstances(); // Recarrega instâncias para incluir a nova
     } catch (error) {
       handleConnectionError(error);
     } finally {
@@ -659,19 +459,19 @@ export default function WhatsappPage() {
           // Acessa a propriedade 'state' dentro do objeto 'instance'
           const response = await getConnectionState(instanceName);
           const connectionState = response?.instance?.state; // Use optional chaining para segurança
-          console.log(
-            `📊 Connection state for ${instanceName}:`,
-            connectionState,
-          );
+          // console.log(
+          //   `📊 Connection state for ${instanceName}:`,
+          //   connectionState,
+          // );
 
           // Agora compare a string do estado
           if (
             connectionState === 'OPEN' ||
             connectionState === 'connected'
           ) {
-            console.log(
-              `✅ Connection OPEN or connected for ${instanceName}`,
-            );
+            // console.log(
+            //   `✅ Connection OPEN or connected for ${instanceName}`,
+            // );
             setConnectionProgress(100);
             setTimeout(() => {
               setQrCodeDialog(false);
@@ -681,7 +481,7 @@ export default function WhatsappPage() {
                 title: 'Conectado!',
                 description: `${instanceName} foi conectado com sucesso`,
               });
-              loadInstances(); // Recarrega instâncias para atualizar o status na lista
+              mutateInstances(); // Recarrega instâncias para atualizar o status na lista
             }, 1000); // Pequeno delay para a animação de progresso
             clearInterval(interval);
             monitoringInterval.current = null;
@@ -691,16 +491,16 @@ export default function WhatsappPage() {
             connectionState === 'disconnected'
           ) {
             // Adicionado 'disconnected'
-            console.log(
-              `❌ Connection failed or closed for ${instanceName}`,
-            );
+            // console.log(
+            //   `❌ Connection failed or closed for ${instanceName}`,
+            // );
             clearInterval(interval);
             monitoringInterval.current = null;
             setIsMonitoring(false);
             setConnectionProgress(0);
             // Opcional: Mostrar toast de erro de conexão aqui se necessário
             // handleConnectionError(`Conexão falhou para ${instanceName}.`);
-            loadInstances(); // Recarrega instâncias para atualizar o status na lista
+            mutateInstances(); // Recarrega instâncias para atualizar o status na lista
           } else {
             // Tratar outros estados como 'connecting', 'qrcode', etc.
             setConnectionProgress((prev) => Math.min(prev + 10, 90)); // Incrementa até 90%
@@ -713,13 +513,13 @@ export default function WhatsappPage() {
           setConnectionProgress(0);
           // Opcional: Mostrar toast de erro de monitoramento
           // handleConnectionError(`Erro ao monitorar conexão para ${instanceName}.`);
-          loadInstances(); // Recarrega instâncias para tentar obter o status atual
+          mutateInstances(); // Recarrega instâncias para tentar obter o status atual
         }
       }, 3000); // Intervalo de 3 segundos
 
       monitoringInterval.current = interval;
     },
-    [loadInstances], // Depende de loadInstances
+    [mutateInstances], // Remove dependência de loadInstances
   );
 
   const stopConnectionMonitoring = useCallback(() => {
@@ -734,32 +534,11 @@ export default function WhatsappPage() {
 
   const refreshInstances = useCallback(async () => {
     setRefreshing(true);
-    await loadInstances(); // loadInstances chamará loadInstancesAgents via useEffect
+    mutateInstances(); // Usa mutateInstances do SWR
     setRefreshing(false);
-  }, [loadInstances]);
+  }, [mutateInstances]);
 
-  const filteredInstances = instances.filter(
-    (instance) =>
-      (instance.instanceName || '')
-        .toLowerCase()
-        .includes(search.toLowerCase()) ||
-      (instance.profileName &&
-        instance.profileName
-          .toLowerCase()
-          .includes(search.toLowerCase())),
-  );
-
-  useEffect(() => {
-    loadInstances();
-    fetchUserPlan();
-
-    // Limpar todos os intervalos de polling ao desmontar o componente
-    return () => {
-      for (const intervalId of Object.values(pollingIntervals)) {
-        clearInterval(intervalId);
-      }
-    };
-  }, []);
+  // Removendo filteredInstances pois search foi removido - usando instances diretamente
 
   if (!mounted) {
     return null;
@@ -806,11 +585,10 @@ export default function WhatsappPage() {
             {/* Opcional: Porcentagem de instâncias, se relevante */}
             {planDetails.usage?.instancesPercentage !== undefined && (
               <span
-                className={`font-semibold text-sm ${
-                  planDetails.usage.instancesPercentage > 80
-                    ? 'text-red-500'
-                    : ''
-                }`}
+                className={`font-semibold text-sm ${planDetails.usage.instancesPercentage > 80
+                  ? 'text-red-500'
+                  : ''
+                  }`}
               >
                 ({planDetails.usage.instancesPercentage.toFixed(0)}%)
               </span>
@@ -860,20 +638,19 @@ export default function WhatsappPage() {
             }}
             disabled={instances.length >= instanceLimit || loading} // Já está usando 'loading' aqui, o que está correto
             className={`
-        font-semibold py-2 px-6 rounded-lg shadow-md hover:shadow-lg
-        transition-opacity duration-300
-        flex items-center justify-center
-        ${
-              instances.length >= instanceLimit
+              font-semibold py-2 px-6 rounded-lg shadow-md hover:shadow-lg
+              transition-opacity duration-300
+              flex items-center justify-center
+              ${instances.length >= instanceLimit
                 ? 'bg-electric cursor-not-allowed opacity-90'
-                : loading // <-- MUDAR AQUI: use o estado 'loading'
-                ? 'bg-yellow-600 cursor-wait opacity-70'
-                : 'bg-gradient-to-r from-electric to-blue-600 hover:opacity-90'
-            }
-        `}
+                : loading
+                  ? 'bg-yellow-600 cursor-wait opacity-70'
+                  : 'bg-gradient-to-r from-electric to-blue-600 hover:opacity-90'
+              }
+            `}
           >
             {/* Conteúdo do botão dinâmico */}
-            {loading ? ( // <-- MUDAR AQUI: use o estado 'loading'
+            {loading ? (
               <>
                 <Loader2 className="w-5 h-5 mr-2 animate-spin" />
                 Criando...
@@ -912,7 +689,7 @@ export default function WhatsappPage() {
             <div className="absolute inset-0 animate-spin rounded-full h-12 w-12 border-4 border-transparent border-b-electric border-l-blue-700 animate-reverse" />
           </div>
         </div>
-      ) : filteredInstances.length === 0 && search ? (
+      ) : instances.length === 0 ? (
         <div className="text-center py-16">
           <div className="relative mb-8">
             <div className="absolute inset-0 bg-gradient-to-r from-electric/20 to-blue-700/20 rounded-full blur-xl" />
@@ -921,21 +698,17 @@ export default function WhatsappPage() {
           </div>
 
           <h3 className="text-2xl font-bold bg-gradient-to-r from-white to-gray-300 bg-clip-text text-transparent mb-3">
-            {search
-              ? 'Nenhuma instância encontrada'
-              : 'Nenhuma instância criada'}
+            Nenhuma instância criada
           </h3>
 
           <p className="text-gray-400 text-lg max-w-md mx-auto">
-            {search
-              ? 'Tente ajustar sua busca'
-              : 'Crie sua primeira instância para começar sua jornada'}
+            Crie sua primeira instância para começar sua jornada
           </p>
         </div>
       ) : (
         <AnimatePresence mode="popLayout">
           <div className="grid grid-cols-1 lg:grid-cols-2 2xl:grid-cols-3 gap-6 lg:gap-8">
-            {filteredInstances.map((instance, index) => (
+            {instances.map((instance, index) => (
               <motion.div
                 key={instance.id}
                 initial={{ opacity: 0, y: 20, scale: 0.95 }}
@@ -974,10 +747,10 @@ export default function WhatsappPage() {
                       instance.connectionStatus === 'OPEN'
                         ? 'bg-gradient-to-r from-emerald-400 via-green-500 to-emerald-400'
                         : instance.connectionStatus ===
-                            'connecting' ||
+                          'connecting' ||
                           instance.connectionStatus === 'qrcode'
-                        ? 'bg-gradient-to-r from-amber-400 via-yellow-500 to-amber-400'
-                        : 'bg-gradient-to-r from-red-400 via-red-500 to-red-400',
+                          ? 'bg-gradient-to-r from-amber-400 via-yellow-500 to-amber-400'
+                          : 'bg-gradient-to-r from-red-400 via-red-500 to-red-400',
                     )}
                   />
 
@@ -1011,7 +784,7 @@ export default function WhatsappPage() {
 
                             <AvatarFallback className="bg-gradient-to-br from-electric to-blue-700 text-white text-lg font-bold">
                               {instance.profileName ||
-                              instance.instanceName ? (
+                                instance.instanceName ? (
                                 (
                                   instance.profileName ||
                                   instance.instanceName
@@ -1031,11 +804,11 @@ export default function WhatsappPage() {
                               instance.connectionStatus === 'OPEN'
                                 ? 'bg-gradient-to-r from-emerald-400 to-green-500'
                                 : instance.connectionStatus ===
-                                    'connecting' ||
+                                  'connecting' ||
                                   instance.connectionStatus ===
-                                    'qrcode'
-                                ? 'bg-gradient-to-r from-amber-400 to-yellow-500'
-                                : 'bg-gradient-to-r from-red-400 to-red-500',
+                                  'qrcode'
+                                  ? 'bg-gradient-to-r from-amber-400 to-yellow-500'
+                                  : 'bg-gradient-to-r from-red-400 to-red-500',
                             )}
                           >
                             {instance.connectionStatus === 'OPEN' && (
@@ -1082,10 +855,10 @@ export default function WhatsappPage() {
                             instance.connectionStatus === 'OPEN'
                               ? 'bg-emerald-500/10 border-emerald-400/30 text-emerald-400 shadow-lg shadow-emerald-500/20'
                               : instance.connectionStatus ===
-                                  'connecting' ||
+                                'connecting' ||
                                 instance.connectionStatus === 'qrcode'
-                              ? 'bg-amber-500/10 border-amber-400/30 text-amber-400 shadow-lg shadow-amber-500/20'
-                              : 'bg-red-500/10 border-red-400/30 text-red-400 shadow-lg shadow-red-500/20',
+                                ? 'bg-amber-500/10 border-amber-400/30 text-amber-400 shadow-lg shadow-amber-500/20'
+                                : 'bg-red-500/10 border-red-400/30 text-red-400 shadow-lg shadow-red-500/20',
                           )}
                         >
                           <StatusIcon
@@ -1229,12 +1002,12 @@ export default function WhatsappPage() {
 
                         {(instanceAgents[instance.instanceName] ||
                           0) > 0 && (
-                          <div className="relative z-10 flex items-center">
-                            <span className="ml-1 px-2 py-0.5 text-xs bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-full shadow-lg shadow-purple-500/30 font-bold min-w-[20px] text-center animate-pulse">
-                              {instanceAgents[instance.instanceName]}
-                            </span>
-                          </div>
-                        )}
+                            <div className="relative z-10 flex items-center">
+                              <span className="ml-1 px-2 py-0.5 text-xs bg-gradient-to-r from-purple-500 to-pink-500 text-white rounded-full shadow-lg shadow-purple-500/30 font-bold min-w-[20px] text-center animate-pulse">
+                                {instanceAgents[instance.instanceName]}
+                              </span>
+                            </div>
+                          )}
                       </Button>
                       {/* Botão de Proxy */}
                       <Button
@@ -1340,7 +1113,7 @@ export default function WhatsappPage() {
               setSelectedInstanceForSettings(null);
             }
           }}
-          onUpdate={loadInstances} // Recarrega as instâncias (e agentes via useEffect) ao salvar as configurações
+          onUpdate={mutateInstances} // Recarrega as instâncias (e agentes via useEffect) ao salvar as configurações
         />
       )}
 
@@ -1384,10 +1157,10 @@ export default function WhatsappPage() {
             <Button
               onClick={handleCreateInstance}
               disabled={
-                isCreatingInstance || !form.instanceName.trim()
+                loading || !form.instanceName.trim()
               }
             >
-              {isCreatingInstance ? (
+              {loading ? (
                 <>
                   <Loader2 className="mr-2 h-4 w-4 animate-spin" />
                   Criando...
@@ -1468,7 +1241,7 @@ export default function WhatsappPage() {
               setSelectedInstanceForProxy(null);
             }
           }}
-          onUpdate={loadInstances} // Recarrega as instâncias ao salvar configurações
+          onUpdate={mutateInstances} // Recarrega as instâncias ao salvar configurações
         />
       )}
     </div>

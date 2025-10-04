@@ -3,6 +3,8 @@ import { Calendar } from "lucide-react";
 import { useState } from "react";
 import DatePicker from "react-datepicker";
 import "react-datepicker/dist/react-datepicker.css";
+import { format } from "date-fns";
+import { ptBR } from "date-fns/locale";
 
 interface CustomDatePickerProps {
 	selectedDate: Date;
@@ -23,10 +25,10 @@ const CustomDatePicker: React.FC<CustomDatePickerProps> = ({
 				whileHover={{ scale: 1.05 }}
 				whileTap={{ scale: 0.95 }}
 				onClick={toggleCalendar}
-				className="flex items-center space-x-2 bg-electric/20 text-electric hover:bg-electric/30 transition-colors px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-electric focus:ring-opacity-50"
+				className="flex items-center space-x-2 bg-electric/50 text-gray-400 hover:bg-blue-500/40 transition-colors px-4 py-2 rounded-lg focus:outline-none focus:ring-2 focus:ring-gray-400 focus:ring-opacity-50"
 			>
-				<Calendar className="w-5 h-5" />
-				<span>{selectedDate.toLocaleDateString()}</span>
+				<Calendar className="w-5 h-5 text-gray-400" />
+				<span className="text-gray-400">{format(selectedDate, "dd/MM/yyyy", { locale: ptBR })}</span>
 			</motion.button>
 			{isOpen && (
 				<motion.div
@@ -47,10 +49,9 @@ const CustomDatePicker: React.FC<CustomDatePickerProps> = ({
 						inline
 						calendarClassName="bg-deep border border-electric rounded-lg shadow-lg"
 						dayClassName={(date) =>
-							`text-white hover:bg-electric/30 rounded-full transition-colors ${
-								date.toDateString() === new Date().toDateString()
-									? "bg-electric/50 text-white"
-									: ""
+							`text-white hover:bg-electric/30 rounded-full transition-colors ${date.toDateString() === new Date().toDateString()
+								? "bg-electric/50 text-white"
+								: ""
 							}`
 						}
 						monthClassName={() => `text-electric font-bold`}

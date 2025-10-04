@@ -106,10 +106,6 @@ const router = createBrowserRouter([
             element: <div>Configurações</div>,
           },
           {
-            path: '/bot',
-            element: <Bottest />,
-          },
-          {
             path: '/chat',
             element: <Chat />,
           },

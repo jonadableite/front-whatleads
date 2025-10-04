@@ -67,45 +67,43 @@ export function ProxyConfigModal({
     setLoading(true);
     try {
       const response = await getProxyConfig(instanceName);
-      console.log('Proxy config loaded:', response);
 
-      // Se a API retornar dados válidos, use-os; caso contrário, mantenha os valores padrão
-      if (
-        response &&
-        typeof response === 'object' &&
-        response.enabled !== undefined
-      ) {
-        setConfig({
-          enabled: response.enabled || false,
-          host: response.host || '',
-          port: response.port || '',
-          protocol: response.protocol || 'http',
-          username: response.username || '',
-          password: response.password || '',
-        });
-      } else {
-        // Se não há configuração ou retornou null, mantenha os valores padrão
-        console.log('No existing proxy config found, using defaults');
-        setConfig({
-          enabled: false,
-          host: '',
-          port: '',
-          protocol: 'http',
-          username: '',
-          password: '',
-        });
-      }
-    } catch (error) {
-      console.error('Erro ao carregar configuração de proxy:', error);
-      // Em caso de erro, ainda mostra o modal com valores padrão
-      setConfig({
+      const defaultConfig = {
         enabled: false,
         host: '',
         port: '',
         protocol: 'http',
         username: '',
         password: '',
-      });
+      };
+
+      if (response.ok) {
+        const data = await response.json();
+        // Se a API retornar dados válidos, use-os; caso contrário, mantenha os valores padrão
+        if (
+          data &&
+          typeof data === 'object' &&
+          data.enabled !== undefined
+        ) {
+          setConfig({
+            enabled: data.enabled || false,
+            host: data.host || '',
+            port: data.port || '',
+            protocol: data.protocol || 'http',
+            username: data.username || '',
+            password: data.password || '',
+          });
+        } else {
+          // Se não há configuração ou retornou null, mantenha os valores padrão
+          setConfig(defaultConfig);
+        }
+      } else {
+        // Se não há configuração ou retornou null, mantenha os valores padrão
+        setConfig(defaultConfig);
+      }
+    } catch (error) {
+      // Em caso de erro, ainda mostra o modal com valores padrão
+      setConfig(defaultConfig);
       toast({
         title: 'Aviso',
         description:

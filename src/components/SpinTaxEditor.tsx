@@ -1,13 +1,13 @@
 // src/components/SpinTaxEditor.tsx
 
 import React, { useState, useRef, useEffect } from 'react';
-import { 
-  AlertCircle, 
-  AlertTriangle, 
-  CheckCircle, 
-  Eye, 
-  EyeOff, 
-  RefreshCw, 
+import {
+  AlertCircle,
+  AlertTriangle,
+  CheckCircle,
+  Eye,
+  EyeOff,
+  RefreshCw,
   Info,
   Copy,
   Shuffle
@@ -39,7 +39,7 @@ export const SpinTaxEditor: React.FC<SpinTaxEditorProps> = ({
   const [showPreviewPanel, setShowPreviewPanel] = useState(showPreview);
   const [selectedExample, setSelectedExample] = useState<string | null>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
-  
+
   const {
     validation,
     examples,
@@ -91,23 +91,23 @@ export const SpinTaxEditor: React.FC<SpinTaxEditorProps> = ({
     if (isProcessing) {
       return <RefreshCw className="w-4 h-4 animate-spin text-blue-500" />;
     }
-    
+
     if (error) {
       return <AlertCircle className="w-4 h-4 text-red-500" />;
     }
-    
+
     if (!validation) {
       return <Info className="w-4 h-4 text-gray-400" />;
     }
-    
+
     if (validation.errors.length > 0) {
       return <AlertCircle className="w-4 h-4 text-red-500" />;
     }
-    
+
     if (validation.warnings.length > 0) {
       return <AlertTriangle className="w-4 h-4 text-yellow-500" />;
     }
-    
+
     return <CheckCircle className="w-4 h-4 text-green-500" />;
   };
 
@@ -201,7 +201,7 @@ export const SpinTaxEditor: React.FC<SpinTaxEditorProps> = ({
             </span>
           )}
         </div>
-        
+
         <div className="flex items-center gap-2">
           <button
             onClick={() => generateExamples(previewCount)}
@@ -211,7 +211,7 @@ export const SpinTaxEditor: React.FC<SpinTaxEditorProps> = ({
             <RefreshCw className={`w-3 h-3 ${isProcessing ? 'animate-spin' : ''}`} />
             Atualizar
           </button>
-          
+
           {showPreview && (
             <button
               onClick={() => setShowPreviewPanel(!showPreviewPanel)}
@@ -235,14 +235,13 @@ export const SpinTaxEditor: React.FC<SpinTaxEditorProps> = ({
           }}
           placeholder={placeholder}
           disabled={disabled}
-          className={`w-full min-h-[120px] p-3 border rounded-lg resize-y focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${
-            validation?.errors.length ? 'border-red-300 bg-red-50' : 
-            validation?.warnings.length ? 'border-yellow-300 bg-yellow-50' : 
-            validation?.isValid ? 'border-green-300 bg-green-50' : 
-            'border-gray-300'
-          } ${disabled ? 'bg-gray-100 cursor-not-allowed' : ''}`}
+          className={`w-full min-h-[120px] p-3 border rounded-lg resize-y focus:ring-2 focus:ring-blue-500 focus:border-blue-500 ${validation?.errors.length ? 'border-red-300 bg-red-50' :
+              validation?.warnings.length ? 'border-yellow-300 bg-yellow-50' :
+                validation?.isValid ? 'border-green-300 bg-green-50' :
+                  'border-gray-300'
+            } ${disabled ? 'bg-gray-100 cursor-not-allowed' : ''}`}
         />
-        
+
         {/* Indicador de processamento */}
         {isProcessing && (
           <div className="absolute top-2 right-2">
@@ -284,16 +283,15 @@ export const SpinTaxEditor: React.FC<SpinTaxEditorProps> = ({
               Nova
             </button>
           </div>
-          
+
           <div className="space-y-2">
             {examples.map((example, index) => (
               <div
                 key={index}
-                className={`p-2 rounded border cursor-pointer transition-colors ${
-                  selectedExample === example 
-                    ? 'bg-blue-100 border-blue-300' 
+                className={`p-2 rounded border cursor-pointer transition-colors ${selectedExample === example
+                    ? 'bg-blue-100 border-blue-300'
                     : 'bg-white border-gray-200 hover:bg-gray-50'
-                }`}
+                  }`}
                 onClick={() => setSelectedExample(selectedExample === example ? null : example)}
               >
                 <div className="flex items-start justify-between gap-2">
@@ -312,7 +310,7 @@ export const SpinTaxEditor: React.FC<SpinTaxEditorProps> = ({
               </div>
             ))}
           </div>
-          
+
           {selectedExample && (
             <div className="mt-3 p-3 bg-blue-50 border border-blue-200 rounded">
               <div className="flex items-center justify-between mb-2">

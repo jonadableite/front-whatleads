@@ -162,21 +162,17 @@ export function AIAgentDialog({
 
 	// CORRIGIDO: Obtenha o user, clientId e userLoading do UserContext
 	const { user, clientId, loading: userLoading } = useUser(); // Use o hook useUser
-	console.log("Client ID from useUser:", clientId);
 
 
 	// Carregar agentes do usuário
 	const loadUserAgents = useCallback(async () => {
 		// CORRIGIDO: Verifique se clientId está disponível antes de carregar
 		if (!clientId || userLoading) {
-			console.log("clientId not available or user loading, skipping agent load.");
 			return;
 		}
 
 		try {
-			console.log("Carregando agentes do usuário com clientId:", clientId);
 			const response = await listAgents(clientId, 0, 100);
-			console.log("Agentes carregados:", response);
 			setAgents(response.data || []);
 		} catch (error) {
 			console.error("Erro ao carregar agentes:", error);
@@ -195,13 +191,10 @@ export function AIAgentDialog({
 
 		setLoading(true);
 		try {
-			console.log("Carregando agentes da instância:", instanceName);
 			const response = await fetchBots(instanceName);
-			console.log("Resposta da API:", response);
 
 			// Verificar diferentes estruturas de resposta possíveis
 			const agentsData = Array.isArray(response) ? response : response?.data || [];
-			console.log("Dados dos agentes:", agentsData);
 
 			setAvailableAgents(Array.isArray(agentsData) ? agentsData : []);
 		} catch (error) {
@@ -317,7 +310,6 @@ export function AIAgentDialog({
 	}, []);
 
 	const startCreatingNew = useCallback(() => {
-		console.log("Iniciando criação de novo agente");
 		setSelectedAgent(null);
 		setIsCreatingNew(true);
 		setFormData(defaultFormData);
@@ -391,8 +383,6 @@ export function AIAgentDialog({
 				triggerOperator: formData.triggerOperator,
 				triggerValue: formData.triggerValue,
 			};
-
-			console.log("Salvando agente:", { selectedAgent, agentData });
 
 			if (selectedAgent && selectedAgent.id) {
 				// Atualizar agente existente

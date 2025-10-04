@@ -6,14 +6,14 @@ import { Button } from "@/components/ui/button";
 import { Table, Tbody, Td, Th, Thead, Tr } from "@/components/ui/table";
 import { useToast } from "@/components/ui/use-toast";
 import type { Affiliate, DashboardData, Payment } from "@/interface";
-import { authService } from "@/services/auth.service";
 import { hotmartService, type HotmartCustomer, type HotmartStats } from "@/services/hotmart.service";
-import axios from "axios";
 import { differenceInDays, format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { AnimatePresence, motion } from "framer-motion";
 import { Calendar, DollarSign, Download, Edit2, FileText, MessageSquare, PlusCircle, RefreshCw, Tag, TrendingUp, User, Users, X } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useState } from "react";
+import useSWR from "swr";
+import { fetcher } from "@/lib/fetcher";
 
 // Constants
 const API_URL = import.meta.env.VITE_API_URL || "https://aquecerapi.whatlead.com.br";
@@ -63,20 +63,10 @@ const formatCurrency = (value: number) => {
 // Main Component
 export default function AdminDashboard() {
 	const [editingPayment, setEditingPayment] = useState<Payment | null>(null);
-	const [isLoading, setIsLoading] = useState(true);
-	const [data, setData] = useState<DashboardData | null>(null);
-	const [affiliates, setAffiliates] = useState<Affiliate[]>([]);
 	const [selectedDate, setSelectedDate] = useState(new Date());
 	const [showAddUserModal, setShowAddUserModal] = useState(false);
-	const [userSignups, setUserSignups] = useState<
-		{ date: string; count: number }[]
-	>([]);
-	const [revenueByDay, setRevenueByDay] = useState<
-		{ date: string; amount: number }[]
-	>([]);
 
 	// Estados para Hotmart
-	const [hotmartStats, setHotmartStats] = useState<HotmartStats | null>(null);
 	const [hotmartCustomers, setHotmartCustomers] = useState<HotmartCustomer[]>([]);
 	const [hotmartLoading, setHotmartLoading] = useState(false);
 	const [activeTab, setActiveTab] = useState<'dashboard' | 'hotmart'>('dashboard');
@@ -90,94 +80,71 @@ export default function AdminDashboard() {
 
 	const { toast } = useToast();
 
-	useEffect(() => {
-		const initializeDashboard = async () => {
-			await Promise.all([
-				fetchAdminData(),
-				fetchAffiliates(),
-				fetchUserSignups(),
-				fetchRevenueByDay(),
-				fetchHotmartStats(),
-				fetchHotmartCustomers(),
-			]);
-		};
+	// SWR para dados do dashboard
+	const { data, error: dashboardError, isLoading, mutate: mutateDashboard } = useSWR<DashboardData>(
+		'/api/admin/dashboard',
+		fetcher
+	);
 
-		initializeDashboard();
-	}, []);
+	// SWR para afiliados
+	const { data: affiliates = [], error: affiliatesError, mutate: mutateAffiliates } = useSWR<Affiliate[]>(
+		'/api/admin/affiliates',
+		fetcher
+	);
 
-	const fetchRevenueByDay = async () => {
-		try {
-			const token = authService.getTokenInterno();
-			if (!token) throw new Error("Token não encontrado");
+	// SWR para cadastros de usuários
+	const { data: userSignupsData = [], error: signupsError, mutate: mutateSignups } = useSWR<{ date: string; count: number }[]>(
+		'/api/admin/user-signups',
+		fetcher
+	);
 
-			const response = await axios.get(`${API_URL}/api/admin/revenue-by-day`, {
-				headers: { Authorization: `Bearer ${token}` },
-			});
+	// SWR para receita por dia
+	const { data: revenueData = [], error: revenueError, mutate: mutateRevenue } = useSWR<{ date: string; amount: number }[]>(
+		'/api/admin/revenue-by-day',
+		fetcher
+	);
 
-			// Ordena os dados por data e garante que as datas estão no formato correto
-			const sortedData = response.data
-				.map((item: { date: string; amount: number }) => ({
-					...item,
-					date: item.date.split("T")[0], // Pega apenas a parte da data, removendo a hora se existir
-				}))
-				.sort(
-					(a, b) => new Date(a.date).getTime() - new Date(b.date).getTime(),
-				);
-
-			console.log("Dados de faturamento por dia:", sortedData);
-			setRevenueByDay(sortedData);
-		} catch (error: unknown) {
-			console.error("Erro ao buscar faturamento por dia:", error);
-			toast.error("Erro ao carregar dados de faturamento.");
-		} finally {
-			setIsLoading(false);
+	// SWR para estatísticas Hotmart
+	const { data: hotmartStats, error: hotmartStatsError, mutate: mutateHotmartStats } = useSWR<HotmartStats>(
+		'/hotmart/stats',
+		async () => {
+			try {
+				return await hotmartService.getCustomerStats();
+			} catch (error) {
+				console.error("Erro ao buscar estatísticas Hotmart:", error);
+				toast.error("Erro ao carregar estatísticas Hotmart.");
+				return {
+					totalCustomers: 0,
+					activeCustomers: 0,
+					totalRevenue: 0,
+					churnRate: 0
+				};
+			}
 		}
-	};
+	);
 
-	const fetchAdminData = async () => {
-		setIsLoading(true);
-		try {
-			const token = authService.getTokenInterno();
-			if (!token) throw new Error("Token não encontrado");
+	// Processar dados de cadastros de usuários
+	const userSignups = userSignupsData
+		.map((item) => ({
+			...item,
+			date: new Date(item.date),
+		}))
+		.filter((item) => !isNaN(item.date.getTime()))
+		.sort((a, b) => a.date.getTime() - b.date.getTime());
 
-			const { data } = await axios.get<DashboardData>(
-				`${API_URL}/api/admin/dashboard`,
-				{
-					headers: { Authorization: `Bearer ${token}` },
-				},
-			);
+	// Processar dados de receita por dia
+	const revenueByDay = revenueData
+		.map((item) => ({
+			...item,
+			date: item.date.split("T")[0], // Pega apenas a parte da data
+		}))
+		.sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
 
-			console.log("Dados recebidos do backend:", data);
-			setData(data);
-		} catch (error: unknown) {
-			console.error("Erro ao buscar dados:", error);
-			const errorMessage = error instanceof Error ? error.message : "Erro desconhecido";
-			toast.error(`Erro ao carregar dados: ${errorMessage}`);
-		} finally {
-			setIsLoading(false);
-		}
-	};
-
-	const fetchAffiliates = async () => {
-		try {
-			const token = authService.getTokenInterno();
-			const { data } = await axios.get<Affiliate[]>(
-				`${API_URL}/api/admin/affiliates`,
-				{
-					headers: { Authorization: `Bearer ${token}` },
-				},
-			);
-			setAffiliates(data);
-		} catch (error) {
-			console.error("Erro ao buscar afiliados:", error);
-		}
-	};
-
+	// Função para formatar datas
 	const formatDate = (dateString: string | null | undefined) => {
 		if (!dateString) return "N/A";
 		try {
 			const date = new Date(dateString);
-			// biome-ignore lint/suspicious/noGlobalIsNan: <explanation>
 			if (isNaN(date.getTime())) {
 				throw new Error("Invalid date");
 			}
@@ -188,60 +155,17 @@ export default function AdminDashboard() {
 		}
 	};
 
+	// Formatar dados de cadastros de usuários para exibição
 	const formattedUserSignups = userSignups.map((item) => ({
 		...item,
-		date: formatDate(item.date),
+		date: formatDate(item.date.toString()),
 	}));
 
-	const fetchUserSignups = async () => {
-		try {
-			const token = authService.getTokenInterno();
-			if (!token) throw new Error("Token não encontrado");
-			const resposta = await axios.get(`${API_URL}/api/admin/user-signups`, {
-				headers: { Authorization: `Bearer ${token}` },
-			});
-
-			console.log("Dados de cadastros de usuários:", resposta.data);
-
-			// Ordena os dados por data
-			const sortedData = resposta.data
-				.map((item: { date: string; count: number }) => ({
-					...item,
-					date: new Date(item.date),
-				}))
-				// biome-ignore lint/suspicious/noGlobalIsNan: <explanation>
-				.filter((item: { date: Date; count: number }) => !isNaN(item.date.getTime()))
-				.sort((a, b) => a.date.getTime() - b.date.getTime());
-
-			setUserSignups(sortedData);
-		} catch (error) {
-			console.error("Erro ao buscar cadastros de usuários:", error);
-		}
-	};
-
 	// Funções para Hotmart
-	const fetchHotmartStats = async () => {
-		try {
-			const stats = await hotmartService.getCustomerStats();
-			setHotmartStats(stats);
-		} catch (error: unknown) {
-			console.error("Erro ao buscar estatísticas Hotmart:", error);
-			toast.error("Erro ao carregar estatísticas Hotmart.");
-			// Definir valores padrão em caso de erro
-			setHotmartStats({
-				totalCustomers: 0,
-				activeCustomers: 0,
-				totalRevenue: 0,
-				churnRate: 0
-			});
-		}
-	};
-
 	const fetchHotmartCustomers = async () => {
 		setHotmartLoading(true);
 		try {
 			const response = await hotmartService.getCustomers(hotmartFilters);
-			// Verificar se a resposta tem a estrutura esperada
 			if (response && response.customers) {
 				setHotmartCustomers(response.customers);
 			} else {
@@ -261,13 +185,13 @@ export default function AdminDashboard() {
 		try {
 			toast.info("Iniciando sincronização com Hotmart...");
 			const result = await hotmartService.syncWithHotmart();
-			// Verificar se o resultado tem a estrutura esperada
 			const syncedCount = result?.syncedCount || 0;
-			toast.success(`Sincronização concluída: ${syncedCount} sincronizados`);
-			fetchHotmartStats();
-			fetchHotmartCustomers();
+			
+			toast.success(`Sincronização concluída! ${syncedCount} registros sincronizados.`);
+			mutateHotmartStats(); // Revalida estatísticas
+			fetchHotmartCustomers(); // Recarrega clientes
 		} catch (error: unknown) {
-			console.error("Erro na sincronização:", error);
+			console.error("Erro na sincronização Hotmart:", error);
 			toast.error("Erro na sincronização com Hotmart.");
 		}
 	};

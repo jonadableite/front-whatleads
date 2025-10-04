@@ -14,21 +14,14 @@ export const calculateWarmupProgress = (instance: Instancia) => {
 
   const latestWarmupStat = sortedWarmupStats[0];
   
-  // Usar o mesmo cálculo da página Home.tsx do front-warmup
-  // 480 horas = 20 dias de warmup total
+  // Usar 400 horas como o backend para consistência
   // warmupTime está em segundos, então convertemos para o cálculo
   const warmupTimeInSeconds = latestWarmupStat.warmupTime || 0;
-  const TOTAL_WARMUP_SECONDS = 480 * 3600; // 480 horas em segundos
+  const TOTAL_WARMUP_SECONDS = 400 * 3600; // 400 horas em segundos (igual ao backend)
   
   const progress = typeof warmupTimeInSeconds === "number" && warmupTimeInSeconds > 0
     ? Math.min((warmupTimeInSeconds / TOTAL_WARMUP_SECONDS) * 100, 100)
     : 0;
-
-  console.log(`Warmup Progress for ${instance.instanceName}:`, {
-    progress: `${progress.toFixed(2)}%`,
-    warmupTimeInSeconds,
-    warmupTimeInMinutes: `${(warmupTimeInSeconds / 60).toFixed(2)} minutos`,
-  });
 
   return progress;
 };
