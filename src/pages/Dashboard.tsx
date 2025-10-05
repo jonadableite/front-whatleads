@@ -312,10 +312,20 @@ export default function Dashboard() {
 		const activities: Activity[] = [];
 		const now = new Date();
 
+		// Debug: Log dos dados recebidos
+		console.log('🔍 [DEBUG] Dados das campanhas:', campaignsData);
+		console.log('🔍 [DEBUG] Dados dos message logs:', messageLogsData);
+		console.log('🔍 [DEBUG] Dados das instâncias:', instancesData);
+		console.log('🔍 [DEBUG] Dados do dashboard:', dashboardData);
+
 		// Atividades de campanhas
-		if (campaignsData?.data) {
-			campaignsData.data.slice(0, 3).forEach((campaign: { id: string; name: string; status: string; startedAt?: string; completedAt?: string; updatedAt: string }) => {
+		if (campaignsData && Array.isArray(campaignsData)) {
+			console.log('📊 [DEBUG] Processando campanhas:', campaignsData.length);
+			campaignsData.slice(0, 3).forEach((campaign: { id: string; name: string; status: string; startedAt?: string; completedAt?: string; updatedAt: string }) => {
+				console.log('🔍 [DEBUG] Campanha:', campaign.id, 'Status:', campaign.status, 'Nome:', campaign.name);
+				
 				if (campaign.status === 'running') {
+					console.log('✅ [DEBUG] Adicionando atividade de campanha iniciada');
 					activities.push({
 						id: `campaign-${campaign.id}`,
 						type: 'campaign',
@@ -325,6 +335,7 @@ export default function Dashboard() {
 						status: 'success'
 					});
 				} else if (campaign.status === 'completed') {
+					console.log('✅ [DEBUG] Adicionando atividade de campanha finalizada');
 					activities.push({
 						id: `campaign-completed-${campaign.id}`,
 						type: 'campaign',
@@ -333,21 +344,51 @@ export default function Dashboard() {
 						timestamp: new Date(campaign.completedAt || campaign.updatedAt || now),
 						status: 'info'
 					});
+				} else if (campaign.status === 'paused') {
+					console.log('✅ [DEBUG] Adicionando atividade de campanha pausada');
+					activities.push({
+						id: `campaign-paused-${campaign.id}`,
+						type: 'campaign',
+						title: 'Campanha pausada',
+						description: `Campanha "${campaign.name}" foi pausada`,
+						timestamp: new Date(campaign.updatedAt || now),
+						status: 'warning'
+					});
+				} else {
+					console.log('❌ [DEBUG] Status de campanha não reconhecido:', campaign.status);
 				}
 			});
 		}
 
 		// Atividades de instâncias
 		if (instancesData?.instances) {
-			instancesData.instances.slice(0, 2).forEach((instance: { id: string; instanceName: string; connectionStatus: string; updatedAt: string }) => {
+			instancesData.instances.slice(0, 3).forEach((instance: { id: string; instanceName: string; connectionStatus: string; updatedAt: string; createdAt?: string }) => {
 				if (instance.connectionStatus === 'OPEN') {
 					activities.push({
-						id: `instance-${instance.id}`,
+						id: `instance-connected-${instance.id}`,
 						type: 'instance',
 						title: 'Instância conectada',
-						description: `Instância "${instance.instanceName}" foi conectada`,
+						description: `Instância "${instance.instanceName}" foi conectada com sucesso`,
 						timestamp: new Date(instance.updatedAt || now),
 						status: 'success'
+					});
+				} else if (instance.connectionStatus === 'CONNECTING') {
+					activities.push({
+						id: `instance-connecting-${instance.id}`,
+						type: 'instance',
+						title: 'Instância conectando',
+						description: `Instância "${instance.instanceName}" está tentando conectar`,
+						timestamp: new Date(instance.updatedAt || now),
+						status: 'warning'
+					});
+				} else if (instance.connectionStatus === 'DISCONNECTED' || instance.connectionStatus === 'CLOSED') {
+					activities.push({
+						id: `instance-disconnected-${instance.id}`,
+						type: 'instance',
+						title: 'Instância desconectada',
+						description: `Instância "${instance.instanceName}" foi desconectada`,
+						timestamp: new Date(instance.updatedAt || now),
+						status: 'error'
 					});
 				}
 			});
@@ -355,44 +396,93 @@ export default function Dashboard() {
 
 		// Atividades de mensagens (logs recentes)
 		if (messageLogsData?.data) {
-			messageLogsData.data.slice(0, 2).forEach((log: { id: string; status: string; sentAt?: string; createdAt: string; lead?: { phone: string }; campaignLead?: { phone: string } }) => {
+			console.log('💬 [DEBUG] Processando message logs:', messageLogsData.data.length);
+			messageLogsData.data.slice(0, 5).forEach((log: { id: string; status: string; sentAt?: string; createdAt: string; lead?: { phone: string }; campaignLead?: { phone: string }; campaign?: { name: string } }) => {
+				console.log('📝 [DEBUG] Processando log:', log.id, 'Status:', log.status);
+				const phone = log.lead?.phone || log.campaignLead?.phone;
+				const campaignName = log.campaign?.name;
+				
+				if (log.status === 'delivered') {
+					activities.push({
+						id: `message-delivered-${log.id}`,
+						type: 'message',
+						title: 'Mensagem entregue',
+						description: `Mensagem ${campaignName ? `da campanha "${campaignName}"` : ''} entregue para ${phone || 'contato'}`,
+						timestamp: new Date(log.sentAt || log.createdAt || now),
+						status: 'success'
+					});
+				} else if (log.status === 'failed') {
+					activities.push({
+						id: `message-failed-${log.id}`,
+						type: 'message',
+						title: 'Falha no envio',
+						description: `Falha ao enviar mensagem para ${phone || 'contato'}`,
+						timestamp: new Date(log.sentAt || log.createdAt || now),
+						status: 'error'
+					});
+				} else if (log.status === 'sent') {
+					activities.push({
+						id: `message-sent-${log.id}`,
+						type: 'message',
+						title: 'Mensagem enviada',
+						description: `Mensagem enviada para ${phone || 'contato'}`,
+						timestamp: new Date(log.sentAt || log.createdAt || now),
+						status: 'info'
+					});
+				}
+			});
+		}
+
+		// Atividades baseadas em estatísticas reais
+		if (dashboardData?.stats) {
+			const stats = dashboardData.stats;
+			
+			// Alerta de alto volume apenas se realmente houver muitas mensagens
+			if (stats.total > 100) {
 				activities.push({
-					id: `message-${log.id}`,
-					type: 'message',
-					title: 'Mensagem enviada',
-					description: `Mensagem enviada para ${log.lead?.phone || log.campaignLead?.phone || 'contato'}`,
-					timestamp: new Date(log.sentAt || log.createdAt || now),
-					status: log.status === 'delivered' ? 'success' : log.status === 'failed' ? 'error' : 'info'
+					id: 'high-volume-alert',
+					type: 'warning',
+					title: 'Alto volume de mensagens',
+					description: `${stats.total} mensagens enviadas hoje. Monitorando para evitar bloqueios`,
+					timestamp: new Date(Date.now() - 1800000), // 30 minutos atrás
+					status: 'warning'
 				});
-			});
+			}
+
+			// Alerta de baixa taxa de entrega
+			if (stats.deliveryRate < 80 && stats.total > 10) {
+				activities.push({
+					id: 'low-delivery-rate',
+					type: 'warning',
+					title: 'Taxa de entrega baixa',
+					description: `Taxa de entrega em ${stats.deliveryRate.toFixed(1)}%. Verificar instâncias`,
+					timestamp: new Date(Date.now() - 900000), // 15 minutos atrás
+					status: 'warning'
+				});
+			}
+
+			// Sucesso na taxa de entrega
+			if (stats.deliveryRate >= 95 && stats.total > 5) {
+				activities.push({
+					id: 'high-delivery-rate',
+					type: 'info',
+					title: 'Excelente taxa de entrega',
+					description: `Taxa de entrega de ${stats.deliveryRate.toFixed(1)}% mantida`,
+					timestamp: new Date(Date.now() - 600000), // 10 minutos atrás
+					status: 'success'
+				});
+			}
 		}
 
-		// Atividade de limite de mensagens (simulada)
-		if (dashboardData?.stats?.total > 50) {
-			activities.push({
-				id: 'limit-warning',
-				type: 'warning',
-				title: 'Alto volume de mensagens',
-				description: 'Monitorando uso para evitar bloqueios',
-				timestamp: new Date(Date.now() - 3600000), // 1 hora atrás
-				status: 'warning'
-			});
-		}
-
-		// Atividade informativa
-		activities.push({
-			id: 'info-activity',
-			type: 'info',
-			title: 'Sistema atualizado',
-			description: 'Dashboard atualizado com novas funcionalidades',
-			timestamp: new Date(Date.now() - 21600000), // 6 horas atrás
-			status: 'info'
-		});
-
-		// Ordenar por timestamp (mais recente primeiro)
-		return activities
+		// Ordenar por timestamp (mais recente primeiro) e limitar
+		const sortedActivities = activities
 			.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
-			.slice(0, 10); // Limitar a 10 atividades mais recentes
+			.slice(0, 8); // Limitar a 8 atividades mais recentes
+		
+		console.log('🎯 [DEBUG] Total de atividades geradas:', activities.length);
+		console.log('🎯 [DEBUG] Atividades finais:', sortedActivities);
+		
+		return sortedActivities;
 	};
 
 	// Preparar dados de saúde das instâncias com fallback
