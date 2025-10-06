@@ -11,6 +11,7 @@ import { ptBR } from "date-fns/locale";
 import { motion } from "framer-motion";
 import {
 	Activity,
+	AlertCircle,
 	BarChart3,
 	CheckCircle,
 	Clock,
@@ -23,6 +24,7 @@ import {
 import { useState, useEffect } from "react";
 import useSWR, { mutate } from "swr";
 import { fetcher } from "@/lib/fetcher";
+import { useConversationSocket } from "@/hooks/useSocket";
 
 // Adicionar novos tipos para atividades
 interface Activity {
@@ -45,6 +47,15 @@ interface InstanceHealth {
 	messagesReceived?: number;
 	warmupProgress?: number;
 	warmupTime?: number;
+}
+
+// Interface para estatísticas de mensagens em tempo real
+interface MessageStats {
+	sent: number;
+	delivered: number;
+	read: number;
+	failed: number;
+	pending: number;
 }
 
 const containerVariants = {
@@ -271,6 +282,15 @@ export default function Dashboard() {
 	const user = authService.getUser();
 	const [chartType, setChartType] = useState<"bar" | "line">("bar");
 	const [selectedDate, setSelectedDate] = useState(new Date());
+	
+	// Estado para estatísticas de mensagens em tempo real
+	const [messageStats, setMessageStats] = useState<MessageStats>({
+		sent: 0,
+		delivered: 0,
+		read: 0,
+		failed: 0,
+		pending: 0
+	});
 
 	// Preparar URLs para SWR
 	const adjustedDate = addDays(selectedDate, 1);
@@ -301,6 +321,63 @@ export default function Dashboard() {
 	const { data: campaignsData } = useSWR('/api/campaigns', fetcher);
 	const { data: messageLogsData } = useSWR('/api/message-logs', fetcher);
 
+	// Socket.IO para atualizações em tempo real
+	const { isConnected, connectionId } = useConversationSocket({
+		onConversationUpdate: (data) => {
+			console.log('[Dashboard] Conversa atualizada:', data);
+			// Revalidar dados de mensagens e campanhas
+			mutate('/api/message-logs');
+			mutate('/api/campaigns');
+			mutate(`/api/message-logs/daily?date=${formattedDate}`);
+		},
+		onMessageStatusUpdate: (data) => {
+			console.log('[Dashboard] Status de mensagem atualizado:', data);
+			
+			// Atualizar contadores em tempo real baseado no status
+			if (data.status) {
+				setMessageStats(prev => {
+					const newStats = { ...prev };
+					
+					// Mapear status da Evolution API para nossos contadores
+					switch (data.status.toLowerCase()) {
+						case 'read':
+							newStats.read += 1;
+							break;
+						case 'delivered':
+						case 'server_ack':
+							newStats.delivered += 1;
+							break;
+						case 'sent':
+							newStats.sent += 1;
+							break;
+						case 'failed':
+						case 'error':
+							newStats.failed += 1;
+							break;
+						case 'pending':
+							newStats.pending += 1;
+							break;
+					}
+					
+					console.log('[Dashboard] Estatísticas atualizadas:', newStats);
+					return newStats;
+				});
+			}
+			
+			// Revalidar dados de mensagens para refletir novos status
+			mutate('/api/message-logs');
+			mutate(`/api/message-logs/daily?date=${formattedDate}`);
+		},
+		onWebhookReceived: (data) => {
+			console.log('[Dashboard] Webhook recebido:', data);
+			// Revalidar todos os dados relevantes
+			mutate('/api/instances');
+			mutate('/api/leads');
+			mutate('/api/message-logs');
+			mutate('/api/campaigns');
+		}
+	});
+
 	// Estados derivados - sem dependência de warmup-stats
 	const isLoading = isDashboardLoading || isInstancesLoading || isLeadsLoading || isMessagesByDayLoading;
 	const error = dashboardError || instancesError || leadsError || messagesByDayError;
@@ -323,7 +400,7 @@ export default function Dashboard() {
 			console.log('📊 [DEBUG] Processando campanhas:', campaignsData.length);
 			campaignsData.slice(0, 3).forEach((campaign: { id: string; name: string; status: string; startedAt?: string; completedAt?: string; updatedAt: string }) => {
 				console.log('🔍 [DEBUG] Campanha:', campaign.id, 'Status:', campaign.status, 'Nome:', campaign.name);
-				
+
 				if (campaign.status === 'running') {
 					console.log('✅ [DEBUG] Adicionando atividade de campanha iniciada');
 					activities.push({
@@ -401,13 +478,22 @@ export default function Dashboard() {
 				console.log('📝 [DEBUG] Processando log:', log.id, 'Status:', log.status);
 				const phone = log.lead?.phone || log.campaignLead?.phone;
 				const campaignName = log.campaign?.name;
-				
+
 				if (log.status === 'delivered') {
 					activities.push({
 						id: `message-delivered-${log.id}`,
 						type: 'message',
-						title: 'Mensagem entregue',
+						title: '✅ Mensagem entregue',
 						description: `Mensagem ${campaignName ? `da campanha "${campaignName}"` : ''} entregue para ${phone || 'contato'}`,
+						timestamp: new Date(log.sentAt || log.createdAt || now),
+						status: 'success'
+					});
+				} else if (log.status === 'read') {
+					activities.push({
+						id: `message-read-${log.id}`,
+						type: 'message',
+						title: '👁️ Mensagem lida',
+						description: `Mensagem ${campaignName ? `da campanha "${campaignName}"` : ''} foi lida por ${phone || 'contato'}`,
 						timestamp: new Date(log.sentAt || log.createdAt || now),
 						status: 'success'
 					});
@@ -415,7 +501,7 @@ export default function Dashboard() {
 					activities.push({
 						id: `message-failed-${log.id}`,
 						type: 'message',
-						title: 'Falha no envio',
+						title: '❌ Falha no envio',
 						description: `Falha ao enviar mensagem para ${phone || 'contato'}`,
 						timestamp: new Date(log.sentAt || log.createdAt || now),
 						status: 'error'
@@ -424,10 +510,19 @@ export default function Dashboard() {
 					activities.push({
 						id: `message-sent-${log.id}`,
 						type: 'message',
-						title: 'Mensagem enviada',
+						title: '📤 Mensagem enviada',
 						description: `Mensagem enviada para ${phone || 'contato'}`,
 						timestamp: new Date(log.sentAt || log.createdAt || now),
 						status: 'info'
+					});
+				} else if (log.status === 'pending') {
+					activities.push({
+						id: `message-pending-${log.id}`,
+						type: 'message',
+						title: '⏳ Mensagem pendente',
+						description: `Mensagem aguardando envio para ${phone || 'contato'}`,
+						timestamp: new Date(log.sentAt || log.createdAt || now),
+						status: 'warning'
 					});
 				}
 			});
@@ -436,7 +531,7 @@ export default function Dashboard() {
 		// Atividades baseadas em estatísticas reais
 		if (dashboardData?.stats) {
 			const stats = dashboardData.stats;
-			
+
 			// Alerta de alto volume apenas se realmente houver muitas mensagens
 			if (stats.total > 100) {
 				activities.push({
@@ -478,10 +573,10 @@ export default function Dashboard() {
 		const sortedActivities = activities
 			.sort((a, b) => b.timestamp.getTime() - a.timestamp.getTime())
 			.slice(0, 8); // Limitar a 8 atividades mais recentes
-		
+
 		console.log('🎯 [DEBUG] Total de atividades geradas:', activities.length);
 		console.log('🎯 [DEBUG] Atividades finais:', sortedActivities);
-		
+
 		return sortedActivities;
 	};
 
@@ -616,32 +711,32 @@ export default function Dashboard() {
 		{
 			title: "Total de Mensagens",
 			icon: Send,
-			value: dashboardData?.stats?.total?.toLocaleString() || "0",
+			value: (dashboardData?.stats?.total + messageStats.sent)?.toLocaleString() || messageStats.sent.toLocaleString(),
 			description: "Total de mensagens enviadas",
 		},
 		{
 			title: "Entregues",
 			icon: CheckCircle,
-			value: dashboardData?.stats?.delivered?.toLocaleString() || "0",
+			value: (dashboardData?.stats?.delivered + messageStats.delivered)?.toLocaleString() || messageStats.delivered.toLocaleString(),
 			description: "Mensagens entregues",
 		},
 		{
 			title: "Lidas",
 			icon: Eye,
-			value: dashboardData?.stats?.read?.toLocaleString() || "0",
+			value: (dashboardData?.stats?.read + messageStats.read)?.toLocaleString() || messageStats.read.toLocaleString(),
 			description: "Mensagens lidas",
 		},
 		{
-			title: "Taxa de Entrega",
-			icon: Zap,
-			value: `${dashboardData?.stats?.deliveryRate?.toFixed(2) || 0}%`,
-			description: "Taxa de entrega",
+			title: "Pendentes",
+			icon: Clock,
+			value: messageStats.pending.toLocaleString(),
+			description: "Mensagens pendentes",
 		},
 		{
-			title: "Taxa de Leitura",
-			icon: Activity,
-			value: `${dashboardData?.stats?.readRate?.toFixed(2) || 0}%`,
-			description: "Taxa de leitura",
+			title: "Falharam",
+			icon: AlertCircle,
+			value: messageStats.failed.toLocaleString(),
+			description: "Mensagens com falha",
 		},
 	];
 
@@ -652,11 +747,7 @@ export default function Dashboard() {
 
 			// Apenas mostrar toast se não for erro de autenticação
 			if (!(error.message?.includes("Token") || error.status === 401)) {
-				toast({
-					title: "Erro ao carregar dados",
-					description: "Não foi possível carregar os dados do dashboard",
-					variant: "destructive",
-				});
+				toast.error("Não foi possível carregar os dados do dashboard");
 			}
 
 			// Redirecionar para login apenas se for erro de autenticação e não estivermos já redirecionando
@@ -827,7 +918,7 @@ export default function Dashboard() {
 							<Activity className="w-5 h-5 text-electric" />
 						</div>
 					</div>
-					<div className="space-y-4">
+					<div className="space-y-4 flex flex-col">
 						{recentActivities.length > 0 ? (
 							recentActivities.map((activity) => (
 								<ActivityItem key={activity.id} activity={activity} />

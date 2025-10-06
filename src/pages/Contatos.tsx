@@ -14,6 +14,7 @@ import {
 } from "@/components/ui/select";
 import { toast } from "@/components/ui/toast";
 import { useLeadsData } from "@/hooks/useLeadsData";
+import { useLeadRealtimeUpdates } from "@/hooks/useSocket";
 import type { SegmentationRule } from "@/interface";
 import { leadsApi } from "@/services/api/leads";
 import { useMutation } from "@tanstack/react-query";
@@ -37,6 +38,9 @@ const Contatos: React.FC = () => {
 		statistics,
 		refetchLeads
 	} = useLeadsData();
+
+	// Socket.IO para atualizações em tempo real
+	const { isConnected, connectionId } = useLeadRealtimeUpdates();
 
 	const importLeadsMutation = useMutation({
 		mutationFn: ({ campaignId, file }: { campaignId: string; file: File }) =>

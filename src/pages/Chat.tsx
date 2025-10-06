@@ -47,6 +47,7 @@ import { ChatInput } from '../components/chat/ChatInput';
 import { ChatMessage as ChatMessageComponent } from '../components/chat/ChatMessage';
 import { SessionList } from '../components/chat/SessionList';
 import { FileData } from '../lib/file-utils';
+import { useConversationSocket } from '@/hooks/useSocket';
 
 interface Agent {
   id: string;
@@ -103,6 +104,31 @@ export default function Chat() {
 
   // Usar o contexto do usuário para obter clientId
   const { user, clientId } = useUser();
+
+  // Socket connection for real-time updates
+  const { isConnected, connectionId } = useConversationSocket({
+    onConversationUpdate: (data: { sessionId: string; }) => {
+      console.log('Conversation updated:', data);
+      // Recarregar sessões se necessário
+      if (data.sessionId && data.sessionId === selectedSession) {
+        loadMessages();
+      }
+    },
+    onMessageStatusUpdate: (data: { messageId: string; status: any; }) => {
+      console.log('Message status updated:', data);
+      // Atualizar status da mensagem na UI
+      setMessages(prev => prev.map(msg =>
+        msg.id === data.messageId
+          ? { ...msg, status: data.status }
+          : msg
+      ));
+    },
+    onWebhookReceived: (data: any) => {
+      console.log('Webhook received:', data);
+      // Recarregar dados se necessário
+      loadData();
+    }
+  });
 
   const scrollToBottom = () => {
     if (messagesContainerRef.current) {

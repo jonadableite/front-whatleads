@@ -459,30 +459,35 @@ export default function WhatsappPage() {
           // Acessa a propriedade 'state' dentro do objeto 'instance'
           const response = await getConnectionState(instanceName);
           const connectionState = response?.instance?.state; // Use optional chaining para segurança
-          // console.log(
-          //   `📊 Connection state for ${instanceName}:`,
-          //   connectionState,
-          // );
+          console.log(
+            `📊 Connection state for ${instanceName}:`,
+            connectionState,
+          );
 
           // Agora compare a string do estado
           if (
             connectionState === 'OPEN' ||
             connectionState === 'connected'
           ) {
-            // console.log(
-            //   `✅ Connection OPEN or connected for ${instanceName}`,
-            // );
+            console.log(
+              `✅ Connection OPEN or connected for ${instanceName}`,
+            );
             setConnectionProgress(100);
+            
+            // Primeiro atualiza as instâncias para garantir que o status seja refletido imediatamente
+            await mutateInstances();
+            
+            // Depois fecha o modal e mostra o toast
             setTimeout(() => {
               setQrCodeDialog(false);
               setIsMonitoring(false);
               setConnectionProgress(0);
               toast({
-                title: 'Conectado!',
-                description: `${instanceName} foi conectado com sucesso`,
+                title: '🎉 Conectado com Sucesso!',
+                description: `A instância ${instanceName} foi conectada e está pronta para uso`,
               });
-              mutateInstances(); // Recarrega instâncias para atualizar o status na lista
-            }, 1000); // Pequeno delay para a animação de progresso
+            }, 800); // Delay reduzido para melhor UX
+            
             clearInterval(interval);
             monitoringInterval.current = null;
           } else if (
@@ -490,20 +495,25 @@ export default function WhatsappPage() {
             connectionState === 'close' ||
             connectionState === 'disconnected'
           ) {
-            // Adicionado 'disconnected'
-            // console.log(
-            //   `❌ Connection failed or closed for ${instanceName}`,
-            // );
+            console.log(
+              `❌ Connection failed or closed for ${instanceName}`,
+            );
             clearInterval(interval);
             monitoringInterval.current = null;
             setIsMonitoring(false);
             setConnectionProgress(0);
-            // Opcional: Mostrar toast de erro de conexão aqui se necessário
-            // handleConnectionError(`Conexão falhou para ${instanceName}.`);
+            
+            // Mostra toast de erro quando a conexão falha
+            toast({
+              title: 'Erro na Conexão',
+              description: `Falha ao conectar ${instanceName}. Tente novamente.`,
+              variant: 'destructive',
+            });
+            
             mutateInstances(); // Recarrega instâncias para atualizar o status na lista
           } else {
             // Tratar outros estados como 'connecting', 'qrcode', etc.
-            setConnectionProgress((prev) => Math.min(prev + 10, 90)); // Incrementa até 90%
+            setConnectionProgress((prev) => Math.min(prev + 15, 90)); // Incrementa mais rapidamente
           }
         } catch (error) {
           console.error('Error monitoring connection:', error);
@@ -511,11 +521,16 @@ export default function WhatsappPage() {
           monitoringInterval.current = null;
           setIsMonitoring(false);
           setConnectionProgress(0);
-          // Opcional: Mostrar toast de erro de monitoramento
-          // handleConnectionError(`Erro ao monitorar conexão para ${instanceName}.`);
+          
+          toast({
+            title: 'Erro de Monitoramento',
+            description: `Erro ao monitorar conexão de ${instanceName}`,
+            variant: 'destructive',
+          });
+          
           mutateInstances(); // Recarrega instâncias para tentar obter o status atual
         }
-      }, 3000); // Intervalo de 3 segundos
+      }, 2000); // Intervalo reduzido para 2 segundos para melhor responsividade
 
       monitoringInterval.current = interval;
     },
