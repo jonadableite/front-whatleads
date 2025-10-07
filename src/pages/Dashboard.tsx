@@ -412,7 +412,7 @@ export default function Dashboard() {
 								break;
 							case 'server_ack':
 							case 'sent':
-								newStats.sent = Math.max(0, newStats.sent - 1);
+								newStats.pending = Math.max(0, newStats.pending - 1);
 								break;
 							case 'failed':
 							case 'error':
@@ -435,7 +435,7 @@ export default function Dashboard() {
 							break;
 						case 'server_ack':
 						case 'sent':
-							newStats.sent += 1;
+							newStats.pending += 1;
 							break;
 						case 'failed':
 						case 'error':
