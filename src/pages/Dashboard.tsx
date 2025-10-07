@@ -396,11 +396,35 @@ export default function Dashboard() {
 			console.log('[Dashboard] Status de mensagem atualizado:', data);
 			
 			// Atualizar contadores em tempo real baseado no status
-			if (data.status) {
+			if (data.status && data.previousStatus) {
 				setMessageStats(prev => {
 					const newStats = { ...prev };
 					
-					// Mapear status da Evolution API para nossos contadores
+					// Remover da categoria anterior se existir
+					if (data.previousStatus) {
+						switch (data.previousStatus.toLowerCase()) {
+							case 'read':
+								newStats.read = Math.max(0, newStats.read - 1);
+								break;
+							case 'delivered':
+							case 'delivery_ack':
+								newStats.delivered = Math.max(0, newStats.delivered - 1);
+								break;
+							case 'server_ack':
+							case 'sent':
+								newStats.sent = Math.max(0, newStats.sent - 1);
+								break;
+							case 'failed':
+							case 'error':
+								newStats.failed = Math.max(0, newStats.failed - 1);
+								break;
+							case 'pending':
+								newStats.pending = Math.max(0, newStats.pending - 1);
+								break;
+						}
+					}
+					
+					// Adicionar na nova categoria
 					switch (data.status.toLowerCase()) {
 						case 'read':
 							newStats.read += 1;
@@ -422,7 +446,11 @@ export default function Dashboard() {
 							break;
 					}
 					
-					console.log('[Dashboard] Estatísticas atualizadas:', newStats);
+					console.log('[Dashboard] Estatísticas atualizadas:', {
+						previous: data.previousStatus,
+						current: data.status,
+						newStats
+					});
 					return newStats;
 				});
 			}
@@ -459,6 +487,7 @@ export default function Dashboard() {
 	const generateRecentActivities = (): Activity[] => {
 		const activities: Activity[] = [];
 		const now = new Date();
+		const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000); // 24 horas atrás
 
 		// Debug: Log dos dados recebidos
 		console.log('🔍 [DEBUG] Dados das campanhas:', campaignsData);
@@ -466,137 +495,155 @@ export default function Dashboard() {
 		console.log('🔍 [DEBUG] Dados das instâncias:', instancesData);
 		console.log('🔍 [DEBUG] Dados do dashboard:', dashboardData);
 
-		// Atividades de campanhas
+		// Atividades de campanhas (apenas das últimas 24 horas)
 		if (campaignsData && Array.isArray(campaignsData)) {
 			console.log('📊 [DEBUG] Processando campanhas:', campaignsData.length);
-			campaignsData.slice(0, 3).forEach((campaign: { id: string; name: string; status: string; startedAt?: string; completedAt?: string; updatedAt: string }) => {
-				console.log('🔍 [DEBUG] Campanha:', campaign.id, 'Status:', campaign.status, 'Nome:', campaign.name);
+			campaignsData
+				.filter((campaign: { id: string; name: string; status: string; startedAt?: string; completedAt?: string; updatedAt: string }) => {
+					const campaignDate = new Date(campaign.updatedAt || campaign.startedAt || now);
+					return campaignDate >= oneDayAgo;
+				})
+				.slice(0, 3)
+				.forEach((campaign: { id: string; name: string; status: string; startedAt?: string; completedAt?: string; updatedAt: string }) => {
+					console.log('🔍 [DEBUG] Campanha:', campaign.id, 'Status:', campaign.status, 'Nome:', campaign.name);
 
-				if (campaign.status === 'running') {
-					console.log('✅ [DEBUG] Adicionando atividade de campanha iniciada');
-					activities.push({
-						id: `campaign-${campaign.id}`,
-						type: 'campaign',
-						title: 'Campanha iniciada',
-						description: `Campanha "${campaign.name}" foi iniciada`,
-						timestamp: new Date(campaign.startedAt || campaign.updatedAt || now),
-						status: 'success'
-					});
-				} else if (campaign.status === 'completed') {
-					console.log('✅ [DEBUG] Adicionando atividade de campanha finalizada');
-					activities.push({
-						id: `campaign-completed-${campaign.id}`,
-						type: 'campaign',
-						title: 'Campanha finalizada',
-						description: `Campanha "${campaign.name}" foi finalizada`,
-						timestamp: new Date(campaign.completedAt || campaign.updatedAt || now),
-						status: 'info'
-					});
-				} else if (campaign.status === 'paused') {
-					console.log('✅ [DEBUG] Adicionando atividade de campanha pausada');
-					activities.push({
-						id: `campaign-paused-${campaign.id}`,
-						type: 'campaign',
-						title: 'Campanha pausada',
-						description: `Campanha "${campaign.name}" foi pausada`,
-						timestamp: new Date(campaign.updatedAt || now),
-						status: 'warning'
-					});
-				} else {
-					console.log('❌ [DEBUG] Status de campanha não reconhecido:', campaign.status);
-				}
-			});
+					if (campaign.status === 'running') {
+						console.log('✅ [DEBUG] Adicionando atividade de campanha iniciada');
+						activities.push({
+							id: `campaign-${campaign.id}`,
+							type: 'campaign',
+							title: 'Campanha iniciada',
+							description: `Campanha "${campaign.name}" foi iniciada`,
+							timestamp: new Date(campaign.startedAt || campaign.updatedAt || now),
+							status: 'success'
+						});
+					} else if (campaign.status === 'completed') {
+						console.log('✅ [DEBUG] Adicionando atividade de campanha finalizada');
+						activities.push({
+							id: `campaign-completed-${campaign.id}`,
+							type: 'campaign',
+							title: 'Campanha finalizada',
+							description: `Campanha "${campaign.name}" foi finalizada`,
+							timestamp: new Date(campaign.completedAt || campaign.updatedAt || now),
+							status: 'info'
+						});
+					} else if (campaign.status === 'paused') {
+						console.log('✅ [DEBUG] Adicionando atividade de campanha pausada');
+						activities.push({
+							id: `campaign-paused-${campaign.id}`,
+							type: 'campaign',
+							title: 'Campanha pausada',
+							description: `Campanha "${campaign.name}" foi pausada`,
+							timestamp: new Date(campaign.updatedAt || now),
+							status: 'warning'
+						});
+					} else {
+						console.log('❌ [DEBUG] Status de campanha não reconhecido:', campaign.status);
+					}
+				});
 		}
 
-		// Atividades de instâncias
+		// Atividades de instâncias (apenas das últimas 24 horas)
 		if (instancesData?.instances) {
-			instancesData.instances.slice(0, 3).forEach((instance: { id: string; instanceName: string; connectionStatus: string; updatedAt: string; createdAt?: string }) => {
-				if (instance.connectionStatus === 'OPEN') {
-					activities.push({
-						id: `instance-connected-${instance.id}`,
-						type: 'instance',
-						title: 'Instância conectada',
-						description: `Instância "${instance.instanceName}" foi conectada com sucesso`,
-						timestamp: new Date(instance.updatedAt || now),
-						status: 'success'
-					});
-				} else if (instance.connectionStatus === 'CONNECTING') {
-					activities.push({
-						id: `instance-connecting-${instance.id}`,
-						type: 'instance',
-						title: 'Instância conectando',
-						description: `Instância "${instance.instanceName}" está tentando conectar`,
-						timestamp: new Date(instance.updatedAt || now),
-						status: 'warning'
-					});
-				} else if (instance.connectionStatus === 'DISCONNECTED' || instance.connectionStatus === 'CLOSED') {
-					activities.push({
-						id: `instance-disconnected-${instance.id}`,
-						type: 'instance',
-						title: 'Instância desconectada',
-						description: `Instância "${instance.instanceName}" foi desconectada`,
-						timestamp: new Date(instance.updatedAt || now),
-						status: 'error'
-					});
-				}
-			});
+			instancesData.instances
+				.filter((instance: { id: string; instanceName: string; connectionStatus: string; updatedAt: string; createdAt?: string }) => {
+					const instanceDate = new Date(instance.updatedAt || now);
+					return instanceDate >= oneDayAgo;
+				})
+				.slice(0, 3)
+				.forEach((instance: { id: string; instanceName: string; connectionStatus: string; updatedAt: string; createdAt?: string }) => {
+					if (instance.connectionStatus === 'OPEN') {
+						activities.push({
+							id: `instance-connected-${instance.id}`,
+							type: 'instance',
+							title: 'Instância conectada',
+							description: `Instância "${instance.instanceName}" foi conectada com sucesso`,
+							timestamp: new Date(instance.updatedAt || now),
+							status: 'success'
+						});
+					} else if (instance.connectionStatus === 'CONNECTING') {
+						activities.push({
+							id: `instance-connecting-${instance.id}`,
+							type: 'instance',
+							title: 'Instância conectando',
+							description: `Instância "${instance.instanceName}" está tentando conectar`,
+							timestamp: new Date(instance.updatedAt || now),
+							status: 'warning'
+						});
+					} else if (instance.connectionStatus === 'DISCONNECTED' || instance.connectionStatus === 'CLOSED') {
+						activities.push({
+							id: `instance-disconnected-${instance.id}`,
+							type: 'instance',
+							title: 'Instância desconectada',
+							description: `Instância "${instance.instanceName}" foi desconectada`,
+							timestamp: new Date(instance.updatedAt || now),
+							status: 'error'
+						});
+					}
+				});
 		}
 
-		// Atividades de mensagens (logs recentes)
+		// Atividades de mensagens (logs recentes das últimas 24 horas)
 		if (messageLogsData?.data) {
 			console.log('💬 [DEBUG] Processando message logs:', messageLogsData.data.length);
-			messageLogsData.data.slice(0, 5).forEach((log: { id: string; status: string; sentAt?: string; createdAt: string; lead?: { phone: string }; campaignLead?: { phone: string }; campaign?: { name: string } }) => {
-				console.log('📝 [DEBUG] Processando log:', log.id, 'Status:', log.status);
-				const phone = log.lead?.phone || log.campaignLead?.phone;
-				const campaignName = log.campaign?.name;
+			messageLogsData.data
+				.filter((log: { id: string; status: string; sentAt?: string; createdAt: string; lead?: { phone: string }; campaignLead?: { phone: string }; campaign?: { name: string } }) => {
+					const logDate = new Date(log.sentAt || log.createdAt || now);
+					return logDate >= oneDayAgo;
+				})
+				.slice(0, 5)
+				.forEach((log: { id: string; status: string; sentAt?: string; createdAt: string; lead?: { phone: string }; campaignLead?: { phone: string }; campaign?: { name: string } }) => {
+					console.log('📝 [DEBUG] Processando log:', log.id, 'Status:', log.status);
+					const phone = log.lead?.phone || log.campaignLead?.phone;
+					const campaignName = log.campaign?.name;
 
-				if (log.status === 'delivered') {
-					activities.push({
-						id: `message-delivered-${log.id}`,
-						type: 'message',
-						title: '✅ Mensagem entregue',
-						description: `Mensagem ${campaignName ? `da campanha "${campaignName}"` : ''} entregue para ${phone || 'contato'}`,
-						timestamp: new Date(log.sentAt || log.createdAt || now),
-						status: 'success'
-					});
-				} else if (log.status === 'read') {
-					activities.push({
-						id: `message-read-${log.id}`,
-						type: 'message',
-						title: '👁️ Mensagem lida',
-						description: `Mensagem ${campaignName ? `da campanha "${campaignName}"` : ''} foi lida por ${phone || 'contato'}`,
-						timestamp: new Date(log.sentAt || log.createdAt || now),
-						status: 'success'
-					});
-				} else if (log.status === 'failed') {
-					activities.push({
-						id: `message-failed-${log.id}`,
-						type: 'message',
-						title: '❌ Falha no envio',
-						description: `Falha ao enviar mensagem para ${phone || 'contato'}`,
-						timestamp: new Date(log.sentAt || log.createdAt || now),
-						status: 'error'
-					});
-				} else if (log.status === 'sent') {
-					activities.push({
-						id: `message-sent-${log.id}`,
-						type: 'message',
-						title: '📤 Mensagem enviada',
-						description: `Mensagem enviada para ${phone || 'contato'}`,
-						timestamp: new Date(log.sentAt || log.createdAt || now),
-						status: 'info'
-					});
-				} else if (log.status === 'pending') {
-					activities.push({
-						id: `message-pending-${log.id}`,
-						type: 'message',
-						title: '⏳ Mensagem pendente',
-						description: `Mensagem aguardando envio para ${phone || 'contato'}`,
-						timestamp: new Date(log.sentAt || log.createdAt || now),
-						status: 'warning'
-					});
-				}
-			});
+					if (log.status === 'delivered') {
+						activities.push({
+							id: `message-delivered-${log.id}`,
+							type: 'message',
+							title: '✅ Mensagem entregue',
+							description: `Mensagem ${campaignName ? `da campanha "${campaignName}"` : ''} entregue para ${phone || 'contato'}`,
+							timestamp: new Date(log.sentAt || log.createdAt || now),
+							status: 'success'
+						});
+					} else if (log.status === 'read') {
+						activities.push({
+							id: `message-read-${log.id}`,
+							type: 'message',
+							title: '👁️ Mensagem lida',
+							description: `Mensagem ${campaignName ? `da campanha "${campaignName}"` : ''} foi lida por ${phone || 'contato'}`,
+							timestamp: new Date(log.sentAt || log.createdAt || now),
+							status: 'success'
+						});
+					} else if (log.status === 'failed') {
+						activities.push({
+							id: `message-failed-${log.id}`,
+							type: 'message',
+							title: '❌ Falha no envio',
+							description: `Falha ao enviar mensagem para ${phone || 'contato'}`,
+							timestamp: new Date(log.sentAt || log.createdAt || now),
+							status: 'error'
+						});
+					} else if (log.status === 'sent') {
+						activities.push({
+							id: `message-sent-${log.id}`,
+							type: 'message',
+							title: '📤 Mensagem enviada',
+							description: `Mensagem enviada para ${phone || 'contato'}`,
+							timestamp: new Date(log.sentAt || log.createdAt || now),
+							status: 'info'
+						});
+					} else if (log.status === 'pending') {
+						activities.push({
+							id: `message-pending-${log.id}`,
+							type: 'message',
+							title: '⏳ Mensagem pendente',
+							description: `Mensagem aguardando envio para ${phone || 'contato'}`,
+							timestamp: new Date(log.sentAt || log.createdAt || now),
+							status: 'warning'
+						});
+					}
+				});
 		}
 
 		// Atividades baseadas em estatísticas reais
