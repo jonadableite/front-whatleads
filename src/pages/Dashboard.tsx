@@ -19,14 +19,56 @@ import {
 	Send,
 	Server,
 	User,
-	Zap,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import useSWR, { mutate } from "swr";
 import { fetcher } from "@/lib/fetcher";
 import { useConversationSocket } from "@/hooks/useSocket";
 
-// Adicionar novos tipos para atividades
+// Interfaces para tipagem mais específica
+interface WarmupStat {
+	id: string;
+	warmupTime: number;
+	createdAt: string;
+	updatedAt: string;
+}
+
+interface Instance {
+	id: string;
+	instanceName: string;
+	profileName?: string;
+	connectionStatus: string;
+	profilePicUrl?: string;
+	ownerJid?: string;
+	lastActive?: string;
+	createdAt: string;
+	updatedAt: string;
+	warmupStats?: WarmupStat[];
+	warmupStatus?: {
+		warmupTime: number;
+		messagesSent: number;
+		messagesReceived: number;
+	};
+}
+
+interface Campaign {
+	id: string;
+	name: string;
+	status: string;
+	startedAt?: string;
+	completedAt?: string;
+	updatedAt: string;
+}
+
+interface MessageLog {
+	id: string;
+	status: string;
+	sentAt?: string;
+	createdAt: string;
+	lead?: { phone: string };
+	campaignLead?: { phone: string };
+	campaign?: { name: string };
+}
 interface Activity {
 	id: string;
 	type: 'campaign' | 'instance' | 'message' | 'warning' | 'info';
@@ -322,7 +364,7 @@ export default function Dashboard() {
 	const { data: messageLogsData } = useSWR('/api/message-logs', fetcher);
 
 	// Socket.IO para atualizações em tempo real
-	const { isConnected, connectionId } = useConversationSocket({
+	useConversationSocket({
 		onConversationUpdate: (data) => {
 			console.log('[Dashboard] Conversa atualizada:', data);
 			// Revalidar dados de mensagens e campanhas
@@ -581,12 +623,12 @@ export default function Dashboard() {
 	};
 
 	// Preparar dados de saúde das instâncias com fallback
-	const prepareInstancesHealth = (instances: any[]): InstanceHealth[] => {
+	const prepareInstancesHealth = (instances: Instance[]): InstanceHealth[] => {
 		if (!Array.isArray(instances)) return [];
 
 		console.log('Dashboard - Dados recebidos das instâncias:', instances);
 
-		return instances.map((instance: any) => {
+		return instances.map((instance: Instance) => {
 			// Usar dados reais de warmupStatus se disponíveis (já calculado pelo backend)
 			let warmupProgress = 0;
 			let warmupTime = 0;
@@ -602,7 +644,7 @@ export default function Dashboard() {
 			// Priorizar warmupStats se disponível, senão usar warmupStatus
 			if (instance.warmupStats && Array.isArray(instance.warmupStats) && instance.warmupStats.length > 0) {
 				// Ordenar por createdAt e pegar o mais recente
-				const sortedStats = instance.warmupStats.sort((a: any, b: any) =>
+				const sortedStats = instance.warmupStats.sort((a: WarmupStat, b: WarmupStat) =>
 					new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
 				);
 				const latestStat = sortedStats[0];

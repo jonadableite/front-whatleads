@@ -11,13 +11,15 @@ if (!stripePublishableKey) {
 const detectStripeBlocked = async (): Promise<boolean> => {
 	try {
 		// Tenta fazer uma requisição simples para o domínio do Stripe
-		const response = await fetch('https://js.stripe.com/v3/', { 
+		// Usando uma URL mais específica que não cause problemas
+		const response = await fetch('https://js.stripe.com/v3/stripe.js', { 
 			method: 'HEAD',
 			mode: 'no-cors'
 		});
 		return false;
 	} catch (error) {
-		console.warn('Stripe pode estar sendo bloqueado por adblocker:', error);
+		// Silenciar o erro para evitar spam no console
+		// console.warn('Stripe pode estar sendo bloqueado por adblocker:', error);
 		return true;
 	}
 };
@@ -116,10 +118,14 @@ export const stripePromise = (async () => {
 	} catch (error) {
 		console.error("Erro ao carregar Stripe:", error);
 		
-		// Tenta detectar se é problema de adblocker
-		const isBlocked = await detectStripeBlocked();
-		if (isBlocked) {
-			showAdblockerWarning();
+		// Tenta detectar se é problema de adblocker (silenciosamente)
+		try {
+			const isBlocked = await detectStripeBlocked();
+			if (isBlocked) {
+				showAdblockerWarning();
+			}
+		} catch (detectionError) {
+			// Ignora erros de detecção para evitar spam no console
 		}
 		
 		throw error;
