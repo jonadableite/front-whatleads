@@ -347,6 +347,19 @@ export default function Dashboard() {
 		fetcher
 	);
 
+	// Inicializar messageStats com dados do backend quando disponíveis
+	useEffect(() => {
+		if (dashboardData?.stats) {
+			setMessageStats({
+				sent: dashboardData.stats.total || 0,
+				delivered: dashboardData.stats.delivered || 0,
+				read: dashboardData.stats.read || 0,
+				failed: dashboardData.stats.failed || 0,
+				pending: dashboardData.stats.pending || 0
+			});
+		}
+	}, [dashboardData]);
+
 	const { data: instancesData, error: instancesError, isLoading: isInstancesLoading } = useSWR(
 		"/api/instances",
 		fetcher
@@ -393,9 +406,10 @@ export default function Dashboard() {
 							newStats.read += 1;
 							break;
 						case 'delivered':
-						case 'server_ack':
+						case 'delivery_ack':
 							newStats.delivered += 1;
 							break;
+						case 'server_ack':
 						case 'sent':
 							newStats.sent += 1;
 							break;
@@ -768,19 +782,19 @@ export default function Dashboard() {
 		{
 			title: "Total de Mensagens",
 			icon: Send,
-			value: (dashboardData?.stats?.total + messageStats.sent)?.toLocaleString() || messageStats.sent.toLocaleString(),
+			value: messageStats.sent.toLocaleString(),
 			description: "Total de mensagens enviadas",
 		},
 		{
 			title: "Entregues",
 			icon: CheckCircle,
-			value: (dashboardData?.stats?.delivered + messageStats.delivered)?.toLocaleString() || messageStats.delivered.toLocaleString(),
+			value: messageStats.delivered.toLocaleString(),
 			description: "Mensagens entregues",
 		},
 		{
 			title: "Lidas",
 			icon: Eye,
-			value: (dashboardData?.stats?.read + messageStats.read)?.toLocaleString() || messageStats.read.toLocaleString(),
+			value: messageStats.read.toLocaleString(),
 			description: "Mensagens lidas",
 		},
 		{
