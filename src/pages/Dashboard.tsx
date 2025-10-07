@@ -367,15 +367,19 @@ export default function Dashboard() {
 	const { data: messageLogsData } = useSWR('/api/message-logs', fetcher);
 
 	// Socket.IO para atualizações em tempo real
-	useConversationSocket({
-		onConversationUpdate: (data) => {
+	const socket = useConversationSocket();
+
+	// Configurar listeners de eventos em tempo real
+	useEffect(() => {
+		const removeConversationListener = socket.onConversationUpdate((data) => {
 			console.log('[Dashboard] Conversa atualizada:', data);
 			// Revalidar dados de mensagens e campanhas
 			mutate('/api/message-logs');
 			mutate('/api/campaigns');
 			mutate(`/api/message-logs/daily?date=${formattedDate}`);
-		},
-		onMessageStatusUpdate: (data) => {
+		});
+
+		const removeMessageStatusListener = socket.onMessageStatusUpdate((data) => {
 			console.log('[Dashboard] Status de mensagem atualizado:', data);
 			
 			// Atualizar contadores em tempo real baseado no status
@@ -412,16 +416,24 @@ export default function Dashboard() {
 			// Revalidar dados de mensagens para refletir novos status
 			mutate('/api/message-logs');
 			mutate(`/api/message-logs/daily?date=${formattedDate}`);
-		},
-		onWebhookReceived: (data) => {
+		});
+
+		const removeWebhookListener = socket.onWebhookReceived((data) => {
 			console.log('[Dashboard] Webhook recebido:', data);
 			// Revalidar todos os dados relevantes
 			mutate('/api/instances');
 			mutate('/api/leads');
 			mutate('/api/message-logs');
 			mutate('/api/campaigns');
-		}
-	});
+		});
+
+		// Cleanup listeners quando o componente for desmontado
+		return () => {
+			removeConversationListener();
+			removeMessageStatusListener();
+			removeWebhookListener();
+		};
+	}, [socket, formattedDate]);
 
 	// Estados derivados - sem dependência de warmup-stats
 	const isLoading = isDashboardLoading || isInstancesLoading || isLeadsLoading || isMessagesByDayLoading;
