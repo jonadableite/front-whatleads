@@ -4,6 +4,7 @@ import { BarChart, LineChart, PieChart } from "@/components/charts";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/components/ui/use-toast";
 import { authService } from "@/services/auth.service";
 import { addDays, endOfDay, format, startOfDay, subDays } from "date-fns";
@@ -324,6 +325,8 @@ export default function Dashboard() {
 	const user = authService.getUser();
 	const [chartType, setChartType] = useState<"bar" | "line">("bar");
 	const [selectedDate, setSelectedDate] = useState(new Date());
+	const [selectedCampaign, setSelectedCampaign] = useState<string>("all");
+	const [selectedInstance, setSelectedInstance] = useState<string>("all");
 	
 	// Estado para estatísticas de mensagens em tempo real
 	const [messageStats, setMessageStats] = useState<MessageStats>({
@@ -340,7 +343,7 @@ export default function Dashboard() {
 
 	// SWR hooks para buscar dados
 	const { data: dashboardData, error: dashboardError, isLoading: isDashboardLoading } = useSWR(
-		`/api/message-logs/daily?date=${formattedDate}`,
+		`/api/message-logs/daily?date=${formattedDate}${selectedCampaign !== 'all' ? `&campaignId=${selectedCampaign}` : ''}${selectedInstance !== 'all' ? `&instanceName=${selectedInstance}` : ''}`,
 		fetcher
 	);
 
@@ -355,7 +358,7 @@ export default function Dashboard() {
 	);
 
 	const { data: messagesByDayData, error: messagesByDayError, isLoading: isMessagesByDayLoading } = useSWR(
-		"/api/message-logs/by-day",
+		`/api/message-logs/by-day${selectedCampaign !== 'all' ? `?campaignId=${selectedCampaign}` : ''}${selectedInstance !== 'all' ? `${selectedCampaign !== 'all' ? '&' : '?'}instanceName=${selectedInstance}` : ''}`,
 		fetcher
 	);
 
@@ -857,7 +860,7 @@ export default function Dashboard() {
 				</h1>
 				<p className="text-white/80">Aqui está um resumo das suas atividades</p>
 			</div>
-			<div className="mb-4">
+			<div className="mb-4 flex flex-col sm:flex-row gap-4 items-start sm:items-center">
 				<CustomDatePicker
 					selectedDate={selectedDate}
 					onChange={(date: Date) => {
@@ -869,6 +872,37 @@ export default function Dashboard() {
 						setSelectedDate(adjustedDate);
 					}}
 				/>
+				
+				{/* Filtros por Campanha e Instância */}
+				<div className="flex gap-4">
+					<Select value={selectedCampaign} onValueChange={setSelectedCampaign}>
+						<SelectTrigger className="w-[200px] bg-deep/50 border-electric text-white">
+							<SelectValue placeholder="Filtrar por campanha" />
+						</SelectTrigger>
+						<SelectContent>
+							<SelectItem value="all">Todas as campanhas</SelectItem>
+							{campaignsData && Array.isArray(campaignsData) && campaignsData.map((campaign: any) => (
+								<SelectItem key={campaign.id} value={campaign.id}>
+									{campaign.name}
+								</SelectItem>
+							))}
+						</SelectContent>
+					</Select>
+
+					<Select value={selectedInstance} onValueChange={setSelectedInstance}>
+						<SelectTrigger className="w-[200px] bg-deep/50 border-electric text-white">
+							<SelectValue placeholder="Filtrar por instância" />
+						</SelectTrigger>
+						<SelectContent>
+							<SelectItem value="all">Todas as instâncias</SelectItem>
+							{instancesData && Array.isArray(instancesData) && instancesData.map((instance: any) => (
+								<SelectItem key={instance.id} value={instance.instanceName}>
+									{instance.instanceName}
+								</SelectItem>
+							))}
+						</SelectContent>
+					</Select>
+				</div>
 			</div>
 			<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6 mb-8">
 				{stats.map((stat, index) => (
