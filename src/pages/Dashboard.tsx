@@ -543,36 +543,34 @@ export default function Dashboard() {
 				});
 		}
 
-		// Atividades de instâncias (apenas das últimas 24 horas)
+		// Atividades de instâncias (apenas mudanças de status das últimas 24 horas)
 		if (instancesData?.instances) {
 			instancesData.instances
 				.filter((instance: { id: string; instanceName: string; connectionStatus: string; updatedAt: string; createdAt?: string }) => {
 					const instanceDate = new Date(instance.updatedAt || now);
-					return instanceDate >= oneDayAgo;
+					const createdDate = new Date(instance.createdAt || now);
+					
+					// Só mostrar como atividade se:
+					// 1. Foi atualizado nas últimas 24 horas E
+					// 2. A data de atualização é diferente da data de criação (indica mudança de status)
+					return instanceDate >= oneDayAgo && 
+						   Math.abs(instanceDate.getTime() - createdDate.getTime()) > 60000; // Diferença maior que 1 minuto
 				})
 				.slice(0, 3)
 				.forEach((instance: { id: string; instanceName: string; connectionStatus: string; updatedAt: string; createdAt?: string }) => {
+					// Só adicionar atividades para status que indicam mudanças significativas
 					if (instance.connectionStatus === 'OPEN') {
 						activities.push({
-							id: `instance-connected-${instance.id}`,
+							id: `instance-connected-${instance.id}-${instance.updatedAt}`,
 							type: 'instance',
 							title: 'Instância conectada',
 							description: `Instância "${instance.instanceName}" foi conectada com sucesso`,
 							timestamp: new Date(instance.updatedAt || now),
 							status: 'success'
 						});
-					} else if (instance.connectionStatus === 'CONNECTING') {
-						activities.push({
-							id: `instance-connecting-${instance.id}`,
-							type: 'instance',
-							title: 'Instância conectando',
-							description: `Instância "${instance.instanceName}" está tentando conectar`,
-							timestamp: new Date(instance.updatedAt || now),
-							status: 'warning'
-						});
 					} else if (instance.connectionStatus === 'DISCONNECTED' || instance.connectionStatus === 'CLOSED') {
 						activities.push({
-							id: `instance-disconnected-${instance.id}`,
+							id: `instance-disconnected-${instance.id}-${instance.updatedAt}`,
 							type: 'instance',
 							title: 'Instância desconectada',
 							description: `Instância "${instance.instanceName}" foi desconectada`,
@@ -580,6 +578,7 @@ export default function Dashboard() {
 							status: 'error'
 						});
 					}
+					// Removido o status 'CONNECTING' para evitar atividades repetitivas
 				});
 		}
 
