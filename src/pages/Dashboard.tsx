@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/components/ui/use-toast";
+import { TerminalCard, useTerminalCardConfig } from "@/components/ui/TerminalCard";
 import { authService } from "@/services/auth.service";
 import { addDays, endOfDay, format, startOfDay, subDays } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -327,7 +328,8 @@ export default function Dashboard() {
 	const [selectedDate, setSelectedDate] = useState(new Date());
 	const [selectedCampaign, setSelectedCampaign] = useState<string>("all");
 	const [selectedInstance, setSelectedInstance] = useState<string>("all");
-	
+	const { getCardConfig } = useTerminalCardConfig();
+
 	// Estado para estatísticas de mensagens em tempo real
 	const [messageStats, setMessageStats] = useState<MessageStats>({
 		sent: 0,
@@ -394,12 +396,12 @@ export default function Dashboard() {
 
 		const removeMessageStatusListener = socket.onMessageStatusUpdate((data) => {
 			console.log('[Dashboard] Status de mensagem atualizado:', data);
-			
+
 			// Atualizar contadores em tempo real baseado no status
 			if (data.status && data.previousStatus) {
 				setMessageStats(prev => {
 					const newStats = { ...prev };
-					
+
 					// Remover da categoria anterior se existir
 					if (data.previousStatus) {
 						switch (data.previousStatus.toLowerCase()) {
@@ -423,7 +425,7 @@ export default function Dashboard() {
 								break;
 						}
 					}
-					
+
 					// Adicionar na nova categoria
 					switch (data.status.toLowerCase()) {
 						case 'read':
@@ -445,7 +447,7 @@ export default function Dashboard() {
 							newStats.pending += 1;
 							break;
 					}
-					
+
 					console.log('[Dashboard] Estatísticas atualizadas:', {
 						previous: data.previousStatus,
 						current: data.status,
@@ -454,7 +456,7 @@ export default function Dashboard() {
 					return newStats;
 				});
 			}
-			
+
 			// Revalidar dados de mensagens para refletir novos status
 			mutate('/api/message-logs');
 			mutate(`/api/message-logs/daily?date=${formattedDate}`);
@@ -537,6 +539,16 @@ export default function Dashboard() {
 							timestamp: new Date(campaign.updatedAt || now),
 							status: 'warning'
 						});
+					} else if (campaign.status === 'scheduled') {
+						console.log('✅ [DEBUG] Adicionando atividade de campanha agendada');
+						activities.push({
+							id: `campaign-scheduled-${campaign.id}`,
+							type: 'campaign',
+							title: 'Campanha agendada',
+							description: `Campanha "${campaign.name}" foi agendada`,
+							timestamp: new Date(campaign.updatedAt || now),
+							status: 'info'
+						});
 					} else {
 						console.log('❌ [DEBUG] Status de campanha não reconhecido:', campaign.status);
 					}
@@ -549,12 +561,12 @@ export default function Dashboard() {
 				.filter((instance: { id: string; instanceName: string; connectionStatus: string; updatedAt: string; createdAt?: string }) => {
 					const instanceDate = new Date(instance.updatedAt || now);
 					const createdDate = new Date(instance.createdAt || now);
-					
+
 					// Só mostrar como atividade se:
 					// 1. Foi atualizado nas últimas 24 horas E
 					// 2. A data de atualização é diferente da data de criação (indica mudança de status)
-					return instanceDate >= oneDayAgo && 
-						   Math.abs(instanceDate.getTime() - createdDate.getTime()) > 60000; // Diferença maior que 1 minuto
+					return instanceDate >= oneDayAgo &&
+						Math.abs(instanceDate.getTime() - createdDate.getTime()) > 60000; // Diferença maior que 1 minuto
 				})
 				.slice(0, 3)
 				.forEach((instance: { id: string; instanceName: string; connectionStatus: string; updatedAt: string; createdAt?: string }) => {
@@ -830,30 +842,35 @@ export default function Dashboard() {
 			icon: Send,
 			value: messageStats.sent.toLocaleString(),
 			description: "Total de mensagens enviadas",
+			...getCardConfig('total'),
 		},
 		{
 			title: "Entregues",
 			icon: CheckCircle,
 			value: messageStats.delivered.toLocaleString(),
 			description: "Mensagens entregues",
+			...getCardConfig('delivered'),
 		},
 		{
 			title: "Lidas",
 			icon: Eye,
 			value: messageStats.read.toLocaleString(),
 			description: "Mensagens lidas",
+			...getCardConfig('read'),
 		},
 		{
 			title: "Pendentes",
 			icon: Clock,
 			value: messageStats.pending.toLocaleString(),
 			description: "Mensagens pendentes",
+			...getCardConfig('pending'),
 		},
 		{
 			title: "Falharam",
 			icon: AlertCircle,
 			value: messageStats.failed.toLocaleString(),
 			description: "Mensagens com falha",
+			...getCardConfig('failed'),
 		},
 	];
 
@@ -944,7 +961,7 @@ export default function Dashboard() {
 						setSelectedDate(adjustedDate);
 					}}
 				/>
-				
+
 				{/* Filtros por Campanha e Instância */}
 				<div className="flex gap-4">
 					<Select value={selectedCampaign} onValueChange={setSelectedCampaign}>
@@ -978,7 +995,7 @@ export default function Dashboard() {
 			</div>
 			<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-6 mb-8">
 				{stats.map((stat, index) => (
-					<StatCard key={index} {...stat} />
+					<TerminalCard key={index} {...stat} />
 				))}
 			</div>
 			<div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
