@@ -14,6 +14,7 @@ import { useNavigate } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import { GetInstancesAction } from '../actions';
 import { InstanceRotationConfig } from '../components/InstanceRotationConfig';
+import { ImportLeadsModal } from '../components/leads/ImportLeadsModal';
 import { ProgressModal } from '../components/ProgressModal';
 import { SpinTaxEditor } from '../components/SpinTaxEditor';
 import api from '../lib/api';
@@ -135,6 +136,7 @@ export default function Disparos() {
   const [useSegmentation, setUseSegmentation] = useState<boolean>(false);
   const [selectedSegment, setSelectedSegment] = useState<SegmentType | ''>('');
   const [spinTaxValidation, setSpinTaxValidation] = useState<SpinTaxValidationResult | null>(null);
+  const [isImportModalOpen, setIsImportModalOpen] = useState<boolean>(false);
 
   // Função para lidar com a mudança de segmento
   const handleSegmentChange = async (
@@ -295,6 +297,55 @@ export default function Disparos() {
     } catch (error) {
       console.error('Erro ao cancelar campanha:', error);
       toast.error('Erro ao cancelar campanha.');
+    }
+  };
+
+  // Função para importar leads
+  const handleImportLeads = async (
+    campaignId: string,
+    file: File,
+  ): Promise<void> => {
+    try {
+      // Verificação adicional
+      if (!file) {
+        toast.error('Nenhum arquivo selecionado');
+        return;
+      }
+
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await api.post(
+        `/api/campaigns/${campaignId}/leads/import`,
+        formData,
+        {
+          headers: {
+            'Content-Type': 'multipart/form-data',
+          },
+        },
+      );
+
+      console.log('Resposta da importação:', response.data);
+
+      if (response.data.success) {
+        toast.success(
+          `${response.data.count} leads importados com sucesso!`,
+        );
+        // Atualizar dados se necessário
+        await fetchData();
+      } else {
+        throw new Error(
+          response.data.message || 'Erro ao importar leads',
+        );
+      }
+    } catch (error) {
+      console.error('Erro ao importar leads:', error);
+      toast.error(
+        error instanceof Error
+          ? error.message
+          : 'Erro ao importar leads',
+      );
+      throw error;
     }
   };
 
@@ -975,6 +1026,7 @@ export default function Disparos() {
           exit={{ opacity: 0 }}
           transition={{ duration: 0.5 }}
           className="w-full min-h-screen bg-gradient-to-br from-deep to-electric-dark p-4 md:p-8"
+          data-tour="dispatches-container"
         >
           <div className="max-w-7xl mx-auto bg-deep/30 backdrop-blur-xl rounded-3xl border border-electric/30 overflow-hidden">
             <div className="p-6 lg:p-10">
@@ -1273,6 +1325,7 @@ export default function Disparos() {
                       onValidation={setSpinTaxValidation}
                       placeholder="Digite sua mensagem aqui...\n\nExemplo com SpinTax: {Olá|Oi|E aí} {pessoal|galera|amigos}! Como {vocês estão|vai|está tudo}?"
                       showPreview={true}
+                      data-tour="message-editor"
                       previewCount={3}
                       className="spintax-editor-dark"
                     />
@@ -1332,7 +1385,7 @@ export default function Disparos() {
                       <label className="block text-lg font-medium text-white mb-2">
                         Upload de Mídia
                       </label>
-                      <label className="flex items-center justify-center w-full h-[58px] bg-electric/10 border border-electric rounded-xl cursor-pointer hover:bg-electric/20 transition-all duration-300">
+                      <label className="flex items-center justify-center w-full h-[58px] bg-electric/10 border border-electric rounded-xl cursor-pointer hover:bg-electric/20 transition-all duration-300" data-tour="media-upload">
                         <input
                           type="file"
                           onChange={handleMediaChange}
@@ -1449,24 +1502,37 @@ export default function Disparos() {
                     Modo de Disparo
                   </label>
                   <div className="flex gap-4">
-                    <button
-                      type="button"
-                      onClick={() => setDispatchMode('new')}
-                      className={cn(
-                        'flex-1 py-3 px-4 rounded-xl flex items-center justify-center gap-2 transition-all',
-                        dispatchMode === 'new'
-                          ? 'bg-neon-green text-black font-bold'
-                          : 'bg-electric/10 text-white hover:bg-electric/20',
+                    <div className="flex gap-2">
+                      {/* <button
+                        type="button"
+                        onClick={() => setDispatchMode('new')}
+                        className={cn(
+                          'flex-1 py-3 px-4 rounded-xl flex items-center justify-center gap-2 transition-all',
+                          dispatchMode === 'new'
+                            ? 'bg-neon-green text-black font-bold'
+                            : 'bg-electric/10 text-white hover:bg-electric/20',
+                        )}
+                      >
+                        <FiUpload className="mr-2" />
+                        Importar Novos Leads
+                      </button> */}
+                      {dispatchMode === 'new' && (
+                        <button
+                          type="button"
+                          onClick={() => setIsImportModalOpen(true)}
+                          className="flex-1 py-3 px-4 rounded-xl flex items-center justify-center gap-2 bg-neon-green text-black font-bold hover:bg-blue-500/30 transition-all border border-blue-500/30"
+                          title="Importar leads para campanha existente"
+                        >
+                          <FiUpload className="w-4 h-4" />
+                          Importar Novos Leads
+                        </button>
                       )}
-                    >
-                      <FiUpload className="mr-2" />
-                      Importar Novos Leads
-                    </button>
+                    </div>
                     <button
                       type="button"
                       onClick={() => setDispatchMode('existing')}
                       className={cn(
-                        'flex-1 py-3 px-4 rounded-xl flex items-center justify-center gap-2 transition-all',
+                        'flex-1 py-3 px-4 rounded-xl flex items-center justify-center gap-2 hover:bg-blue-500/30 transition-all border border-blue-500/30',
                         dispatchMode === 'existing'
                           ? 'bg-neon-green text-black font-bold'
                           : 'bg-electric/10 text-white hover:bg-electric/20',
@@ -1543,31 +1609,6 @@ export default function Disparos() {
                   </div>
                 )}
 
-                {dispatchMode === 'new' && (
-                  <div>
-                    <label className="block text-lg font-medium text-white mb-2">
-                      Lista de Contatos
-                    </label>
-                    <label className="flex items-center justify-center w-full h-[58px] bg-electric/10 border border-electric rounded-xl cursor-pointer hover:bg-electric/20 transition-all duration-300">
-                      <input
-                        type="file"
-                        onChange={handleFileChange}
-                        accept=".txt,.csv"
-                        className="hidden"
-                      />
-                      <div className="flex items-center gap-2 text-white">
-                        <FaWhatsapp size={24} />
-                        <span>Upload Lista de Contatos</span>
-                      </div>
-                    </label>
-                    {totalNumbers > 0 && (
-                      <p className="mt-2 text-white/80">
-                        Total de contatos: {totalNumbers}
-                      </p>
-                    )}
-                  </div>
-                )}
-
                 {/* Tipo de Envio */}
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                   <div>
@@ -1579,7 +1620,7 @@ export default function Disparos() {
                         type="button"
                         onClick={() => setSendType('now')}
                         className={cn(
-                          'flex-1 py-3 px-4 rounded-xl flex items-center justify-center gap-2 transition-all',
+                          'flex-1 py-3 px-4 rounded-xl flex items-center justify-center gap-2 hover:bg-blue-500/30 transition-all border border-blue-500/30',
                           sendType === 'now'
                             ? 'bg-neon-green text-black font-bold'
                             : 'bg-electric/10 text-white hover:bg-electric/20',
@@ -1592,7 +1633,7 @@ export default function Disparos() {
                         type="button"
                         onClick={() => setSendType('scheduled')}
                         className={cn(
-                          'flex-1 py-3 px-4 rounded-xl flex items-center justify-center gap-2 transition-all',
+                          'flex-1 py-3 px-4 rounded-xl flex items-center justify-center gap-2 hover:bg-blue-500/30 transition-all border border-blue-500/30',
                           sendType === 'scheduled'
                             ? 'bg-neon-green text-black font-bold'
                             : 'bg-electric/10 text-white hover:bg-electric/20',
@@ -1680,6 +1721,7 @@ export default function Disparos() {
                       isLoadingCampaigns
                     }
                     className="px-8 py-4 bg-neon-green text-black rounded-xl font-bold text-lg hover:bg-electric hover:text-white transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
+                    data-tour="launch-btn"
                   >
                     {isStarting ? (
                       <motion.div
@@ -1726,6 +1768,17 @@ export default function Disparos() {
               onCancel={handleCancelCampaign}
             />
           )}
+
+          {/* Modal de Importação de Leads */}
+          <ImportLeadsModal
+            isOpen={isImportModalOpen}
+            onClose={() => setIsImportModalOpen(false)}
+            onImport={handleImportLeads}
+            campaigns={campaigns}
+            disableImport={false}
+            totalLeads={0}
+            maxLeads={10000}
+          />
         </motion.div>
       )}
     </AnimatePresence>

@@ -21,6 +21,7 @@ import {
   createBrowserRouter,
 } from 'react-router-dom';
 import Agendados from '../pages/Agendados';
+import Aquecimento from '../pages/Aquecimento';
 import Chat from '../pages/Chat';
 import Contatos from '../pages/Contatos';
 import Grupos from '../pages/Grupos';
@@ -116,6 +117,10 @@ const router = createBrowserRouter([
           {
             path: '/hotmart/vendas',
             element: <HotmartSales />,
+          },
+          {
+            path: '/aquecimento',
+            element: <Aquecimento />,
           },
         ],
       },

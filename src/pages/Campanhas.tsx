@@ -1101,6 +1101,7 @@ const Campanhas: React.FC = () => {
       variants={pageTransition}
       transition={{ duration: 0.5 }}
       className="p-8 space-y-8"
+      data-tour="campaigns-container"
     >
       {isLoading ? (
         <motion.div
@@ -1198,6 +1199,7 @@ const Campanhas: React.FC = () => {
                 variant="outline"
                 onClick={() => setIsImportModalOpen(true)}
                 className="bg-deep/50 text-white border-electric hover:bg-electric/20"
+                data-tour="import-leads-btn"
               >
                 <FiUpload className="mr-2" /> Importar Leads
               </Button>
@@ -1215,6 +1217,7 @@ const Campanhas: React.FC = () => {
               <Button
                 onClick={() => setIsModalOpen(true)}
                 className="bg-neon-green text-white hover:bg-neon-green/80"
+                data-tour="create-campaign-btn"
               >
                 <FiPlus className="mr-2" /> Nova Campanha
               </Button>

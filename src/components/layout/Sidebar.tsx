@@ -1,4 +1,5 @@
 import Logo from '@/components/Logo';
+import { TourButton } from '@/components/tour/TourButton';
 import { Button } from '@/components/ui/button';
 import { useSidebar } from '@/contexts/SidebarContext';
 import { cn } from '@/lib/utils';
@@ -92,8 +93,7 @@ const sidebarItems: SidebarItem[] = [
   {
     title: 'Aquecimento',
     icon: <Flame className="w-5 h-5" />,
-    path: 'https://aquecer.whatlead.com.br',
-    isExternal: true,
+    path: '/aquecimento',
   },
   {
     title: 'Painel de Admin',
@@ -127,6 +127,7 @@ export function Sidebar() {
         isCollapsed ? 'w-20' : 'w-64',
         'transition-all duration-300 ease-in-out z-50',
       )}
+      data-tour="sidebar"
     >
       <div className="flex flex-col h-full">
         {/* Header */}
@@ -225,6 +226,14 @@ export function Sidebar() {
                     item.submenu &&
                     !item.isExternal &&
                     toggleSubmenu(item.path)
+                  }
+                  data-tour={
+                    item.path === '/instancias' ? 'instances-menu' :
+                      item.path === '/aquecimento' ? 'warmup-menu' :
+                        item.path === '/campanhas' ? 'campaigns-menu' :
+                          item.path === '/contatos' ? 'leads-menu' :
+                            item.path === '/disparos' ? 'dispatches-menu' :
+                              undefined
                   }
                 >
                   <motion.div
@@ -330,6 +339,11 @@ export function Sidebar() {
 
         {/* Footer */}
         <div className="border-t border-electric/30 p-4 space-y-4">
+          {/* Tour Button */}
+          {!isCollapsed && (
+            <TourButton variant="minimal" className="w-full justify-start" />
+          )}
+
           {/* Upgrade Button */}
           <Link
             to="/pricing" // Este é um link interno, então <Link> está correto

@@ -10,7 +10,11 @@ export function useFetch<T = any>(
     const token =
       authService?.getTokenInterno?.() || localStorage.getItem("token");
 
-    const response = await fetch(url, {
+    // Construir URL completa com base URL
+    const baseURL = import.meta.env.VITE_API_URL || "http://localhost:9000";
+    const fullUrl = url.startsWith("http") ? url : `${baseURL}${url}`;
+
+    const response = await fetch(fullUrl, {
       headers: {
         "Content-Type": "application/json",
         ...(token ? { Authorization: `Bearer ${token}` } : {}),

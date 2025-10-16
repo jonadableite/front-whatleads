@@ -192,6 +192,7 @@ const Contatos: React.FC = () => {
 			animate="visible"
 			variants={containerVariants}
 			className="min-h-screen bg-gradient-to-br from-deep to-neon-purple/10 p-8"
+			data-tour="leads-container"
 		>
 			<div className="max-w-7xl mx-auto">
 				<motion.div

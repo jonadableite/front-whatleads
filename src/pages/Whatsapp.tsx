@@ -473,10 +473,10 @@ export default function WhatsappPage() {
               `✅ Connection OPEN or connected for ${instanceName}`,
             );
             setConnectionProgress(100);
-            
+
             // Primeiro atualiza as instâncias para garantir que o status seja refletido imediatamente
             await mutateInstances();
-            
+
             // Depois fecha o modal e mostra o toast
             setTimeout(() => {
               setQrCodeDialog(false);
@@ -487,7 +487,7 @@ export default function WhatsappPage() {
                 description: `A instância ${instanceName} foi conectada e está pronta para uso`,
               });
             }, 800); // Delay reduzido para melhor UX
-            
+
             clearInterval(interval);
             monitoringInterval.current = null;
           } else if (
@@ -502,14 +502,14 @@ export default function WhatsappPage() {
             monitoringInterval.current = null;
             setIsMonitoring(false);
             setConnectionProgress(0);
-            
+
             // Mostra toast de erro quando a conexão falha
             toast({
               title: 'Erro na Conexão',
               description: `Falha ao conectar ${instanceName}. Tente novamente.`,
               variant: 'destructive',
             });
-            
+
             mutateInstances(); // Recarrega instâncias para atualizar o status na lista
           } else {
             // Tratar outros estados como 'connecting', 'qrcode', etc.
@@ -521,13 +521,13 @@ export default function WhatsappPage() {
           monitoringInterval.current = null;
           setIsMonitoring(false);
           setConnectionProgress(0);
-          
+
           toast({
             title: 'Erro de Monitoramento',
             description: `Erro ao monitorar conexão de ${instanceName}`,
             variant: 'destructive',
           });
-          
+
           mutateInstances(); // Recarrega instâncias para tentar obter o status atual
         }
       }, 2000); // Intervalo reduzido para 2 segundos para melhor responsividade
@@ -560,7 +560,7 @@ export default function WhatsappPage() {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-deep/40 via-indigo-700/10 to-electric p-4 sm:p-6 lg:p-8">
+    <div className="min-h-screen bg-gradient-to-br from-deep/40 via-indigo-700/10 to-electric p-4 sm:p-6 lg:p-8" data-tour="instances-container">
       <Toaster position="top-right" reverseOrder={false} />
       {/* Header */}
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 mb-8">
@@ -663,6 +663,7 @@ export default function WhatsappPage() {
                   : 'bg-gradient-to-r from-electric to-blue-600 hover:opacity-90'
               }
             `}
+            data-tour="create-instance-btn"
           >
             {/* Conteúdo do botão dinâmico */}
             {loading ? (
