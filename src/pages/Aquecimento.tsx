@@ -234,7 +234,7 @@ export default function Aquecimento() {
         videoChance: 0.1,
         minDelay: 3000,
         maxDelay: 90000,
-        messageLimit,
+        maxMessagesPerDay: messageLimit,
       },
     };
 

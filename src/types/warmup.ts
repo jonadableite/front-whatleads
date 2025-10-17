@@ -40,7 +40,7 @@ export interface WarmupConfig {
     videoChance: number;
     minDelay: number;
     maxDelay: number;
-    messageLimit?: number;
+    maxMessagesPerDay?: number;
   };
 }
 
