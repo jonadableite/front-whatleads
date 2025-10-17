@@ -1,6 +1,6 @@
 // src/pages/Aquecimento.tsx
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Slider } from '@/components/ui/slider';
 import { Textarea } from '@/components/ui/textarea';
@@ -315,7 +315,7 @@ export default function Aquecimento() {
   }
 
   return (
-    <div className="space-y-6 sm:space-y-8" data-tour="warmup-container">
+    <div className="space-y-6 sm:space-y-8 pb-8" data-tour="warmup-container">
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}
@@ -323,8 +323,8 @@ export default function Aquecimento() {
         className="flex flex-col sm:flex-row sm:items-center justify-between gap-4"
       >
         <div>
-          <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-neon-green via-electric-light to-neon-blue bg-clip-text text-transparent">
-            WhatsApp Warmer
+          <h1 className="text-3xl sm:text-4xl font-bold bg-gradient-to-r from-blue-600 via-neon-blue to-neon-green bg-clip-text text-transparent">
+            Aquecer WhatsApp
           </h1>
           <p className="text-gray-400 text-sm sm:text-base mt-1">
             Aqueça suas instâncias do WhatsApp para melhor deliverabilidade
@@ -334,7 +334,7 @@ export default function Aquecimento() {
           onClick={refreshData}
           variant="outline"
           size="sm"
-          className="gap-2 bg-white/[0.03] border-white/[0.06] hover:bg-white/[0.08] text-white backdrop-blur-sm"
+          className="gap-2 bg-deep/50 border-electric/30 hover:bg-deep-purple/60 text-white backdrop-blur-sm"
         >
           <RefreshCw className="w-4 h-4" />
           Atualizar
@@ -347,17 +347,17 @@ export default function Aquecimento() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.1 }}
-          className="bg-white/[0.03] rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-white/[0.06] backdrop-blur-sm"
+          className="bg-deep/50 rounded-xl p-4 sm:p-5 border border-electric/30 backdrop-blur-sm hover:bg-deep-purple/60 transition-colors duration-200"
         >
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-gradient-to-r from-neon-green to-emerald-500 rounded-lg sm:rounded-xl flex-shrink-0">
-              <Flame className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+            <div className="p-2.5 bg-gradient-to-r from-neon-green to-emerald-500 rounded-lg flex-shrink-0">
+              <Flame className="w-4 h-4 text-white" />
             </div>
             <div className="min-w-0">
-              <p className="text-xs text-gray-400 font-medium uppercase tracking-wide">
+              <p className="text-xs text-gray-400 font-medium uppercase tracking-wide mb-1">
                 Plano Atual
               </p>
-              <p className="text-lg sm:text-xl font-bold text-white capitalize truncate">
+              <p className="text-lg font-bold text-white capitalize truncate">
                 {instancesData.currentPlan}
               </p>
             </div>
@@ -368,17 +368,17 @@ export default function Aquecimento() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
-          className="bg-white/[0.03] rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-white/[0.06] backdrop-blur-sm"
+          className="bg-deep/50 rounded-xl p-4 sm:p-5 border border-electric/30 backdrop-blur-sm hover:bg-deep-purple/60 transition-colors duration-200"
         >
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-gradient-to-r from-electric to-blue-700 rounded-lg sm:rounded-xl flex-shrink-0">
-              <MessageCircle className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+            <div className="p-2.5 bg-gradient-to-r from-electric to-blue-700 rounded-lg flex-shrink-0">
+              <MessageCircle className="w-4 h-4 text-white" />
             </div>
             <div className="min-w-0">
-              <p className="text-xs text-gray-400 font-medium uppercase tracking-wide">
+              <p className="text-xs text-gray-400 font-medium uppercase tracking-wide mb-1">
                 Instâncias
               </p>
-              <p className="text-lg sm:text-xl font-bold text-white truncate">
+              <p className="text-lg font-bold text-white truncate">
                 {instancesData.instances.length} / {instancesData.instanceLimit}
               </p>
             </div>
@@ -389,17 +389,17 @@ export default function Aquecimento() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.3 }}
-          className="bg-white/[0.03] rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-white/[0.06] backdrop-blur-sm"
+          className="bg-deep/50 rounded-xl p-4 sm:p-5 border border-electric/30 backdrop-blur-sm hover:bg-deep-purple/60 transition-colors duration-200"
         >
           <div className="flex items-center gap-3">
-            <div className="p-2 bg-gradient-to-r from-neon-blue to-cyan-500 rounded-lg sm:rounded-xl flex-shrink-0">
-              <CheckCircle className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+            <div className="p-2.5 bg-gradient-to-r from-neon-blue to-cyan-500 rounded-lg flex-shrink-0">
+              <CheckCircle className="w-4 h-4 text-white" />
             </div>
             <div className="min-w-0">
-              <p className="text-xs text-gray-400 font-medium uppercase tracking-wide">
+              <p className="text-xs text-gray-400 font-medium uppercase tracking-wide mb-1">
                 Selecionadas
               </p>
-              <p className="text-lg sm:text-xl font-bold text-white">
+              <p className="text-lg font-bold text-white">
                 {selectedInstances.size}
               </p>
             </div>
@@ -410,26 +410,26 @@ export default function Aquecimento() {
           initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.4 }}
-          className="bg-white/[0.03] rounded-xl sm:rounded-2xl p-4 sm:p-6 border border-white/[0.06] backdrop-blur-sm"
+          className="bg-deep/50 rounded-xl p-4 sm:p-5 border border-electric/30 backdrop-blur-sm hover:bg-deep-purple/60 transition-colors duration-200"
         >
           <div className="flex items-center gap-3">
             <div className={cn(
-              "p-2 rounded-lg sm:rounded-xl flex-shrink-0",
+              "p-2.5 rounded-lg flex-shrink-0",
               isWarmingUp
                 ? "bg-gradient-to-r from-neon-green to-emerald-500"
                 : "bg-gradient-to-r from-gray-600 to-gray-700"
             )}>
               <div className={cn(
-                "w-4 h-4 sm:w-5 sm:h-5 rounded-full",
+                "w-4 h-4 rounded-full",
                 isWarmingUp ? "bg-white animate-pulse" : "bg-white/60"
               )} />
             </div>
             <div className="min-w-0">
-              <p className="text-xs text-gray-400 font-medium uppercase tracking-wide">
+              <p className="text-xs text-gray-400 font-medium uppercase tracking-wide mb-1">
                 Status
               </p>
               <p className={cn(
-                "text-lg sm:text-xl font-bold",
+                "text-lg font-bold",
                 isWarmingUp ? "text-neon-green" : "text-gray-400"
               )}>
                 {isWarmingUp ? 'Ativo' : 'Inativo'}
@@ -444,7 +444,7 @@ export default function Aquecimento() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.5 }}
-        className="bg-white/[0.03] rounded-xl sm:rounded-2xl p-6 sm:p-8 border border-white/[0.06] backdrop-blur-sm"
+        className="bg-deep/50 rounded-xl sm:rounded-2xl p-6 sm:p-8 border border-electric/30 backdrop-blur-sm"
         data-tour="instance-selection"
       >
         <div className="mb-6">
@@ -465,49 +465,70 @@ export default function Aquecimento() {
               key={instance.id}
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.6 + index * 0.1 }}
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
+              transition={{ delay: 0.6 + index * 0.05 }}
               className={cn(
-                "relative p-4 sm:p-6 rounded-xl sm:rounded-2xl cursor-pointer transition-all duration-300",
+                "relative p-4 sm:p-5 rounded-xl cursor-pointer transition-all duration-200",
                 "border backdrop-blur-sm",
                 selectedInstances.has(instance.instanceName)
-                  ? "border-neon-green/50 bg-neon-green/5 shadow-lg shadow-neon-green/20"
-                  : "border-white/[0.06] bg-white/[0.02] hover:border-neon-green/30 hover:bg-white/[0.05]"
+                  ? "border-neon-green/40 bg-neon-green/[0.08] shadow-md shadow-neon-green/10"
+                  : "border-electric/30 bg-deep-purple/50 hover:border-neon-green/25 hover:bg-deep-purple/60"
               )}
               onClick={() => toggleInstanceSelection(instance.instanceName)}
             >
               {/* Selection Indicator */}
               {selectedInstances.has(instance.instanceName) && (
                 <motion.div
-                  initial={{ scale: 0 }}
-                  animate={{ scale: 1 }}
-                  className="absolute -top-2 -right-2 bg-gradient-to-r from-neon-green to-emerald-500 text-white p-2 rounded-full shadow-lg"
+                  initial={{ scale: 0, opacity: 0 }}
+                  animate={{ scale: 1, opacity: 1 }}
+                  transition={{ duration: 0.2 }}
+                  className="absolute -top-1 -right-1 bg-gradient-to-r from-neon-green to-emerald-500 text-white p-1.5 rounded-full shadow-md"
                 >
-                  <CheckCircle className="w-4 h-4" />
+                  <CheckCircle className="w-3 h-3" />
                 </motion.div>
               )}
 
-              <div className="flex items-start justify-between mb-4">
-                <div className="flex-1 min-w-0">
-                  <h3 className="font-bold text-lg text-white truncate mb-1">
-                    {instance.instanceName}
-                  </h3>
-                  <p className="text-sm text-gray-400 truncate">
-                    {instance.profileName || 'Sem nome de perfil'}
-                  </p>
-                </div>
+              <div className="flex items-start gap-3 mb-4">
+                {/* Profile Picture */}
+                <Avatar className="relative w-12 h-12 border-2 border-white/20 shadow-lg flex-shrink-0">
+                  <AvatarImage
+                    src={instance.profilePicUrl || ''}
+                    alt={instance.profileName || instance.instanceName}
+                    className="object-cover"
+                  />
+                  <AvatarFallback className="bg-gradient-to-br from-electric to-blue-700 text-white text-sm font-bold">
+                    {instance.profileName || instance.instanceName ? (
+                      (instance.profileName || instance.instanceName)
+                        .charAt(0)
+                        .toUpperCase()
+                    ) : (
+                      <MessageCircle className="w-5 h-5" />
+                    )}
+                  </AvatarFallback>
+                </Avatar>
 
-                {/* Status Indicator */}
-                <div className={cn(
-                  "w-4 h-4 rounded-full border-2 border-white/20 shadow-lg",
-                  instance.connectionStatus === 'OPEN'
-                    ? "bg-gradient-to-r from-emerald-400 to-green-500"
-                    : "bg-gradient-to-r from-red-400 to-red-500"
-                )}>
-                  {instance.connectionStatus === 'OPEN' && (
-                    <div className="absolute inset-0 rounded-full bg-emerald-400 animate-ping opacity-75" />
-                  )}
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-start justify-between">
+                    <div className="flex-1 min-w-0">
+                      <h3 className="font-bold text-lg text-white truncate mb-1">
+                        {instance.instanceName}
+                      </h3>
+                      <p className="text-sm text-gray-400 truncate">
+                        {instance.profileName || 'Sem nome de perfil'}
+                      </p>
+                    </div>
+
+                    {/* Status Indicator */}
+                    <div className={cn(
+                      "relative w-3 h-3 rounded-full shadow-sm flex-shrink-0 ml-2",
+                      instance.connectionStatus === 'OPEN'
+                        ? "bg-emerald-400"
+                        : "bg-red-400"
+                    )}>
+                      {instance.connectionStatus === 'OPEN' && (
+                        <div className="absolute inset-0 rounded-full bg-emerald-400 animate-pulse opacity-50" />
+                      )}
+                    </div>
+                  </div>
                 </div>
               </div>
 
@@ -539,7 +560,7 @@ export default function Aquecimento() {
           initial={{ opacity: 0, x: -20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: 0.7 }}
-          className="bg-white/[0.03] rounded-xl sm:rounded-2xl p-6 sm:p-8 border border-white/[0.06] backdrop-blur-sm"
+          className="bg-deep/50 rounded-xl sm:rounded-2xl p-6 sm:p-8 border border-electric/30 backdrop-blur-sm"
         >
           <div className="mb-6">
             <h3 className="text-xl font-bold text-white flex items-center gap-3 mb-2">
@@ -558,7 +579,7 @@ export default function Aquecimento() {
                 placeholder="Digite seu texto aqui..."
                 value={currentText}
                 onChange={(e) => setCurrentText(e.target.value)}
-                className="min-h-[100px] bg-white/[0.05] border-white/[0.1] text-white placeholder:text-gray-500 focus:border-neon-green/50 focus:ring-neon-green/20"
+                className="min-h-[100px] bg-deep/50 border-electric/30 text-white placeholder:text-gray-500 focus:border-neon-green/50 focus:ring-neon-green/20"
               />
               <Button
                 onClick={addText}
@@ -577,7 +598,7 @@ export default function Aquecimento() {
                       key={index}
                       initial={{ opacity: 0, x: -20 }}
                       animate={{ opacity: 1, x: 0 }}
-                      className="flex items-start justify-between p-3 bg-white/[0.05] rounded-lg border border-white/[0.1]"
+                      className="flex items-start justify-between p-3 bg-deep/50 rounded-lg border border-electric/30"
                     >
                       <span className="text-sm text-gray-300 flex-1 pr-2">{text}</span>
                       <Button
@@ -601,7 +622,7 @@ export default function Aquecimento() {
           initial={{ opacity: 0, x: 20 }}
           animate={{ opacity: 1, x: 0 }}
           transition={{ delay: 0.8 }}
-          className="bg-white/[0.03] rounded-xl sm:rounded-2xl p-6 sm:p-8 border border-white/[0.06] backdrop-blur-sm"
+          className="bg-deep/50 rounded-xl sm:rounded-2xl p-6 sm:p-8 border border-electric/30 backdrop-blur-sm"
         >
           <div className="mb-6">
             <h3 className="text-xl font-bold text-white flex items-center gap-3 mb-2">
@@ -624,8 +645,8 @@ export default function Aquecimento() {
                     className={cn(
                       "justify-start gap-2 transition-all",
                       mediaType === value
-                        ? "bg-gradient-to-r from-neon-blue to-cyan-500 text-white border-0"
-                        : "bg-white/[0.05] border-white/[0.1] text-gray-300 hover:bg-white/[0.08] hover:border-neon-blue/50"
+                        ? "bg-gradient-to-r from-electric to-neon-blue/20 text-white border-0 hover:from-electric hover:to-neon-green"
+                        : "bg-blue-500/10 border-blue-500/20 text-gray-300 hover:bg-blue-600/20 hover:border-neon-blue/50"
                     )}
                   >
                     <Icon className="w-4 h-4" />
@@ -636,20 +657,36 @@ export default function Aquecimento() {
             </div>
 
             <div className="space-y-3">
-              <Label htmlFor="file-upload" className="text-gray-300">Selecionar Arquivos</Label>
-              <Input
-                id="file-upload"
-                type="file"
-                multiple
-                onChange={handleFileUpload}
-                accept={
-                  mediaType === 'image' ? 'image/*' :
-                    mediaType === 'video' ? 'video/*' :
-                      mediaType === 'audio' ? 'audio/*' :
-                        'image/webp'
-                }
-                className="bg-white/[0.05] border-white/[0.1] text-white file:bg-gradient-to-r file:from-electric file:to-blue-700 file:text-white file:border-0 file:rounded-lg file:px-4 file:py-2 file:mr-4 hover:bg-white/[0.08]"
-              />
+              <Label className="text-gray-300">Selecionar Arquivos</Label>
+              <div className="relative">
+                <input
+                  id="file-upload"
+                  type="file"
+                  multiple
+                  onChange={handleFileUpload}
+                  accept={
+                    mediaType === 'image' ? 'image/*' :
+                      mediaType === 'video' ? 'video/*' :
+                        mediaType === 'audio' ? 'audio/*' :
+                          'image/webp'
+                  }
+                  className="absolute inset-0 w-full h-full opacity-0 cursor-pointer z-10"
+                />
+                <div className="flex items-center justify-center w-full h-32 border-2 border-dashed border-electric/30 rounded-xl bg-deep/50 hover:bg-deep-purple/60 hover:border-neon-blue/40 transition-all duration-300 cursor-pointer group">
+                  <div className="text-center">
+                    <Upload className="w-8 h-8 text-gray-400 group-hover:text-neon-blue mx-auto mb-2 transition-colors" />
+                    <p className="text-sm text-gray-400 group-hover:text-gray-300 transition-colors">
+                      Clique ou arraste arquivos aqui
+                    </p>
+                    <p className="text-xs text-gray-500 mt-1">
+                      {mediaType === 'image' ? 'Imagens (JPG, PNG, GIF)' :
+                        mediaType === 'video' ? 'Vídeos (MP4, MOV, AVI)' :
+                          mediaType === 'audio' ? 'Áudios (MP3, WAV, M4A)' :
+                            'Stickers (WebP)'}
+                    </p>
+                  </div>
+                </div>
+              </div>
             </div>
 
             {/* Preview de Mídia */}
@@ -658,32 +695,35 @@ export default function Aquecimento() {
                 <Label className="text-gray-300">
                   Preview ({media[mediaType === 'sticker' ? 'stickers' : `${mediaType}s` as keyof typeof media].length})
                 </Label>
-                <div className="grid grid-cols-3 gap-3">
+                <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
                   {media[mediaType === 'sticker' ? 'stickers' : `${mediaType}s` as keyof typeof media].map((item, index) => (
                     <div key={index} className="relative group">
-                      <div className="bg-white/[0.05] rounded-lg border border-white/[0.1] overflow-hidden">
+                      <div className="bg-deep/50 rounded-lg border border-electric/30 overflow-hidden aspect-square">
                         {mediaType === 'image' || mediaType === 'sticker' ? (
                           <img
                             src={item.preview}
                             alt={item.fileName}
-                            className="w-full h-20 object-cover"
+                            className="w-full h-full object-cover"
                           />
                         ) : mediaType === 'video' ? (
                           <video
                             src={item.preview}
-                            className="w-full h-20 object-cover"
-                            controls
+                            className="w-full h-full object-cover"
+                            muted
                           />
                         ) : (
-                          <div className="w-full h-20 flex items-center justify-center">
-                            <Music className="w-6 h-6 text-gray-400" />
+                          <div className="w-full h-full flex flex-col items-center justify-center bg-gradient-to-br from-purple-500/10 to-pink-500/10">
+                            <Music className="w-6 h-6 text-gray-400 mb-1" />
+                            <span className="text-xs text-gray-500 text-center px-1 truncate w-full">
+                              {item.fileName}
+                            </span>
                           </div>
                         )}
                       </div>
                       <Button
-                        variant="destructive"
+                        variant="ghost"
                         size="sm"
-                        className="absolute -top-2 -right-2 opacity-0 group-hover:opacity-100 transition-opacity bg-red-500 hover:bg-red-600 text-white p-1 rounded-full"
+                        className="absolute -top-1 -right-1 opacity-0 group-hover:opacity-100 transition-opacity bg-red-500/80 hover:bg-red-500 text-white p-1 rounded-full h-6 w-6"
                         onClick={() => removeMedia(index, mediaType === 'sticker' ? 'stickers' : `${mediaType}s` as keyof typeof media)}
                       >
                         <Trash2 className="w-3 h-3" />
@@ -702,7 +742,7 @@ export default function Aquecimento() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.9 }}
-        className="bg-white/[0.03] rounded-xl sm:rounded-2xl p-6 sm:p-8 border border-white/[0.06] backdrop-blur-sm"
+        className="bg-deep/50 rounded-xl sm:rounded-2xl p-6 sm:p-8 border border-electric/30 backdrop-blur-sm"
       >
         <div className="mb-6">
           <h3 className="text-xl font-bold text-white flex items-center gap-3 mb-2">
@@ -744,23 +784,23 @@ export default function Aquecimento() {
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 1.0 }}
-        className="bg-white/[0.03] rounded-xl sm:rounded-2xl p-6 sm:p-8 border border-white/[0.06] backdrop-blur-sm"
+        className="bg-deep/50 rounded-xl sm:rounded-2xl p-6 sm:p-8 border border-electric/30 backdrop-blur-sm"
       >
-        <div className="flex flex-col sm:flex-row justify-end gap-4">
+        <div className="flex flex-col sm:flex-row justify-center sm:justify-end gap-4">
           {!isWarmingUp ? (
             <Button
               onClick={onStartWarmup}
               disabled={startingWarmup || selectedInstances.size < 2}
-              className="bg-gradient-to-r from-neon-green via-emerald-500 to-neon-blue hover:from-neon-green/80 hover:via-emerald-500/80 hover:to-neon-blue/80 text-white border-0 px-8 py-3 text-lg font-semibold shadow-lg shadow-neon-green/20 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="bg-gradient-to-r from-neon-green via-emerald-500 to-neon-blue hover:from-neon-green/90 hover:via-emerald-500/90 hover:to-neon-blue/90 text-white border-0 px-8 py-3 text-base font-semibold shadow-lg shadow-neon-green/25 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
             >
               {startingWarmup ? (
                 <>
-                  <Loader2 className="w-5 h-5 mr-3 animate-spin" />
+                  <Loader2 className="w-5 h-5 mr-2 animate-spin" />
                   Iniciando...
                 </>
               ) : (
                 <>
-                  <Play className="w-5 h-5 mr-3" />
+                  <Play className="w-5 h-5 mr-2" />
                   Iniciar Aquecimento
                 </>
               )}
@@ -769,16 +809,16 @@ export default function Aquecimento() {
             <Button
               onClick={onStopWarmup}
               disabled={stoppingWarmup}
-              className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white border-0 px-8 py-3 text-lg font-semibold shadow-lg shadow-red-500/20 disabled:opacity-50 disabled:cursor-not-allowed"
+              className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white border-0 px-8 py-3 text-base font-semibold shadow-lg shadow-red-500/25 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
             >
               {stoppingWarmup ? (
                 <>
-                  <Loader2 className="w-5 h-5 mr-3 animate-spin" />
+                  <Loader2 className="w-5 h-5 mr-2 animate-spin" />
                   Parando...
                 </>
               ) : (
                 <>
-                  <Square className="w-5 h-5 mr-3" />
+                  <Square className="w-5 h-5 mr-2" />
                   Parar Aquecimento
                 </>
               )}
