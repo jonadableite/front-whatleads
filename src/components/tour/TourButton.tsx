@@ -50,7 +50,7 @@ export function TourButton({ variant = 'default', className }: TourButtonProps) 
                 <Button
                   size="lg"
                   className="rounded-full w-16 h-16 bg-gradient-to-r from-neon-green via-emerald-500 to-neon-blue hover:from-neon-green/90 hover:via-emerald-500/90 hover:to-neon-blue/90 text-white border-0 shadow-2xl shadow-neon-green/50 transition-all duration-300"
-                  title="Iniciar Tour Guiado"
+                  title="Iniciar Como Usar a Plataforma"
                 >
                   <HelpCircle className="w-7 h-7" />
                 </Button>
@@ -100,7 +100,7 @@ export function TourButton({ variant = 'default', className }: TourButtonProps) 
         className={cn('text-white/60 hover:text-white hover:bg-white/10', className)}
       >
         <HelpCircle className="w-4 h-4 mr-2" />
-        Tour Guiado
+        Como Usar a Plataforma
       </Button>
     );
   }
@@ -116,7 +116,7 @@ export function TourButton({ variant = 'default', className }: TourButtonProps) 
           )}
         >
           <BookOpen className="w-4 h-4 mr-2" />
-          Tour Guiado
+          Como Usar a Plataforma
         </Button>
       </DropdownMenuTrigger>
       <DropdownMenuContent align="end" className="w-64 bg-deep/95 backdrop-blur-xl border-electric/30">
