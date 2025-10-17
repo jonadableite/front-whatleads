@@ -1,6 +1,19 @@
 // src/pages/Dashboard.tsx
 import CustomDatePicker from "@/components/CustomDatePicker";
 import { BarChart, LineChart, PieChart } from "@/components/charts";
+import {
+	Area,
+	AreaChart,
+	CartesianGrid,
+	PolarAngleAxis,
+	PolarGrid,
+	Radar,
+	RadarChart,
+	ResponsiveContainer,
+	Tooltip as RechartsTooltip,
+	XAxis,
+	YAxis,
+} from "recharts";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -18,9 +31,14 @@ import {
 	CheckCircle,
 	Clock,
 	Eye,
+	MessageCircle,
 	Send,
 	Server,
+	Thermometer,
+	TrendingUp,
 	User,
+	X,
+	Zap,
 } from "lucide-react";
 import { useState, useEffect } from "react";
 import useSWR, { mutate } from "swr";
@@ -33,6 +51,64 @@ interface WarmupStat {
 	warmupTime: number;
 	createdAt: string;
 	updatedAt: string;
+}
+
+interface WarmupDashboardStats {
+	totalWarmups: number;
+	activeInstances: number;
+	totalMessages: number;
+	averageTime: string;
+	instanceProgress: Array<{
+		label: string;
+		value: number;
+		color: string;
+	}>;
+	messageTypes: Array<{
+		label: string;
+		value: number;
+	}>;
+	instances: Array<{
+		id: string;
+		instanceName: string;
+		status: string;
+		messagesSent: number;
+		messagesReceived: number;
+		warmupTime: number;
+		lastActive: string;
+		progress: number;
+		instance: {
+			connectionStatus: string;
+			ownerJid?: string;
+			profilePicUrl?: string;
+			profileName?: string;
+		};
+		mediaStats?: {
+			text: number;
+			image: number;
+			video: number;
+			audio: number;
+			sticker: number;
+			reaction: number;
+		} | null;
+		mediaReceived?: {
+			text: number;
+			image: number;
+			video: number;
+			audio: number;
+			sticker: number;
+			reaction: number;
+		} | null;
+	}>;
+	previousPeriod?: {
+		totalWarmups: number;
+		activeInstances: number;
+		averageTime: number;
+	};
+	// Propriedades calculadas
+	warmupTrend?: number;
+	instanceTrend?: number;
+	messageTrend?: number;
+	timeTrend?: number;
 }
 
 interface Instance {
@@ -53,24 +129,8 @@ interface Instance {
 	};
 }
 
-interface Campaign {
-	id: string;
-	name: string;
-	status: string;
-	startedAt?: string;
-	completedAt?: string;
-	updatedAt: string;
-}
-
-interface MessageLog {
-	id: string;
-	status: string;
-	sentAt?: string;
-	createdAt: string;
-	lead?: { phone: string };
-	campaignLead?: { phone: string };
-	campaign?: { name: string };
-}
+// Interfaces removidas pois não estão sendo usadas diretamente
+// Os tipos são inferidos dos dados da API
 interface Activity {
 	id: string;
 	type: 'campaign' | 'instance' | 'message' | 'warning' | 'info';
@@ -91,6 +151,23 @@ interface InstanceHealth {
 	messagesReceived?: number;
 	warmupProgress?: number;
 	warmupTime?: number;
+	mediaStats?: {
+		text: number;
+		image: number;
+		video: number;
+		audio: number;
+		sticker: number;
+		reaction: number;
+	};
+	receivedStats?: {
+		text: number;
+		image: number;
+		video: number;
+		audio: number;
+		sticker: number;
+		reaction: number;
+		totalAllTime: number;
+	} | null;
 }
 
 // Interface para estatísticas de mensagens em tempo real
@@ -122,20 +199,36 @@ const itemVariants = {
 	},
 };
 
-const StatCard = ({ icon: Icon, title, value, description }) => (
+// StatCard removido - usando TerminalCard no lugar
+
+const WarmupStatCard = ({ icon: Icon, title, value, trend, color, description }) => (
 	<motion.div
 		variants={itemVariants}
-		className="bg-deep/80 backdrop-blur-xl p-6 rounded-xl border border-electric shadow-lg hover:shadow-electric transition-all duration-300"
+		className={`relative overflow-hidden bg-gradient-to-br ${color} rounded-xl p-6 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105`}
 	>
-		<div className="flex items-center justify-between mb-4">
-			<div className="p-2 bg-electric/10 rounded-lg">
-				<Icon className="text-electric w-6 h-6" />
-			</div>
-			<span className="text-sm text-white/60">24h</span>
+		<div className="absolute top-0 right-0 mt-4 mr-4">
+			<Icon className="w-8 h-8 text-white/30" />
 		</div>
-		<h3 className="text-2xl font-bold text-white mb-1">{value}</h3>
-		<p className="text-sm text-white/60">{title}</p>
-		<p className="text-xs text-white/40 mt-1">{description}</p>
+		<div className="relative z-10">
+			<h3 className="text-sm font-medium text-white/80 mb-1">{title}</h3>
+			<p className="text-3xl font-bold text-white mb-2">{value}</p>
+			<p className="text-sm text-white/70">{description}</p>
+			{trend && (
+				<div className="mt-4 flex items-center gap-2">
+					<div
+						className={`flex items-center text-sm ${trend.direction === "up" ? "text-green-200" : "text-red-200"
+							} bg-white/10 px-2 py-1 rounded-full`}
+					>
+						{trend.direction === "up" ? "↑" : "↓"}
+						<span className="ml-1">{trend.percentage}%</span>
+					</div>
+					<span className="text-xs text-white/60">vs. período anterior</span>
+				</div>
+			)}
+		</div>
+		<div className="absolute bottom-0 right-0 transform translate-y-1/3 translate-x-1/3">
+			<div className="w-24 h-24 bg-white/10 rounded-full" />
+		</div>
 	</motion.div>
 );
 
@@ -339,6 +432,9 @@ export default function Dashboard() {
 		pending: 0
 	});
 
+	// Estado para modal de detalhes da instância
+	const [selectedInstanceDetails, setSelectedInstanceDetails] = useState<InstanceHealth | null>(null);
+
 	// Preparar URLs para SWR
 	const adjustedDate = addDays(selectedDate, 1);
 	const formattedDate = format(adjustedDate, "yyyy-MM-dd");
@@ -381,6 +477,17 @@ export default function Dashboard() {
 	const { data: campaignsData } = useSWR('/api/campaigns', fetcher);
 	const { data: messageLogsData } = useSWR('/api/message-logs', fetcher);
 
+	// Hook para dados de aquecimento
+	const { data: warmupData, error: warmupError } = useSWR(
+		'/api/dashboard',
+		fetcher,
+		{
+			refreshInterval: 30000, // Atualizar a cada 30 segundos
+			errorRetryCount: 3,
+			shouldRetryOnError: true
+		}
+	);
+
 	// Socket.IO para atualizações em tempo real
 	const socket = useConversationSocket();
 
@@ -398,13 +505,14 @@ export default function Dashboard() {
 			console.log('[Dashboard] Status de mensagem atualizado:', data);
 
 			// Atualizar contadores em tempo real baseado no status
-			if (data.status && data.previousStatus) {
+			if (data.status) {
 				setMessageStats(prev => {
 					const newStats = { ...prev };
 
-					// Remover da categoria anterior se existir
-					if (data.previousStatus) {
-						switch (data.previousStatus.toLowerCase()) {
+					// Remover da categoria anterior se existir (assumindo que existe previousStatus no contexto)
+					const previousStatus = (data as { previousStatus?: string }).previousStatus;
+					if (previousStatus) {
+						switch (previousStatus.toLowerCase()) {
 							case 'read':
 								newStats.read = Math.max(0, newStats.read - 1);
 								break;
@@ -449,7 +557,7 @@ export default function Dashboard() {
 					}
 
 					console.log('[Dashboard] Estatísticas atualizadas:', {
-						previous: data.previousStatus,
+						previous: previousStatus,
 						current: data.status,
 						newStats
 					});
@@ -484,6 +592,57 @@ export default function Dashboard() {
 	const error = dashboardError || instancesError || leadsError || messagesByDayError;
 	const instances = instancesData?.instances || [];
 	const messagesByDay = messagesByDayData?.messagesByDay || {};
+
+	// Processar dados de aquecimento - apenas dados reais
+	const processWarmupData = (): WarmupDashboardStats => {
+		// Se não há dados da API, retornar estrutura vazia
+		if (!warmupData || warmupError) {
+			return {
+				totalWarmups: 0,
+				activeInstances: 0,
+				totalMessages: 0,
+				averageTime: "0h",
+				instanceProgress: [],
+				messageTypes: [
+					{ label: "Text", value: 0 },
+					{ label: "Image", value: 0 },
+					{ label: "Video", value: 0 },
+					{ label: "Audio", value: 0 },
+					{ label: "Sticker", value: 0 },
+					{ label: "Reaction", value: 0 }
+				],
+				instances: []
+			};
+		}
+
+		// Usar dados reais da API
+		const data = warmupData as WarmupDashboardStats;
+
+		// Garantir que messageTypes tenha todos os tipos necessários
+		const requiredTypes = ["Text", "Image", "Video", "Audio", "Sticker", "Reaction"];
+		const completeMessageTypes = requiredTypes.map(type => {
+			const existing = data.messageTypes?.find(mt => mt.label === type);
+			return existing || { label: type, value: 0 };
+		});
+
+		// Calcular tendências se há dados do período anterior
+		const calculateTrend = (current: number, previous: number) => {
+			if (previous === 0) return current > 0 ? 100 : 0;
+			return Math.round(((current - previous) / previous) * 100);
+		};
+
+		return {
+			...data,
+			messageTypes: completeMessageTypes,
+			// Adicionar tendências calculadas
+			warmupTrend: data.previousPeriod ? calculateTrend(data.totalWarmups, data.previousPeriod.totalWarmups) : 0,
+			instanceTrend: data.previousPeriod ? calculateTrend(data.activeInstances, data.previousPeriod.activeInstances) : 0,
+			messageTrend: 0, // Será calculado se necessário
+			timeTrend: data.previousPeriod ? calculateTrend(parseFloat(data.averageTime), data.previousPeriod.averageTime) : 0
+		};
+	};
+
+	const warmupStats = processWarmupData();
 
 	// Função para gerar atividades recentes baseadas em dados reais
 	const generateRecentActivities = (): Activity[] => {
@@ -709,91 +868,62 @@ export default function Dashboard() {
 		return sortedActivities;
 	};
 
-	// Preparar dados de saúde das instâncias com fallback
-	const prepareInstancesHealth = (instances: Instance[]): InstanceHealth[] => {
-		if (!Array.isArray(instances)) return [];
+	// Preparar dados de saúde das instâncias usando dados reais da API de aquecimento
+	const prepareInstancesHealth = (): InstanceHealth[] => {
+		// Se não há dados de aquecimento, usar dados das instâncias normais
+		if (!warmupStats.instances || warmupStats.instances.length === 0) {
+			return instances.map((instance: Instance) => ({
+				profileName: instance.profileName || '',
+				instanceName: instance.instanceName || 'Instância',
+				status: instance.connectionStatus || 'DISCONNECTED',
+				ownerJid: instance.ownerJid,
+				profilePicUrl: instance.profilePicUrl,
+				lastActive: instance.lastActive ? new Date(instance.lastActive) : undefined,
+				messagesSent: 0,
+				messagesReceived: 0,
+				warmupProgress: 0,
+				warmupTime: 0,
+				mediaStats: undefined,
+				receivedStats: null,
+			}));
+		}
 
-		console.log('Dashboard - Dados recebidos das instâncias:', instances);
-
-		return instances.map((instance: Instance) => {
-			// Usar dados reais de warmupStatus se disponíveis (já calculado pelo backend)
-			let warmupProgress = 0;
-			let warmupTime = 0;
-			let messagesSent = 0;
-			let messagesReceived = 0;
-
-			console.log(`Dashboard - Processando instância ${instance.instanceName}:`, {
-				warmupStatus: instance.warmupStatus,
-				warmupStats: instance.warmupStats,
-				connectionStatus: instance.connectionStatus
-			});
-
-			// Priorizar warmupStats se disponível, senão usar warmupStatus
-			if (instance.warmupStats && Array.isArray(instance.warmupStats) && instance.warmupStats.length > 0) {
-				// Ordenar por createdAt e pegar o mais recente
-				const sortedStats = instance.warmupStats.sort((a: WarmupStat, b: WarmupStat) =>
-					new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime()
-				);
-				const latestStat = sortedStats[0];
-
-				if (latestStat && latestStat.warmupTime) {
-					warmupTime = latestStat.warmupTime;
-					warmupProgress = Math.min((warmupTime / (400 * 3600)) * 100, 100);
-				}
-
-				console.log(`Dashboard - Usando warmupStats para ${instance.instanceName}:`, {
-					warmupTime,
-					progress: warmupProgress,
-					latestStat
-				});
-			}
-			// Usar warmupStatus do backend se warmupStats não estiver disponível
-			else if (instance.warmupStatus && instance.warmupStatus.progress > 0) {
-				warmupProgress = instance.warmupStatus.progress || 0;
-				warmupTime = instance.warmupStatus.warmupHours ? instance.warmupStatus.warmupHours * 3600 : 0;
-
-				console.log(`Dashboard - Usando warmupStatus para ${instance.instanceName}:`, {
-					progress: warmupProgress,
-					warmupHours: instance.warmupStatus.warmupHours
-				});
-			}
-			// Fallback: simular baseado no status e tempo ativo (apenas se não houver dados reais)
-			else {
-				console.log(`Dashboard - Usando fallback para ${instance.instanceName}`);
-
-				const now = new Date();
-				const createdAt = instance.createdAt ? new Date(instance.createdAt) : now;
-				const hoursActive = Math.max(0, (now.getTime() - createdAt.getTime()) / (1000 * 60 * 60));
-
-				if (instance.connectionStatus === 'OPEN') {
-					// Usar 400 horas como o backend para consistência
-					warmupTime = Math.min(hoursActive * 3600, 400 * 3600); // Máximo 400 horas em segundos
-					warmupProgress = Math.min((warmupTime / (400 * 3600)) * 100, 100);
-				}
-			}
-
-			// Calcular mensagens baseado no progresso (mantendo a lógica existente)
-			if (warmupProgress > 0) {
-				messagesSent = Math.floor(warmupProgress * 2); // 2 mensagens por % de progresso
-				messagesReceived = Math.floor(warmupProgress * 1.5); // 1.5 mensagens recebidas por % de progresso
-			}
+		// Usar dados reais da API de aquecimento
+		return warmupStats.instances.map((warmupInstance) => {
+			// Calcular progresso baseado no warmupTime (400 horas = 100%)
+			const warmupProgress = warmupInstance.warmupTime > 0
+				? Math.min((warmupInstance.warmupTime / (400 * 3600)) * 100, 100)
+				: 0;
 
 			return {
-				profileName: instance.profileName || instance.profileName || '',
-				instanceName: instance.instanceName || instance.name || 'Instância',
-				status: instance.connectionStatus || 'DISCONNECTED',
-				ownerJid: instance.ownerJid || instance.owner,
-				profilePicUrl: instance.profilePicUrl,
-				messagesSent,
-				messagesReceived,
+				profileName: warmupInstance.instance.profileName || warmupInstance.instanceName,
+				instanceName: warmupInstance.instanceName,
+				status: warmupInstance.instance.connectionStatus || 'DISCONNECTED',
+				ownerJid: warmupInstance.instance.ownerJid,
+				profilePicUrl: warmupInstance.instance.profilePicUrl,
+				lastActive: warmupInstance.lastActive ? new Date(warmupInstance.lastActive) : undefined,
+				messagesSent: warmupInstance.messagesSent || 0,
+				messagesReceived: warmupInstance.messagesReceived || 0,
 				warmupProgress,
-				warmupTime
+				warmupTime: warmupInstance.warmupTime || 0,
+				// Usar dados reais de mediaStats se disponíveis
+				mediaStats: warmupInstance.mediaStats || undefined,
+				// Usar dados reais de mediaReceived se disponíveis
+				receivedStats: warmupInstance.mediaReceived ? {
+					...warmupInstance.mediaReceived,
+					totalAllTime: warmupInstance.mediaReceived.text +
+						warmupInstance.mediaReceived.image +
+						warmupInstance.mediaReceived.video +
+						warmupInstance.mediaReceived.audio +
+						warmupInstance.mediaReceived.sticker +
+						warmupInstance.mediaReceived.reaction
+				} : null,
 			};
 		});
 	};
 
 	const recentActivities = generateRecentActivities();
-	const instancesHealth = prepareInstancesHealth(instances);
+	const instancesHealth = prepareInstancesHealth();
 
 	const processSegmentData = (data: { data?: { leads?: Array<{ segment?: string }> }; leads?: Array<{ segment?: string }> } | Array<{ segment?: string }>) => {
 		let leads: Array<{ segment?: string }> = [];
@@ -971,7 +1101,7 @@ export default function Dashboard() {
 						</SelectTrigger>
 						<SelectContent>
 							<SelectItem value="all">Todas as campanhas</SelectItem>
-							{campaignsData && Array.isArray(campaignsData) && campaignsData.map((campaign: any) => (
+							{campaignsData && Array.isArray(campaignsData) && campaignsData.map((campaign: { id: string; name: string }) => (
 								<SelectItem key={campaign.id} value={campaign.id}>
 									{campaign.name}
 								</SelectItem>
@@ -985,7 +1115,7 @@ export default function Dashboard() {
 						</SelectTrigger>
 						<SelectContent>
 							<SelectItem value="all">Todas as instâncias</SelectItem>
-							{instancesData && Array.isArray(instancesData) && instancesData.map((instance: any) => (
+							{instancesData && Array.isArray(instancesData) && instancesData.map((instance: { id: string; instanceName: string }) => (
 								<SelectItem key={instance.id} value={instance.instanceName}>
 									{instance.instanceName}
 								</SelectItem>
@@ -999,6 +1129,173 @@ export default function Dashboard() {
 					<TerminalCard key={index} {...stat} />
 				))}
 			</div>
+
+			{/* Seção de Aquecimento */}
+			<motion.div
+				variants={itemVariants}
+				className="mb-8"
+			>
+				<div className="flex items-center justify-between mb-6">
+					<div className="flex items-center gap-3">
+						<div className="p-2 bg-neon-green/10 rounded-lg">
+							<Thermometer className="text-neon-green w-6 h-6" />
+						</div>
+						<div>
+							<h2 className="text-2xl font-bold text-white">Sistema de Aquecimento</h2>
+							<p className="text-white/60">Monitoramento em tempo real do aquecimento das instâncias</p>
+						</div>
+					</div>
+					<div className="flex items-center gap-2 text-sm text-white/60">
+						<Zap className="w-4 h-4" />
+						<span>Atualizado em tempo real</span>
+					</div>
+				</div>
+
+				<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-6">
+					<WarmupStatCard
+						icon={TrendingUp}
+						title="Total de Aquecimentos"
+						value={warmupStats.totalWarmups}
+						trend={{ direction: (warmupStats.warmupTrend || 0) >= 0 ? "up" : "down", percentage: Math.abs(warmupStats.warmupTrend || 0) }}
+						color="from-emerald-400 to-teal-600"
+						description="Instâncias em processo de aquecimento"
+					/>
+					<WarmupStatCard
+						icon={Activity}
+						title="Instâncias Ativas"
+						value={warmupStats.activeInstances}
+						trend={{ direction: (warmupStats.instanceTrend || 0) >= 0 ? "up" : "down", percentage: Math.abs(warmupStats.instanceTrend || 0) }}
+						color="from-blue-400 to-indigo-600"
+						description="Instâncias atualmente aquecendo"
+					/>
+					{/* <WarmupStatCard
+						icon={MessageCircle}
+						title="Mensagens Enviadas"
+						value={warmupStats.totalMessages.toLocaleString()}
+						trend={{ direction: warmupStats.messageTrend >= 0 ? "up" : "down", percentage: Math.abs(warmupStats.messageTrend) }}
+						color="from-violet-400 to-purple-600"
+						description="Total de mensagens de aquecimento"
+					/> */}
+					<WarmupStatCard
+						icon={Clock}
+						title="Tempo Médio"
+						value={warmupStats.averageTime}
+						trend={{ direction: (warmupStats.timeTrend || 0) >= 0 ? "up" : "down", percentage: Math.abs(warmupStats.timeTrend || 0) }}
+						color="from-pink-400 to-rose-600"
+						description="Tempo médio de aquecimento"
+					/>
+				</div>
+
+				{/* Gráficos de Aquecimento */}
+				<div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-6">
+					<motion.div
+						variants={itemVariants}
+						className="bg-deep/80 backdrop-blur-xl p-6 rounded-xl border border-electric/30"
+					>
+						<h3 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
+							<TrendingUp className="w-5 h-5 text-neon-green" />
+							Progresso das Instâncias
+						</h3>
+						<div className="space-y-4">
+							{instancesHealth.length > 0 ? (
+								instancesHealth.map((instance, index) => (
+									<div key={index} className="flex items-center mb-4">
+										<div className="flex-grow mr-4">
+											<ProgressBar
+												label={instance.instanceName}
+												value={instance.warmupProgress || 0}
+												color={
+													(instance.warmupProgress || 0) >= 100
+														? "bg-gradient-to-r from-neon-green to-green-400"
+														: (instance.warmupProgress || 0) >= 75
+															? "bg-gradient-to-r from-yellow-400 to-orange-400"
+															: (instance.warmupProgress || 0) >= 50
+																? "bg-gradient-to-r from-neon-blue to-blue-400"
+																: (instance.warmupProgress || 0) >= 25
+																	? "bg-gradient-to-r from-purple-400 to-pink-400"
+																	: "bg-gradient-to-r from-red-400 to-red-500"
+												}
+											/>
+										</div>
+										<button
+											className="text-neon-blue hover:text-neon-green transition-colors duration-200 p-2 rounded-lg hover:bg-white/10"
+											onClick={() => setSelectedInstanceDetails(instance)}
+											title="Ver detalhes da instância"
+										>
+											<Eye className="w-6 h-6" />
+										</button>
+									</div>
+								))
+							) : (
+								<div className="text-center py-8">
+									<Thermometer className="w-12 h-12 text-white/40 mx-auto mb-4" />
+									<p className="text-white/60">Nenhuma instância em aquecimento</p>
+								</div>
+							)}
+						</div>
+					</motion.div>
+
+					<motion.div
+						variants={itemVariants}
+						className="bg-deep/80 backdrop-blur-xl p-6 rounded-xl border border-electric/30"
+					>
+						<h3 className="text-xl font-bold text-white mb-6 flex items-center gap-2">
+							<MessageCircle className="w-5 h-5 text-neon-blue" />
+							Distribuição de Mensagens
+						</h3>
+						<ResponsiveContainer width="100%" height={350}>
+							<RadarChart
+								cx="50%"
+								cy="50%"
+								outerRadius="80%"
+								data={warmupStats.messageTypes}
+							>
+								<PolarGrid
+									stroke="rgba(0, 255, 136, 0.2)"
+									strokeDasharray="2 2"
+									gridType="polygon"
+								/>
+								<PolarAngleAxis
+									dataKey="label"
+									tick={{
+										fill: "#00d4ff",
+										fontSize: 13,
+										fontWeight: 600,
+									}}
+									className="text-neon-blue"
+								/>
+								<Radar
+									name="Distribuição"
+									dataKey="value"
+									stroke="#00ff88"
+									fill="#00ff88"
+									fillOpacity={0.4}
+									strokeWidth={2}
+									dot={{ fill: "#00ff88", strokeWidth: 2, r: 4 }}
+								/>
+								<RechartsTooltip
+									cursor={{
+										stroke: "rgba(0, 255, 136, 0.5)",
+										strokeWidth: 2,
+									}}
+									contentStyle={{
+										backgroundColor: "rgba(0, 20, 40, 0.95)",
+										borderRadius: "12px",
+										color: "white",
+										border: "1px solid #00ff88",
+										boxShadow: "0 8px 32px rgba(0, 255, 136, 0.3)",
+									}}
+									labelStyle={{
+										color: "#00d4ff",
+										fontWeight: "bold",
+									}}
+									formatter={(value, name) => [`${value}%`, name]}
+								/>
+							</RadarChart>
+						</ResponsiveContainer>
+					</motion.div>
+				</div>
+			</motion.div>
 			<div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-8">
 				<motion.div
 					variants={itemVariants}
@@ -1119,6 +1416,240 @@ export default function Dashboard() {
 					</div>
 				</motion.div>
 			</div>
+
+			{/* Modal de Detalhes da Instância */}
+			{selectedInstanceDetails && (
+				<div className="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50">
+					<motion.div
+						initial={{ opacity: 0, scale: 0.9 }}
+						animate={{ opacity: 1, scale: 1 }}
+						exit={{ opacity: 0, scale: 0.9 }}
+						className="bg-deep/95 backdrop-blur-xl rounded-2xl p-8 max-w-5xl w-full max-h-[90vh] overflow-y-auto shadow-2xl border border-electric/30 mx-4"
+					>
+						<div className="flex items-center justify-between mb-6">
+							<h3 className="text-2xl font-bold text-white flex items-center gap-3">
+								<div className="p-2 bg-neon-green/10 rounded-lg">
+									<Server className="w-6 h-6 text-neon-green" />
+								</div>
+								Detalhes da Instância: {selectedInstanceDetails.instanceName}
+							</h3>
+							<button
+								onClick={() => setSelectedInstanceDetails(null)}
+								className="p-2 hover:bg-white/10 rounded-lg transition-colors duration-200 text-white/60 hover:text-white"
+							>
+								<X className="w-6 h-6" />
+							</button>
+						</div>
+
+						<div className="grid md:grid-cols-3 gap-6">
+							{/* Coluna de Informações Básicas */}
+							<div className="bg-deep/60 rounded-xl p-6 border border-electric/20">
+								<h4 className="text-lg font-semibold mb-4 text-white flex items-center gap-2">
+									<Activity className="w-5 h-5 text-neon-blue" />
+									Informações Básicas
+								</h4>
+								<div className="space-y-3">
+									<div className="flex justify-between items-center">
+										<span className="font-medium text-white/70">Status:</span>
+										<span
+											className={`font-bold px-3 py-1 rounded-full text-sm ${selectedInstanceDetails.status === "OPEN" || selectedInstanceDetails.status === "CONNECTED"
+												? "bg-neon-green/20 text-neon-green"
+												: "bg-red-500/20 text-red-400"
+												}`}
+										>
+											{selectedInstanceDetails.status === "OPEN" ? "CONECTADO" :
+												selectedInstanceDetails.status === "CONNECTED" ? "CONECTADO" :
+													selectedInstanceDetails.status === "CONNECTING" ? "CONECTANDO" : "DESCONECTADO"}
+										</span>
+									</div>
+									<div className="flex justify-between items-center">
+										<span className="text-white/70">Mensagens Enviadas:</span>
+										<span className="font-bold text-white">
+											{selectedInstanceDetails.messagesSent || 0}
+										</span>
+									</div>
+									<div className="flex justify-between items-center">
+										<span className="text-white/70">Mensagens Recebidas:</span>
+										<span className="font-bold text-white">
+											{selectedInstanceDetails.messagesReceived || 0}
+										</span>
+									</div>
+									<div className="flex justify-between items-center">
+										<span className="text-white/70">Tempo de Aquecimento:</span>
+										<span className="font-bold text-white">
+											{selectedInstanceDetails.warmupTime
+												? `${Math.round(selectedInstanceDetails.warmupTime / 3600)}h`
+												: "0h"
+											}
+										</span>
+									</div>
+									{selectedInstanceDetails.ownerJid && (
+										<div className="flex justify-between items-center">
+											<span className="text-white/70">Número:</span>
+											<span className="font-bold text-white">
+												{formatPhoneNumber(selectedInstanceDetails.ownerJid)}
+											</span>
+										</div>
+									)}
+								</div>
+							</div>
+
+							{/* Coluna de Progresso */}
+							<div className="bg-deep/60 rounded-xl p-6 border border-electric/20">
+								<h4 className="text-lg font-semibold mb-4 text-white flex items-center gap-2">
+									<TrendingUp className="w-5 h-5 text-neon-green" />
+									Progresso de Aquecimento
+								</h4>
+								<div className="space-y-4">
+									<div className="text-center">
+										<div className="text-3xl font-bold text-neon-green mb-2">
+											{(selectedInstanceDetails.warmupProgress || 0).toFixed(1)}%
+										</div>
+										<p className="text-white/60">Progresso Atual</p>
+									</div>
+									<div className="w-full bg-deep/60 rounded-full h-4 overflow-hidden">
+										<motion.div
+											initial={{ width: 0 }}
+											animate={{ width: `${selectedInstanceDetails.warmupProgress || 0}%` }}
+											transition={{ duration: 1, type: "spring" }}
+											className={`h-full rounded-full ${(selectedInstanceDetails.warmupProgress || 0) >= 100
+												? "bg-gradient-to-r from-neon-green to-green-400"
+												: "bg-gradient-to-r from-neon-blue to-blue-400"
+												}`}
+										/>
+									</div>
+									<div className="text-center text-sm text-white/60">
+										{(selectedInstanceDetails.warmupProgress || 0) >= 100
+											? "Aquecimento Completo!"
+											: `${(400 - ((selectedInstanceDetails.warmupProgress || 0) * 400 / 100)).toFixed(0)}h restantes`
+										}
+									</div>
+								</div>
+							</div>
+
+							{/* Coluna de Estatísticas */}
+							<div className="bg-deep/60 rounded-xl p-6 border border-electric/20">
+								<h4 className="text-lg font-semibold mb-4 text-white flex items-center gap-2">
+									<MessageCircle className="w-5 h-5 text-neon-purple" />
+									Estatísticas
+								</h4>
+								<div className="space-y-3">
+									<div className="flex justify-between items-center">
+										<span className="text-white/70">Taxa de Resposta:</span>
+										<span className="font-bold text-neon-green">
+											{selectedInstanceDetails.messagesSent > 0
+												? `${((selectedInstanceDetails.messagesReceived || 0) / selectedInstanceDetails.messagesSent * 100).toFixed(1)}%`
+												: "0%"
+											}
+										</span>
+									</div>
+									<div className="flex justify-between items-center">
+										<span className="text-white/70">Eficiência:</span>
+										<span className="font-bold text-neon-blue">
+											{(selectedInstanceDetails.warmupProgress || 0) > 50 ? "Alta" :
+												(selectedInstanceDetails.warmupProgress || 0) > 20 ? "Média" : "Baixa"}
+										</span>
+									</div>
+									<div className="flex justify-between items-center">
+										<span className="text-white/70">Última Atividade:</span>
+										<span className="font-bold text-white">
+											{selectedInstanceDetails.lastActive
+												? format(new Date(selectedInstanceDetails.lastActive), "dd/MM HH:mm", { locale: ptBR })
+												: "Nunca"
+											}
+										</span>
+									</div>
+								</div>
+							</div>
+						</div>
+
+						{/* Gráfico Comparativo de Mensagens Enviadas e Recebidas */}
+						{selectedInstanceDetails.mediaStats && (
+							<div className="mt-8 bg-deep/60 rounded-xl p-6 border border-electric/20">
+								<h4 className="text-lg font-semibold mb-4 text-white flex items-center gap-2">
+									<BarChart3 className="w-5 h-5 text-neon-purple" />
+									Comparativo de Mensagens
+								</h4>
+								<ResponsiveContainer width="100%" height={300}>
+									<AreaChart
+										data={[
+											{
+												name: "Textos",
+												enviadas: selectedInstanceDetails.mediaStats?.text || 0,
+												recebidas: selectedInstanceDetails.receivedStats?.text || 0,
+											},
+											{
+												name: "Imagens",
+												enviadas: selectedInstanceDetails.mediaStats?.image || 0,
+												recebidas: selectedInstanceDetails.receivedStats?.image || 0,
+											},
+											{
+												name: "Vídeos",
+												enviadas: selectedInstanceDetails.mediaStats?.video || 0,
+												recebidas: selectedInstanceDetails.receivedStats?.video || 0,
+											},
+											{
+												name: "Áudios",
+												enviadas: selectedInstanceDetails.mediaStats?.audio || 0,
+												recebidas: selectedInstanceDetails.receivedStats?.audio || 0,
+											},
+											{
+												name: "Stickers",
+												enviadas: selectedInstanceDetails.mediaStats?.sticker || 0,
+												recebidas: selectedInstanceDetails.receivedStats?.sticker || 0,
+											},
+										]}
+									>
+										<CartesianGrid strokeDasharray="3 3" stroke="rgba(255,255,255,0.1)" />
+										<XAxis
+											dataKey="name"
+											tick={{ fill: "#ffffff", fontSize: 12 }}
+											axisLine={{ stroke: "rgba(255,255,255,0.2)" }}
+										/>
+										<YAxis
+											tick={{ fill: "#ffffff", fontSize: 12 }}
+											axisLine={{ stroke: "rgba(255,255,255,0.2)" }}
+										/>
+										<RechartsTooltip
+											contentStyle={{
+												backgroundColor: "rgba(0,0,0,0.8)",
+												borderRadius: "12px",
+												color: "white",
+												border: "1px solid #00d4ff",
+											}}
+										/>
+										<Area
+											type="monotone"
+											dataKey="enviadas"
+											stroke="#00ff88"
+											fill="#00ff88"
+											fillOpacity={0.3}
+											name="Enviadas"
+										/>
+										<Area
+											type="monotone"
+											dataKey="recebidas"
+											stroke="#00d4ff"
+											fill="#00d4ff"
+											fillOpacity={0.3}
+											name="Recebidas"
+										/>
+									</AreaChart>
+								</ResponsiveContainer>
+							</div>
+						)}
+
+						<div className="mt-8 flex justify-end">
+							<Button
+								onClick={() => setSelectedInstanceDetails(null)}
+								className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white px-6 py-2 rounded-lg transition-all duration-200"
+							>
+								Fechar
+							</Button>
+						</div>
+					</motion.div>
+				</div>
+			)}
 		</motion.div>
 	);
 }
