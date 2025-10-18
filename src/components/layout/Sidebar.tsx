@@ -2,6 +2,7 @@ import Logo from '@/components/Logo';
 import { TourButton } from '@/components/tour/TourButton';
 import { Button } from '@/components/ui/button';
 import { useSidebar } from '@/contexts/SidebarContext';
+import { useUser } from '@/contexts/UserContext';
 import { cn } from '@/lib/utils';
 import { authService } from '@/services/auth.service';
 import { AnimatePresence, motion } from 'framer-motion';
@@ -89,6 +90,7 @@ const sidebarItems: SidebarItem[] = [
     title: 'Vendas Hotmart',
     icon: <ShoppingCart className="w-5 h-5" />,
     path: '/hotmart/vendas',
+    adminOnly: true,
   },
   {
     title: 'Aquecimento',
@@ -105,10 +107,15 @@ const sidebarItems: SidebarItem[] = [
 
 export function Sidebar() {
   const { isCollapsed, toggleSidebar } = useSidebar();
+  const { user } = useUser();
   const [openSubmenu, setOpenSubmenu] = useState<string | null>(null);
   const location = useLocation();
-  const user = authService.getUser();
   const isAdmin = user?.role === 'admin' || false;
+
+  // Debug: verificar se o usuário e role estão sendo carregados corretamente
+  console.log('Sidebar - User:', user);
+  console.log('Sidebar - User role:', user?.role);
+  console.log('Sidebar - Is Admin:', isAdmin);
 
   const handleLogout = () => {
     authService.logout();
@@ -191,16 +198,6 @@ export function Sidebar() {
             const isActive =
               location.pathname === item.path && !item.isExternal;
 
-            // Lógica para renderizar <a> para links externos e <Link> para internos
-            const LinkComponent = item.isExternal ? 'a' : Link;
-            const linkProps = item.isExternal
-              ? {
-                href: item.path,
-                target: '_blank' as const,
-                rel: 'noopener noreferrer' as const,
-              }
-              : { to: item.path };
-
             return (
               <div key={item.path} className="relative">
                 <AnimatePresence>
@@ -214,29 +211,49 @@ export function Sidebar() {
                   )}
                 </AnimatePresence>
 
-                <LinkComponent
-                  {...linkProps}
-                  className={cn(
-                    'flex items-center gap-3 px-4 py-3 text-white/80 relative group',
-                    'transition-all duration-200',
-                    isActive && 'text-white', // Estilo ativo apenas para links internos
-                    isCollapsed && 'justify-center',
-                  )}
-                  onClick={() =>
-                    item.submenu &&
-                    !item.isExternal &&
-                    toggleSubmenu(item.path)
-                  }
-                  data-tour={
-                    item.path === '/instancias' ? 'instances-menu' :
-                      item.path === '/aquecimento' ? 'warmup-menu' :
-                        item.path === '/campanhas' ? 'campaigns-menu' :
-                          item.path === '/contatos' ? 'leads-menu' :
-                            item.path === '/disparos' ? 'dispatches-menu' :
-                              undefined
-                  }
-                >
-                  <motion.div
+                {item.isExternal ? (
+                  <a
+                    href={item.path}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className={cn(
+                      'flex items-center gap-3 px-4 py-3 text-white/80 relative group',
+                      'transition-all duration-200',
+                      isCollapsed && 'justify-center',
+                    )}
+                    data-tour={
+                      item.path === '/instancias' ? 'instances-menu' :
+                        item.path === '/aquecimento' ? 'warmup-menu' :
+                          item.path === '/campanhas' ? 'campaigns-menu' :
+                            item.path === '/contatos' ? 'leads-menu' :
+                              item.path === '/disparos' ? 'dispatches-menu' :
+                                undefined
+                    }
+                  >
+                ) : (
+                  <Link
+                    to={item.path}
+                    className={cn(
+                      'flex items-center gap-3 px-4 py-3 text-white/80 relative group',
+                      'transition-all duration-200',
+                      isActive && 'text-white', // Estilo ativo apenas para links internos
+                      isCollapsed && 'justify-center',
+                    )}
+                    onClick={() =>
+                      item.submenu &&
+                      !item.isExternal &&
+                      toggleSubmenu(item.path)
+                    }
+                    data-tour={
+                      item.path === '/instancias' ? 'instances-menu' :
+                        item.path === '/aquecimento' ? 'warmup-menu' :
+                          item.path === '/campanhas' ? 'campaigns-menu' :
+                            item.path === '/contatos' ? 'leads-menu' :
+                              item.path === '/disparos' ? 'dispatches-menu' :
+                                undefined
+                    }
+                  >
+                    <motion.div
                     className="absolute inset-0 bg-electric/10 rounded-lg opacity-0 group-hover:opacity-100"
                     initial={{ scale: 0.95, opacity: 0 }}
                     whileHover={{ scale: 1, opacity: 1 }}
