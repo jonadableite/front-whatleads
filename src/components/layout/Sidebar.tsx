@@ -456,3 +456,5 @@ export function Sidebar() {
         </div>
       </div>
     </motion.div>
+  );
+}
