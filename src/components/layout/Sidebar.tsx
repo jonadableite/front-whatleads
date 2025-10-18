@@ -446,15 +446,13 @@ export function Sidebar() {
             variant="ghost"
             onClick={handleLogout}
             className={cn(
-              'w-full justify-start text-white/80 hover:text-white hover:bg-red-500/20',
+              'w-full justify-start text-white/80 text-white bg-red-500/20 hover:text-white hover:bg-red-500/50 transition-all duration-200',
               isCollapsed && 'justify-center px-2',
             )}
           >
-            <LogOut className="w-4 h-4" />
-            {!isCollapsed && <span className="ml-2">Sair</span>}
+            <LogOut className="w-4 h-4 text-white" />
+            {!isCollapsed && <span className="ml-2 text-white">Sair</span>}
           </Button>
         </div>
       </div>
     </motion.div>
-  );
-}
