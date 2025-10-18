@@ -18,7 +18,6 @@ import {
   MessageCircle,
   MessageSquareText,
   ShoppingCart,
-  Sparkles,
   Users,
   X,
 } from 'lucide-react';
@@ -111,11 +110,6 @@ export function Sidebar() {
   const [openSubmenu, setOpenSubmenu] = useState<string | null>(null);
   const location = useLocation();
   const isAdmin = user?.role === 'admin' || false;
-
-  // Debug: verificar se o usuário e role estão sendo carregados corretamente
-  console.log('Sidebar - User:', user);
-  console.log('Sidebar - User role:', user?.role);
-  console.log('Sidebar - Is Admin:', isAdmin);
 
   const handleLogout = () => {
     authService.logout();
@@ -230,6 +224,71 @@ export function Sidebar() {
                                 undefined
                     }
                   >
+                    <motion.div
+                      className="absolute inset-0 bg-electric/10 rounded-lg opacity-0 group-hover:opacity-100"
+                      initial={{ scale: 0.95, opacity: 0 }}
+                      whileHover={{ scale: 1, opacity: 1 }}
+                      transition={{ duration: 0.2 }}
+                    />
+                    <motion.div
+                      className="relative z-10"
+                      whileHover={{
+                        scale: 1.1,
+                        rotate: [0, -10, 10, -10, 0],
+                      }}
+                      transition={{ duration: 0.3 }}
+                    >
+                      {item.icon}
+                    </motion.div>
+
+                    {!isCollapsed && (
+                      <>
+                        <motion.span
+                          className="flex-1 relative z-10 group-hover:text-white"
+                          whileHover={{ x: 5 }}
+                          transition={{ duration: 0.2 }}
+                        >
+                          {item.title}
+                        </motion.span>
+
+                        {item.badge && (
+                          <motion.span
+                            initial={{ scale: 0.8 }}
+                            animate={{ scale: 1 }}
+                            whileHover={{ scale: 1.1 }}
+                            className="bg-neon-green text-deep px-2 py-0.5 rounded-full text-xs z-10 shadow-[0_0_10px_rgba(0,255,106,0.5)]"
+                          >
+                            {item.badge}
+                          </motion.span>
+                        )}
+
+                        {item.submenu && (
+                          <motion.div
+                            animate={{
+                              rotate:
+                                openSubmenu === item.path ? 90 : 0,
+                              color:
+                                openSubmenu === item.path
+                                  ? '#00FF6A'
+                                  : '#ffffff',
+                            }}
+                            className="z-10"
+                          >
+                            <ChevronRight className="w-4 h-4" />
+                          </motion.div>
+                        )}
+                      </>
+                    )}
+                    {isCollapsed && (
+                      <motion.div
+                        initial={{ opacity: 0, x: 20 }}
+                        whileHover={{ opacity: 1, x: 0 }}
+                        className="absolute left-full ml-2 px-2 py-1 bg-deep/90 rounded-md text-sm whitespace-nowrap z-50 hidden group-hover:block"
+                      >
+                        {item.title}
+                      </motion.div>
+                    )}
+                  </a>
                 ) : (
                   <Link
                     to={item.path}
@@ -254,73 +313,74 @@ export function Sidebar() {
                     }
                   >
                     <motion.div
-                    className="absolute inset-0 bg-electric/10 rounded-lg opacity-0 group-hover:opacity-100"
-                    initial={{ scale: 0.95, opacity: 0 }}
-                    whileHover={{ scale: 1, opacity: 1 }}
-                    transition={{ duration: 0.2 }}
-                  />
-                  <motion.div
-                    className={cn(
-                      'relative z-10',
-                      isActive && 'text-neon-green', // Estilo ativo apenas para links internos
-                    )}
-                    whileHover={{
-                      scale: 1.1,
-                      rotate: [0, -10, 10, -10, 0],
-                    }}
-                    transition={{ duration: 0.3 }}
-                  >
-                    {item.icon}
-                  </motion.div>
+                      className="absolute inset-0 bg-electric/10 rounded-lg opacity-0 group-hover:opacity-100"
+                      initial={{ scale: 0.95, opacity: 0 }}
+                      whileHover={{ scale: 1, opacity: 1 }}
+                      transition={{ duration: 0.2 }}
+                    />
+                    <motion.div
+                      className={cn(
+                        'relative z-10',
+                        isActive && 'text-neon-green', // Estilo ativo apenas para links internos
+                      )}
+                      whileHover={{
+                        scale: 1.1,
+                        rotate: [0, -10, 10, -10, 0],
+                      }}
+                      transition={{ duration: 0.3 }}
+                    >
+                      {item.icon}
+                    </motion.div>
 
-                  {!isCollapsed && (
-                    <>
-                      <motion.span
-                        className="flex-1 relative z-10 group-hover:text-white"
-                        whileHover={{ x: 5 }}
-                        transition={{ duration: 0.2 }}
+                    {!isCollapsed && (
+                      <>
+                        <motion.span
+                          className="flex-1 relative z-10 group-hover:text-white"
+                          whileHover={{ x: 5 }}
+                          transition={{ duration: 0.2 }}
+                        >
+                          {item.title}
+                        </motion.span>
+
+                        {item.badge && (
+                          <motion.span
+                            initial={{ scale: 0.8 }}
+                            animate={{ scale: 1 }}
+                            whileHover={{ scale: 1.1 }}
+                            className="bg-neon-green text-deep px-2 py-0.5 rounded-full text-xs z-10 shadow-[0_0_10px_rgba(0,255,106,0.5)]"
+                          >
+                            {item.badge}
+                          </motion.span>
+                        )}
+
+                        {item.submenu && (
+                          <motion.div
+                            animate={{
+                              rotate:
+                                openSubmenu === item.path ? 90 : 0,
+                              color:
+                                openSubmenu === item.path
+                                  ? '#00FF6A'
+                                  : '#ffffff',
+                            }}
+                            className="z-10"
+                          >
+                            <ChevronRight className="w-4 h-4" />
+                          </motion.div>
+                        )}
+                      </>
+                    )}
+                    {isCollapsed && (
+                      <motion.div
+                        initial={{ opacity: 0, x: 20 }}
+                        whileHover={{ opacity: 1, x: 0 }}
+                        className="absolute left-full ml-2 px-2 py-1 bg-deep/90 rounded-md text-sm whitespace-nowrap z-50 hidden group-hover:block"
                       >
                         {item.title}
-                      </motion.span>
-
-                      {item.badge && (
-                        <motion.span
-                          initial={{ scale: 0.8 }}
-                          animate={{ scale: 1 }}
-                          whileHover={{ scale: 1.1 }}
-                          className="bg-neon-green text-deep px-2 py-0.5 rounded-full text-xs z-10 shadow-[0_0_10px_rgba(0,255,106,0.5)]"
-                        >
-                          {item.badge}
-                        </motion.span>
-                      )}
-
-                      {item.submenu && (
-                        <motion.div
-                          animate={{
-                            rotate:
-                              openSubmenu === item.path ? 90 : 0,
-                            color:
-                              openSubmenu === item.path
-                                ? '#00FF6A'
-                                : '#ffffff',
-                          }}
-                          className="z-10"
-                        >
-                          <ChevronRight className="w-4 h-4" />
-                        </motion.div>
-                      )}
-                    </>
-                  )}
-                  {isCollapsed && (
-                    <motion.div
-                      initial={{ opacity: 0, x: 20 }}
-                      whileHover={{ opacity: 1, x: 0 }}
-                      className="absolute left-full ml-2 px-2 py-1 bg-deep/90 rounded-md text-sm whitespace-nowrap z-50 hidden group-hover:block"
-                    >
-                      {item.title}
-                    </motion.div>
-                  )}
-                </LinkComponent>
+                      </motion.div>
+                    )}
+                  </Link>
+                )}
 
                 <AnimatePresence>
                   {!isCollapsed &&
@@ -361,96 +421,38 @@ export function Sidebar() {
             <TourButton variant="minimal" className="w-full justify-start" />
           )}
 
-          {/* Upgrade Button */}
-          <Link
-            to="/pricing" // Este é um link interno, então <Link> está correto
-            className={cn(
-              'block w-full bg-gradient-to-r from-electric to-rose-950 rounded-lg relative overflow-hidden',
-              'group hover:shadow-lg transition-all duration-300',
-              isCollapsed ? 'p-2' : 'p-3',
-            )}
-          >
-            {/* ... animações do botão de upgrade ... */}
-            {isCollapsed ? (
-              <div className="flex justify-center items-center">
-                <motion.div /* ... */>
-                  <Crown className="w-6 h-6 text-yellow-300 filter drop-shadow-glow" />
-                </motion.div>
+          {/* User Info */}
+          <div className="flex items-center gap-3">
+            <motion.div
+              whileHover={{ scale: 1.1 }}
+              className="w-8 h-8 rounded-full bg-gradient-to-br from-electric to-neon-green flex items-center justify-center text-deep font-bold"
+            >
+              {user?.name?.charAt(0)?.toUpperCase() || 'U'}
+            </motion.div>
+            {!isCollapsed && (
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-medium text-white truncate">
+                  {user?.name || 'Usuário'}
+                </p>
+                <p className="text-xs text-white/60 truncate">
+                  {user?.email || 'email@exemplo.com'}
+                </p>
               </div>
-            ) : (
-              <div className="flex items-center gap-3">
-                <motion.div /* ... */>
-                  <Crown className="w-5 h-5 text-yellow-300 filter drop-shadow-glow" />
-                </motion.div>
-                <div className="flex-1">
-                  <p className="font-bold text-white">
-                    Upgrade seu plano
-                  </p>
-                  <p className="text-xs text-white/90">
-                    Desbloqueie todos os recursos
-                  </p>
-                </div>
-                <motion.div /* ... */>
-                  <Sparkles className="w-4 h-4 text-yellow-300" />
-                </motion.div>
-              </div>
-            )}
-          </Link>
-
-          {/* User Info and Logout */}
-          <div
-            className={cn(
-              'flex items-center',
-              isCollapsed ? 'justify-center' : 'gap-3',
-            )}
-          >
-            {isCollapsed ? (
-              <Button
-                variant="ghost"
-                size="icon"
-                onClick={handleLogout}
-                className="text-neon-pink hover:bg-neon-pink/20 transition-colors duration-300"
-                title="Sair"
-              >
-                <motion.div
-                  whileHover={{ scale: 1.1 }}
-                  transition={{ duration: 0.2 }}
-                >
-                  <LogOut className="w-5 h-5" />
-                </motion.div>
-              </Button>
-            ) : (
-              <>
-                <div className="w-10 h-10 rounded-full bg-electric text-white flex items-center justify-center flex-shrink-0">
-                  <span className="font-medium text-lg">
-                    {user?.name?.charAt(0).toUpperCase()}
-                  </span>
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-white text-sm font-medium truncate">
-                    {user?.name}
-                  </p>
-                  <p className="text-white/60 text-xs truncate">
-                    {user?.email}
-                  </p>
-                </div>
-                <Button
-                  variant="ghost"
-                  size="icon"
-                  onClick={handleLogout}
-                  className="text-neon-pink hover:bg-neon-pink/20 transition-colors duration-300 flex-shrink-0 group"
-                  title="Sair"
-                >
-                  <motion.div
-                    whileHover={{ scale: 1.1 }}
-                    transition={{ duration: 0.2 }}
-                  >
-                    <LogOut className="w-5 h-5" />
-                  </motion.div>
-                </Button>
-              </>
             )}
           </div>
+
+          {/* Logout Button */}
+          <Button
+            variant="ghost"
+            onClick={handleLogout}
+            className={cn(
+              'w-full justify-start text-white/80 hover:text-white hover:bg-red-500/20',
+              isCollapsed && 'justify-center px-2',
+            )}
+          >
+            <LogOut className="w-4 h-4" />
+            {!isCollapsed && <span className="ml-2">Sair</span>}
+          </Button>
         </div>
       </div>
     </motion.div>
