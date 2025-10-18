@@ -263,8 +263,10 @@ export default function Aquecimento() {
 
   // Função para parar aquecimento
   const onStopWarmup = useCallback(async () => {
+    console.log('🛑 onStopWarmup iniciado', { stoppingWarmup, isWarmingUp });
     try {
       const result = await handleStopWarmup();
+      console.log('🛑 handleStopWarmup result:', result);
 
       if (result?.success) {
         toast({
@@ -273,18 +275,19 @@ export default function Aquecimento() {
         });
         // Force refresh of warmup status to update UI immediately
         await refreshData();
+        console.log('🛑 Refresh completo após parar');
       } else {
         throw new Error(result?.message || "Erro desconhecido");
       }
     } catch (error) {
-      console.error('Erro ao parar aquecimento:', error);
+      console.error('❌ Erro ao parar aquecimento:', error);
       toast({
         title: "Erro",
         description: error instanceof Error ? error.message : "Erro ao parar aquecimento",
         variant: "destructive",
       });
     }
-  }, [handleStopWarmup, refreshData]);
+  }, [handleStopWarmup, refreshData, stoppingWarmup, isWarmingUp]);
 
   if (hasError) {
     return (
@@ -787,10 +790,10 @@ export default function Aquecimento() {
         className="bg-deep/50 rounded-xl sm:rounded-2xl p-6 sm:p-8 border border-electric/30 backdrop-blur-sm"
       >
         <div className="flex flex-col sm:flex-row justify-center sm:justify-end gap-4">
-          {!isWarmingUp ? (
+          {!isWarmingUp || startingWarmup ? (
             <Button
               onClick={onStartWarmup}
-              disabled={startingWarmup || selectedInstances.size < 2}
+              disabled={startingWarmup || stoppingWarmup || selectedInstances.size < 2}
               className="bg-gradient-to-r from-neon-green via-emerald-500 to-neon-blue hover:from-neon-green/90 hover:via-emerald-500/90 hover:to-neon-blue/90 text-white border-0 px-8 py-3 text-base font-semibold shadow-lg shadow-neon-green/25 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
             >
               {startingWarmup ? (
@@ -808,7 +811,7 @@ export default function Aquecimento() {
           ) : (
             <Button
               onClick={onStopWarmup}
-              disabled={stoppingWarmup}
+              disabled={stoppingWarmup || startingWarmup}
               className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white border-0 px-8 py-3 text-base font-semibold shadow-lg shadow-red-500/25 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
             >
               {stoppingWarmup ? (
