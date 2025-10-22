@@ -3,7 +3,7 @@ import { ApiError } from '@/types/error';
 import Compressor from 'compressorjs';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useCallback, useEffect, useState } from 'react';
-import { FaClock, FaRocket } from 'react-icons/fa';
+import { FaClock, FaRocket, FaWhatsapp } from 'react-icons/fa';
 import { FiDatabase, FiUpload } from 'react-icons/fi';
 import {
   IoMdImage,
@@ -20,9 +20,49 @@ import { SpinTaxEditor } from '../components/SpinTaxEditor';
 import api from '../lib/api';
 import { cn, getWarmupProgressColor } from '../lib/utils';
 import { authService } from '../services/auth.service';
+import { calculateWarmupProgress } from '../services/instance.service';
 import type { Instancia, StartCampaignPayload } from '../types';
 import { SpinTaxValidationResult } from '../types/spintax.types';
 
+// Funções utilitárias para formatação de data brasileira
+const formatDateToBrazilian = (date: Date): string => {
+  return date.toLocaleDateString('pt-BR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric'
+  });
+};
+
+const formatTimeToBrazilian = (date: Date): string => {
+  return date.toLocaleTimeString('pt-BR', {
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false
+  });
+};
+
+const formatDateTimeToBrazilian = (date: Date): string => {
+  return date.toLocaleString('pt-BR', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hour12: false
+  });
+};
+
+// Converte data do formato brasileiro DD/MM/AAAA para formato ISO AAAA-MM-DD
+const convertBrazilianDateToISO = (brazilianDate: string): string => {
+  const [day, month, year] = brazilianDate.split('/');
+  return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
+};
+
+// Converte data do formato ISO AAAA-MM-DD para formato brasileiro DD/MM/AAAA
+const convertISODateToBrazilian = (isoDate: string): string => {
+  const [year, month, day] = isoDate.split('-');
+  return `${day}/${month}/${year}`;
+};
 
 // Tipos específicos para melhor type safety
 type MediaType = 'none' | 'image' | 'audio' | 'video';
@@ -51,6 +91,17 @@ interface Campaign {
   statistics: CampaignStatistics | null;
 }
 
+interface MediaPayload {
+  type: MediaType;
+  base64: string;
+  fileName: string;
+  mimetype: string;
+}
+
+interface FormValidationResult {
+  isValid: boolean;
+  errorMessage?: string;
+}
 
 export default function Disparos() {
   const navigate = useNavigate();
@@ -59,7 +110,9 @@ export default function Disparos() {
   const [instances, setInstances] = useState<Instancia[]>([]);
   const [selectedInstance, setSelectedInstance] = useState<string>('');
   const [message, setMessage] = useState<string>('');
+  const [file, setFile] = useState<File | null>(null);
   const [mediaType, setMediaType] = useState<MediaType>('none');
+  const [totalNumbers, setTotalNumbers] = useState<number>(0);
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   const [base64Image, setBase64Image] = useState<string>('');
   const [base64Video, setBase64Video] = useState<string>('');
@@ -89,7 +142,7 @@ export default function Disparos() {
   const handleSegmentChange = async (
     e: React.ChangeEvent<HTMLSelectElement>,
   ) => {
-    const segment = e.target.value as SegmentType | '';
+    const segment = e.target.value;
     setSelectedSegment(segment);
 
     console.log('Selected Campaign:', selectedCampaign);
@@ -116,7 +169,7 @@ export default function Disparos() {
   // Função para buscar contagem de leads com tipagem melhorada
   const fetchLeadCount = async (
     campaignId: string,
-    segment: SegmentType | '',
+    segment: SegmentType,
   ): Promise<{ count: number }> => {
     try {
       const response = await api.get<{ count: number }>(
@@ -144,6 +197,54 @@ export default function Disparos() {
     }
   };
 
+  // Função para lidar com mudança de arquivo com tipagem melhorada
+  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>): void => {
+    const selectedFile = event.target.files?.[0];
+    if (!selectedFile) {
+      setFile(null);
+      setTotalNumbers(0);
+      return;
+    }
+
+    // Validação de tipo de arquivo
+    const allowedTypes = ['.txt', '.csv'];
+    const fileExtension = selectedFile.name.toLowerCase().substring(selectedFile.name.lastIndexOf('.'));
+
+    if (!allowedTypes.includes(fileExtension)) {
+      toast.error('Formato de arquivo não suportado. Use apenas arquivos .txt ou .csv');
+      event.target.value = '';
+      return;
+    }
+
+    // Validação de tamanho (máximo 10MB)
+    const maxSize = 10 * 1024 * 1024; // 10MB
+    if (selectedFile.size > maxSize) {
+      toast.error('Arquivo muito grande. O tamanho máximo é 10MB');
+      event.target.value = '';
+      return;
+    }
+
+    setFile(selectedFile);
+
+    // Ler arquivo para contar números
+    const reader = new FileReader();
+    reader.onload = (e: ProgressEvent<FileReader>) => {
+      const content = e.target?.result as string;
+      if (content) {
+        const lines = content.split('\n').filter(line => line.trim().length > 0);
+        setTotalNumbers(lines.length);
+        toast.success(`${lines.length} contatos carregados com sucesso`);
+      }
+    };
+
+    reader.onerror = () => {
+      toast.error('Erro ao ler o arquivo');
+      setFile(null);
+      setTotalNumbers(0);
+    };
+
+    reader.readAsText(selectedFile);
+  };
 
   // Função para retomar a campanha
   const handleResumeCampaign = async (): Promise<void> => {
@@ -176,10 +277,10 @@ export default function Disparos() {
       console.error('Erro ao retomar campanha:', error);
 
       // Log mais detalhado do erro
-      if (error && typeof error === 'object' && 'response' in error) {
+      if ((error as any).response) {
         console.error(
           'Detalhes da resposta de erro:',
-          (error as { response: { data: unknown } }).response.data,
+          (error as any).response.data,
         );
       }
 
@@ -281,33 +382,35 @@ export default function Disparos() {
 
       return newInstances.some((newInstance, index) => {
         const prevInstance = prevInstances[index];
-        const prevProgress = prevInstance.warmupStatus?.progress || 0;
-        const newProgress = newInstance.warmupStatus?.progress || 0;
-
         return (
-          Math.abs(prevProgress - newProgress) > 0.1 ||
-          prevInstance.connectionStatus !== newInstance.connectionStatus
+          prevInstance.warmupStatus?.progress !==
+          newInstance.warmupStatus?.progress ||
+          prevInstance.connectionStatus !==
+          newInstance.connectionStatus
         );
       });
     };
 
     const updatedInstances = instances.map((instanceItem) => {
-      // Se já tem warmupStatus, manter os dados existentes
-      if (instanceItem.warmupStatus) {
-        return instanceItem;
+      const warmupProgress = calculateWarmupProgress(instanceItem);
+
+      // Verifica se o progresso mudou significativamente (margem de 0.1%)
+      const progressChanged =
+        Math.abs(
+          (instanceItem.warmupStatus?.progress || 0) - warmupProgress,
+        ) > 0.1;
+
+      if (progressChanged) {
+        return {
+          ...instanceItem,
+          warmupStatus: {
+            ...instanceItem.warmupStatus,
+            progress: warmupProgress,
+          },
+        };
       }
 
-      // Se não tem warmupStatus, criar um padrão
-      return {
-        ...instanceItem,
-        warmupStatus: {
-          progress: 0,
-          isRecommended: false,
-          warmupHours: 0,
-          status: 'inactive',
-          lastUpdate: null,
-        },
-      };
+      return instanceItem;
     });
 
     // Só atualiza se realmente houver mudança significativa
@@ -321,11 +424,10 @@ export default function Disparos() {
     try {
       setIsLoadingInstances(true);
       setIsLoadingCampaigns(true);
-      const [instancesResponse, campaignsResponse, warmupData] =
+      const [instancesResponse, campaignsResponse] =
         await Promise.all([
           GetInstancesAction(),
           api.get<Campaign[]>('/api/campaigns'),
-          api.get('/api/dashboard').catch(() => null), // Buscar dados de aquecimento
         ]);
 
       if (
@@ -333,47 +435,7 @@ export default function Disparos() {
         JSON.stringify(instancesResponse.instances) !==
         JSON.stringify(instances)
       ) {
-        // Processar instâncias com dados de aquecimento se disponíveis
-        const processedInstances = instancesResponse.instances.map((instance) => {
-          // Se há dados de aquecimento, usar os dados reais
-          if (warmupData?.data?.instances) {
-            const warmupInstance = warmupData.data.instances.find(
-              (w: { instanceName: string }) => w.instanceName === instance.instanceName
-            );
-
-            if (warmupInstance) {
-              // Calcular progresso baseado no warmupTime (400 horas = 100%)
-              const warmupProgress = warmupInstance.warmupTime > 0
-                ? Math.min((warmupInstance.warmupTime / (400 * 3600)) * 100, 100)
-                : 0;
-
-              return {
-                ...instance,
-                warmupStatus: {
-                  progress: warmupProgress,
-                  isRecommended: warmupProgress >= 75,
-                  warmupHours: warmupInstance.warmupTime || 0,
-                  status: warmupInstance.status || 'inactive',
-                  lastUpdate: warmupInstance.lastActive || new Date().toISOString(),
-                },
-              };
-            }
-          }
-
-          // Se não há dados de aquecimento, usar progresso 0
-          return {
-            ...instance,
-            warmupStatus: {
-              progress: 0,
-              isRecommended: false,
-              warmupHours: 0,
-              status: 'inactive',
-              lastUpdate: null,
-            },
-          };
-        });
-
-        setInstances(processedInstances);
+        setInstances(instancesResponse.instances);
       }
 
       if (campaignsResponse.data) {
@@ -396,88 +458,16 @@ export default function Disparos() {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    // Verificar tipo MIME do arquivo
-    const isImage = file.type.startsWith('image/');
-    const isVideo = file.type.startsWith('video/');
-    const isAudio = file.type.startsWith('audio/');
-
-    // Definir limites específicos por tipo
-    let maxSize: number;
-    let maxSizeLabel: string;
-
-    if (isImage) {
-      maxSize = 10 * 1024 * 1024; // 10MB para imagens
-      maxSizeLabel = '10MB';
-    } else if (isVideo) {
-      maxSize = 100 * 1024 * 1024; // 100MB para vídeos
-      maxSizeLabel = '100MB';
-    } else if (isAudio) {
-      maxSize = 50 * 1024 * 1024; // 50MB para áudios
-      maxSizeLabel = '50MB';
-    } else {
-      toast.error('Tipo de arquivo não suportado. Use imagens, vídeos ou áudios.');
-      event.target.value = '';
-      return;
-    }
-
-    if (file.size > maxSize) {
-      toast.error(`Arquivo muito grande. Tamanho máximo: ${maxSizeLabel}`);
-      event.target.value = '';
-      return;
-    }
-
     // Limpar estados anteriores
     setBase64Image('');
     setBase64Video('');
     setBase64Audio('');
 
     try {
-      let processedFile: File | Blob = file;
-
-      // Comprimir apenas imagens
-      if (isImage) {
-        try {
-          processedFile = await compressImage(file);
-          console.log('Imagem comprimida com sucesso');
-        } catch (error) {
-          console.warn('Erro na compressão de imagem, usando arquivo original:', error);
-          processedFile = file;
-        }
-      }
-
-      // Para vídeos e áudios, não comprimir (apenas verificar tamanho)
-      if (isVideo || isAudio) {
-        console.log(`${isVideo ? 'Vídeo' : 'Áudio'} processado sem compressão:`, {
-          fileName: file.name,
-          fileSize: (file.size / 1024 / 1024).toFixed(2) + 'MB',
-          type: file.type
-        });
-      }
-
       const reader = new FileReader();
       reader.onloadend = () => {
         const base64String = reader.result as string;
-
-        // Validar se o resultado é válido
-        if (!base64String || !base64String.includes(',')) {
-          toast.error('Erro ao processar arquivo. Tente novamente.');
-          return;
-        }
-
         const base64Content = base64String.split(',')[1];
-
-        // Validar se o base64 é válido
-        if (!base64Content || base64Content.trim().length === 0) {
-          toast.error('Erro ao converter arquivo para base64. Tente novamente.');
-          return;
-        }
-
-        // Validar formato base64
-        const base64Regex = /^[A-Za-z0-9+/]*={0,2}$/;
-        if (!base64Regex.test(base64Content)) {
-          toast.error('Arquivo corrompido. Tente novamente.');
-          return;
-        }
 
         // Criar preview URL para visualização
         const previewUrl = URL.createObjectURL(file);
@@ -487,36 +477,23 @@ export default function Disparos() {
         switch (mediaType) {
           case 'image':
             setBase64Image(base64Content);
-            toast.success('Imagem carregada com sucesso!');
             break;
           case 'video':
             setBase64Video(base64Content);
-            toast.success('Vídeo carregado com sucesso!');
             break;
           case 'audio':
             setBase64Audio(base64Content);
-            toast.success('Áudio carregado com sucesso!');
             break;
         }
-
-        console.log('Mídia processada:', {
-          type: mediaType,
-          fileName: file.name,
-          fileSize: file.size,
-          base64Length: base64Content.length,
-          base64Preview: base64Content.substring(0, 50) + "...",
-          hasBase64Content: !!base64Content,
-          base64Valid: base64Content && base64Content.trim().length > 0
-        });
       };
 
-      reader.onerror = () => {
-        toast.error('Erro ao ler arquivo. Tente novamente.');
-        console.error('FileReader error');
-      };
-
-      // Ler o arquivo processado
-      reader.readAsDataURL(processedFile);
+      // Se for imagem, comprimir antes
+      if (mediaType === 'image') {
+        const compressedFile = await compressImage(file);
+        reader.readAsDataURL(compressedFile);
+      } else {
+        reader.readAsDataURL(file);
+      }
     } catch (error) {
       console.error('Erro ao processar mídia:', error);
       toast.error('Erro ao processar mídia');
@@ -551,53 +528,27 @@ export default function Disparos() {
     maxSizeMB = 2,
   ): Promise<Blob> => {
     return new Promise((resolve, reject) => {
-      try {
-        new Compressor(file, {
-          quality: 0.8,
-          maxWidth: 1920,
-          maxHeight: 1080,
-          success(result) {
-            console.log('Compressão inicial:', {
-              originalSize: file.size,
-              compressedSize: result.size,
-              reduction: ((file.size - result.size) / file.size * 100).toFixed(2) + '%'
+      new Compressor(file, {
+        quality: 0.8,
+        maxWidth: 1920,
+        maxHeight: 1080,
+        success(result) {
+          if (result.size > maxSizeMB * 1024 * 1024) {
+            new Compressor(file, {
+              quality: 0.6,
+              maxWidth: 1280,
+              maxHeight: 720,
+              success: resolve,
+              error: reject,
             });
-
-            if (result.size > maxSizeMB * 1024 * 1024) {
-              console.log('Primeira compressão não foi suficiente, comprimindo novamente...');
-              new Compressor(file, {
-                quality: 0.6,
-                maxWidth: 1280,
-                maxHeight: 720,
-                success: (finalResult) => {
-                  console.log('Compressão final:', {
-                    originalSize: file.size,
-                    finalSize: finalResult.size,
-                    totalReduction: ((file.size - finalResult.size) / file.size * 100).toFixed(2) + '%'
-                  });
-                  resolve(finalResult);
-                },
-                error: (err) => {
-                  console.error('Erro na segunda compressão:', err);
-                  reject(err);
-                },
-              });
-            } else {
-              resolve(result);
-            }
-          },
-          error: (err) => {
-            console.error('Erro na primeira compressão:', err);
-            reject(err);
-          },
-        });
-      } catch (error) {
-        console.error('Erro ao inicializar compressão:', error);
-        reject(error);
-      }
+          } else {
+            resolve(result);
+          }
+        },
+        error: reject,
+      });
     });
   };
-
 
   useEffect(() => {
     return () => {
@@ -653,11 +604,11 @@ export default function Disparos() {
       return false;
     }
 
-    // Validação de arquivo apenas no modo "new" - removida pois não há mais upload de arquivo
-    // if (dispatchMode === 'new' && !file) {
-    //   toast.error('Selecione um arquivo de contatos (.txt ou .csv)');
-    //   return false;
-    // }
+    // Validação de arquivo apenas no modo "new"
+    if (dispatchMode === 'new' && !file) {
+      toast.error('Selecione um arquivo de contatos (.txt ou .csv)');
+      return false;
+    }
 
     // Validação de mídia apenas se um tipo de mídia foi selecionado
     if (mediaType === 'image' && !base64Image) {
@@ -755,71 +706,46 @@ export default function Disparos() {
         throw new Error('Instância não encontrada');
       }
 
-      // Preparar payload da mídia no formato correto para Evolution API
+      // Preparar payload da mídia
       let mediaPayload = null;
       if (mediaType === 'image' && base64Image) {
         mediaPayload = {
-          mediatype: 'image',
-          media: base64Image, // Base64 puro sem prefixo
+          type: 'image',
+          base64: base64Image,
           fileName: 'image.jpg',
           mimetype: 'image/jpeg',
-          caption: '', // Opcional
         };
       } else if (mediaType === 'video' && base64Video) {
-        console.log('Criando payload de vídeo:', {
-          hasBase64Video: !!base64Video,
-          base64VideoLength: base64Video.length,
-          base64VideoPreview: base64Video.substring(0, 50) + '...'
-        });
         mediaPayload = {
-          mediatype: 'video',
-          media: base64Video, // Base64 puro sem prefixo
+          type: 'video',
+          base64: base64Video,
           fileName: 'video.mp4',
           mimetype: 'video/mp4',
-          caption: '', // Opcional
         };
-        console.log('MediaPayload criado para vídeo:', {
-          mediatype: mediaPayload.mediatype,
-          hasMedia: !!mediaPayload.media,
-          mediaLength: mediaPayload.media?.length || 0,
-          mediaPreview: mediaPayload.media?.substring(0, 50) + '...',
-          fileName: mediaPayload.fileName,
-          mimetype: mediaPayload.mimetype
-        });
       } else if (mediaType === 'audio' && base64Audio) {
         mediaPayload = {
-          mediatype: 'audio',
-          media: base64Audio, // Base64 puro sem prefixo
+          type: 'audio',
+          base64: base64Audio,
           fileName: 'audio.mp3',
           mimetype: 'audio/mpeg',
-          caption: '', // Opcional
         };
       }
       // Se mediaType for 'none', mediaPayload permanece null
 
-      console.log('Media Payload preparado (formato Evolution API):', {
+      console.log('Media Payload preparado:', {
         mediaType,
         hasBase64Image: !!base64Image,
         hasBase64Video: !!base64Video,
         hasBase64Audio: !!base64Audio,
         mediaPayload: mediaPayload
-          ? {
-            mediatype: mediaPayload.mediatype,
-            fileName: mediaPayload.fileName,
-            mimetype: mediaPayload.mimetype,
-            caption: mediaPayload.caption,
-            media: mediaPayload.media?.substring(0, 50) + '...', // Mostrar o campo media
-            mediaLength: mediaPayload.media?.length || 0,
-            hasMedia: !!mediaPayload.media,
-            mediaValid: mediaPayload.media && mediaPayload.media.trim().length > 0
-          }
+          ? { ...mediaPayload, media: '[BASE64_DATA]' }
           : null,
       });
 
       const payload: StartCampaignPayload = {
         instanceName: selectedInstanceData.instanceName,
         message: message.trim(),
-        media: mediaPayload || undefined, // ⭐ Garantir que null vira undefined
+        media: mediaPayload,
         minDelay,
         maxDelay,
       };
@@ -828,25 +754,35 @@ export default function Disparos() {
         payload.segmentation = { segment: selectedSegment }; // Correcting the segmentation assignment
       }
 
-      // ⭐ Log antes de enviar para debug
-      console.log('🚀 Enviando payload para backend:', {
-        instanceName: payload.instanceName,
-        hasMedia: !!payload.media,
-        mediaType: payload.media?.mediatype,
-        mediaLength: payload.media?.media?.length || 0,
-        mediaPreview: payload.media?.media?.substring(0, 50) + '...',
-        fileName: payload.media?.fileName,
-        mimetype: payload.media?.mimetype
-      });
-
       const startResponse = await api.post(
         `/api/campaigns/${campaignId}/start`,
-        payload, // ⭐ Enviar o payload completo
+        payload,
       );
 
-      if (dispatchMode === 'new') {
-        console.log('Modo de importação de leads ativado...');
-        // A importação de leads agora é feita através do modal
+      if (dispatchMode === 'new' && file) {
+        console.log('Importando novos leads...');
+        const formData = new FormData();
+        formData.append('file', file);
+
+        const importResponse = await api.post(
+          `/api/campaigns/${campaignId}/leads/import`,
+          formData,
+          {
+            headers: {
+              'Content-Type': 'multipart/form-data',
+            },
+          },
+        );
+
+        if (!importResponse.data.success) {
+          throw new Error(
+            importResponse.data.message || 'Falha ao importar leads',
+          );
+        }
+        console.log(
+          'Leads importados com sucesso:',
+          importResponse.data,
+        );
       }
 
       // Adicione um delay pequeno para garantir que os leads foram processados
@@ -914,7 +850,7 @@ export default function Disparos() {
           const response = await api.get(
             `/api/campaigns/${campaignId}/progress`,
           );
-          const { status } = response.data.data;
+          const { status, statistics } = response.data.data;
 
           if (status === 'preparing') {
             // Progress handled by ProgressModal component
@@ -923,6 +859,7 @@ export default function Disparos() {
           }
 
           setCampaignStatus(status);
+          setTotalNumbers(statistics.totalLeads);
 
           if (status !== 'preparing' && status !== 'running') {
             clearInterval(interval);
@@ -1121,11 +1058,13 @@ export default function Disparos() {
                               'Instância selecionada:',
                               selectedInstanceData,
                             );
-                            const warmupProgress = selectedInstanceData.warmupStatus?.progress || 0;
-                            console.log(
-                              'Progresso de Warmup:',
-                              warmupProgress,
-                            );
+                            if (selectedInstanceData.warmupStatus) {
+                              console.log(
+                                'Progresso de Warmup:',
+                                selectedInstanceData.warmupStatus
+                                  .progress,
+                              );
+                            }
                           }
                         }}
                         className={cn(
@@ -1157,8 +1096,7 @@ export default function Disparos() {
                               : 'Selecione a Instância'}
                         </option>
                         {instances.map((instance) => {
-                          const warmupProgress = instance.warmupStatus?.progress || 0;
-                          const isRecommended = instance.warmupStatus?.isRecommended || false;
+                          const warmupProgress = calculateWarmupProgress(instance);
 
                           return (
                             <option
@@ -1166,13 +1104,16 @@ export default function Disparos() {
                               value={instance.id}
                               className={cn(
                                 'bg-gray-800 text-gray-300',
-                                isRecommended && 'text-neon-green',
+                                instance.warmupStatus
+                                  ?.isRecommended &&
+                                'text-neon-green',
                                 instance.connectionStatus ===
                                 'OPEN' && 'font-medium',
                               )}
                             >
                               {instance.instanceName}
-                              {isRecommended && ' ⭐'}
+                              {instance.warmupStatus?.isRecommended &&
+                                ' ⭐'}
                               {warmupProgress >= 0 && (
                                 <span
                                   className={cn(
@@ -1223,10 +1164,10 @@ export default function Disparos() {
                                       Aquecimento:{' '}
                                       <span
                                         className={`${getWarmupProgressColor(
-                                          selectedInstanceData.warmupStatus?.progress || 0,
+                                          calculateWarmupProgress(selectedInstanceData) || 0,
                                         )}`}
                                       >
-                                        {(selectedInstanceData.warmupStatus?.progress || 0).toFixed(
+                                        {calculateWarmupProgress(selectedInstanceData).toFixed(
                                           2,
                                         )}
                                         %
@@ -1235,19 +1176,16 @@ export default function Disparos() {
                                   </div>
                                 )}
 
-                                {(() => {
-                                  const isRecommended = selectedInstanceData.warmupStatus?.isRecommended || false;
-
-                                  return isRecommended && (
+                                {selectedInstanceData?.warmupStatus
+                                  ?.isRecommended && (
                                     <div className="text-sm text-green-400 flex items-center gap-2">
                                       <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
                                       <span>
                                         Esta instância já possui mais de
-                                        75% de aquecimento
+                                        300 horas de aquecimento
                                       </span>
                                     </div>
-                                  );
-                                })()}
+                                  )}
 
                                 <div
                                   className={cn(
@@ -1401,7 +1339,7 @@ export default function Disparos() {
                     </label>
                     <select
                       value={mediaType}
-                      onChange={(e) => setMediaType(e.target.value as MediaType)}
+                      onChange={(e) => setMediaType(e.target.value)}
                       className="w-full p-4 bg-electric/10 border border-electric rounded-xl text-white focus:ring-2 focus:ring-neon-green transition-all appearance-none"
                       style={{
                         WebkitAppearance: 'none',
@@ -1836,16 +1774,7 @@ export default function Disparos() {
             isOpen={isImportModalOpen}
             onClose={() => setIsImportModalOpen(false)}
             onImport={handleImportLeads}
-            campaigns={campaigns.map(campaign => ({
-              ...campaign,
-              minDelay: 5,
-              maxDelay: 30,
-              userId: '',
-              instanceName: campaign.instance || '',
-              createdAt: new Date(),
-              updatedAt: new Date(),
-              status: campaign.status === 'cancelled' ? 'failed' : (campaign.status as 'draft' | 'running' | 'paused' | 'completed' | 'failed' | 'scheduled' | 'pending'),
-            }))}
+            campaigns={campaigns}
             disableImport={false}
             totalLeads={0}
             maxLeads={10000}
