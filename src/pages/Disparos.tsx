@@ -176,10 +176,10 @@ export default function Disparos() {
       console.error('Erro ao retomar campanha:', error);
 
       // Log mais detalhado do erro
-      if ((error as any).response) {
+      if (error && typeof error === 'object' && 'response' in error) {
         console.error(
           'Detalhes da resposta de erro:',
-          (error as any).response.data,
+          (error as { response: { data: unknown } }).response.data,
         );
       }
 
@@ -338,7 +338,7 @@ export default function Disparos() {
           // Se há dados de aquecimento, usar os dados reais
           if (warmupData?.data?.instances) {
             const warmupInstance = warmupData.data.instances.find(
-              (w: any) => w.instanceName === instance.instanceName
+              (w: { instanceName: string }) => w.instanceName === instance.instanceName
             );
 
             if (warmupInstance) {
@@ -396,13 +396,32 @@ export default function Disparos() {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    // NOVO: Limite mais restritivo para vídeos
-    const maxSize = mediaType === 'video'
-      ? 3 * 1024 * 1024  // MUDADO: 3MB para vídeo
-      : 10 * 1024 * 1024; // 10MB para outros
+    // Verificar tipo MIME do arquivo
+    const isImage = file.type.startsWith('image/');
+    const isVideo = file.type.startsWith('video/');
+    const isAudio = file.type.startsWith('audio/');
+
+    // Definir limites específicos por tipo
+    let maxSize: number;
+    let maxSizeLabel: string;
+
+    if (isImage) {
+      maxSize = 10 * 1024 * 1024; // 10MB para imagens
+      maxSizeLabel = '10MB';
+    } else if (isVideo) {
+      maxSize = 100 * 1024 * 1024; // 100MB para vídeos
+      maxSizeLabel = '100MB';
+    } else if (isAudio) {
+      maxSize = 50 * 1024 * 1024; // 50MB para áudios
+      maxSizeLabel = '50MB';
+    } else {
+      toast.error('Tipo de arquivo não suportado. Use imagens, vídeos ou áudios.');
+      event.target.value = '';
+      return;
+    }
 
     if (file.size > maxSize) {
-      toast.error(`Arquivo muito grande. Tamanho máximo: ${mediaType === 'video' ? '3MB' : '10MB'}`);
+      toast.error(`Arquivo muito grande. Tamanho máximo: ${maxSizeLabel}`);
       event.target.value = '';
       return;
     }
@@ -413,6 +432,28 @@ export default function Disparos() {
     setBase64Audio('');
 
     try {
+      let processedFile: File | Blob = file;
+
+      // Comprimir apenas imagens
+      if (isImage) {
+        try {
+          processedFile = await compressImage(file);
+          console.log('Imagem comprimida com sucesso');
+        } catch (error) {
+          console.warn('Erro na compressão de imagem, usando arquivo original:', error);
+          processedFile = file;
+        }
+      }
+
+      // Para vídeos e áudios, não comprimir (apenas verificar tamanho)
+      if (isVideo || isAudio) {
+        console.log(`${isVideo ? 'Vídeo' : 'Áudio'} processado sem compressão:`, {
+          fileName: file.name,
+          fileSize: (file.size / 1024 / 1024).toFixed(2) + 'MB',
+          type: file.type
+        });
+      }
+
       const reader = new FileReader();
       reader.onloadend = () => {
         const base64String = reader.result as string;
@@ -472,16 +513,8 @@ export default function Disparos() {
         console.error('FileReader error');
       };
 
-      // Se for imagem ou vídeo, comprimir antes
-      if (mediaType === 'image') {
-        const compressedFile = await compressImage(file);
-        reader.readAsDataURL(compressedFile);
-      } else if (mediaType === 'video') {
-        const compressedFile = await compressVideo(file);
-        reader.readAsDataURL(compressedFile);
-      } else {
-        reader.readAsDataURL(file);
-      }
+      // Ler o arquivo processado
+      reader.readAsDataURL(processedFile);
     } catch (error) {
       console.error('Erro ao processar mídia:', error);
       toast.error('Erro ao processar mídia');
@@ -563,58 +596,6 @@ export default function Disparos() {
     });
   };
 
-  // Função para comprimir vídeos
-  const compressVideo = (
-    file: File,
-    maxSizeMB = 3,
-  ): Promise<Blob> => {
-    return new Promise((resolve, reject) => {
-      try {
-        new Compressor(file, {
-          quality: 0.7,
-          maxWidth: 1280,
-          maxHeight: 720,
-          success(result) {
-            console.log('Compressão de vídeo inicial:', {
-              originalSize: file.size,
-              compressedSize: result.size,
-              reduction: ((file.size - result.size) / file.size * 100).toFixed(2) + '%'
-            });
-
-            if (result.size > maxSizeMB * 1024 * 1024) {
-              console.log('Primeira compressão de vídeo não foi suficiente, comprimindo novamente...');
-              new Compressor(file, {
-                quality: 0.5,
-                maxWidth: 854,
-                maxHeight: 480,
-                success: (finalResult) => {
-                  console.log('Compressão de vídeo final:', {
-                    originalSize: file.size,
-                    finalSize: finalResult.size,
-                    totalReduction: ((file.size - finalResult.size) / file.size * 100).toFixed(2) + '%'
-                  });
-                  resolve(finalResult);
-                },
-                error: (err) => {
-                  console.error('Erro na segunda compressão de vídeo:', err);
-                  reject(err);
-                },
-              });
-            } else {
-              resolve(result);
-            }
-          },
-          error: (err) => {
-            console.error('Erro na primeira compressão de vídeo:', err);
-            reject(err);
-          },
-        });
-      } catch (error) {
-        console.error('Erro ao inicializar compressão de vídeo:', error);
-        reject(error);
-      }
-    });
-  };
 
   useEffect(() => {
     return () => {
@@ -670,11 +651,11 @@ export default function Disparos() {
       return false;
     }
 
-    // Validação de arquivo apenas no modo "new"
-    if (dispatchMode === 'new' && !file) {
-      toast.error('Selecione um arquivo de contatos (.txt ou .csv)');
-      return false;
-    }
+    // Validação de arquivo apenas no modo "new" - removida pois não há mais upload de arquivo
+    // if (dispatchMode === 'new' && !file) {
+    //   toast.error('Selecione um arquivo de contatos (.txt ou .csv)');
+    //   return false;
+    // }
 
     // Validação de mídia apenas se um tipo de mídia foi selecionado
     if (mediaType === 'image' && !base64Image) {
@@ -825,30 +806,9 @@ export default function Disparos() {
         payload,
       );
 
-      if (dispatchMode === 'new' && file) {
-        console.log('Importando novos leads...');
-        const formData = new FormData();
-        formData.append('file', file);
-
-        const importResponse = await api.post(
-          `/api/campaigns/${campaignId}/leads/import`,
-          formData,
-          {
-            headers: {
-              'Content-Type': 'multipart/form-data',
-            },
-          },
-        );
-
-        if (!importResponse.data.success) {
-          throw new Error(
-            importResponse.data.message || 'Falha ao importar leads',
-          );
-        }
-        console.log(
-          'Leads importados com sucesso:',
-          importResponse.data,
-        );
+      if (dispatchMode === 'new') {
+        console.log('Modo de importação de leads ativado...');
+        // A importação de leads agora é feita através do modal
       }
 
       // Adicione um delay pequeno para garantir que os leads foram processados
@@ -1238,7 +1198,6 @@ export default function Disparos() {
                                 )}
 
                                 {(() => {
-                                  const warmupProgress = selectedInstanceData.warmupStatus?.progress || 0;
                                   const isRecommended = selectedInstanceData.warmupStatus?.isRecommended || false;
 
                                   return isRecommended && (
@@ -1847,7 +1806,7 @@ export default function Disparos() {
               instanceName: campaign.instance || '',
               createdAt: new Date(),
               updatedAt: new Date(),
-              status: campaign.status === 'cancelled' ? 'failed' : campaign.status as any,
+              status: campaign.status === 'cancelled' ? 'failed' : (campaign.status as 'draft' | 'running' | 'paused' | 'completed' | 'failed' | 'scheduled' | 'pending'),
             }))}
             disableImport={false}
             totalLeads={0}
