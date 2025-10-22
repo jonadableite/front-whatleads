@@ -778,6 +778,14 @@ export default function Disparos() {
           mimetype: 'video/mp4',
           caption: '', // Opcional
         };
+        console.log('MediaPayload criado para vídeo:', {
+          mediatype: mediaPayload.mediatype,
+          hasMedia: !!mediaPayload.media,
+          mediaLength: mediaPayload.media?.length || 0,
+          mediaPreview: mediaPayload.media?.substring(0, 50) + '...',
+          fileName: mediaPayload.fileName,
+          mimetype: mediaPayload.mimetype
+        });
       } else if (mediaType === 'audio' && base64Audio) {
         mediaPayload = {
           mediatype: 'audio',
