@@ -800,8 +800,8 @@ export default function Disparos() {
             fileName: mediaPayload.fileName,
             mimetype: mediaPayload.mimetype,
             caption: mediaPayload.caption,
+            media: mediaPayload.media?.substring(0, 50) + '...', // Mostrar o campo media
             mediaLength: mediaPayload.media?.length || 0,
-            mediaPreview: mediaPayload.media?.substring(0, 50) + '...',
             hasMedia: !!mediaPayload.media,
             mediaValid: mediaPayload.media && mediaPayload.media.trim().length > 0
           }
