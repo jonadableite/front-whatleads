@@ -1,16 +1,18 @@
 import CustomDatePicker from "@/components/CustomDatePicker";
 import EditPaymentModal from "@/components/EditPaymentModal";
+import { UserManagementModal } from "@/components/admin/UserManagementModal";
 import { BarChart, LineChart } from "@/components/charts";
 import { Skeleton } from "@/components/ui/Skeleton";
 import { Button } from "@/components/ui/button";
 import { Table, Tbody, Td, Th, Thead, Tr } from "@/components/ui/table";
-import { useToast } from "@/components/ui/use-toast";
+import { toast } from "react-toastify";
 import type { Affiliate, DashboardData, Payment } from "@/interface";
 import { hotmartService, type HotmartCustomer, type HotmartStats } from "@/services/hotmart.service";
+import api from "@/lib/api";
 import { differenceInDays, format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { AnimatePresence, motion } from "framer-motion";
-import { Calendar, DollarSign, Download, Edit2, FileText, MessageSquare, PlusCircle, RefreshCw, Tag, TrendingUp, User, Users, X } from "lucide-react";
+import { Calendar, CheckCircle, DollarSign, Download, Edit2, FileText, MessageSquare, PlusCircle, RefreshCw, Tag, TrendingUp, User, Users, X, XCircle } from "lucide-react";
 import { useState } from "react";
 import useSWR from "swr";
 import { fetcher } from "@/lib/fetcher";
@@ -69,7 +71,7 @@ export default function AdminDashboard() {
 	// Estados para Hotmart
 	const [hotmartCustomers, setHotmartCustomers] = useState<HotmartCustomer[]>([]);
 	const [hotmartLoading, setHotmartLoading] = useState(false);
-	const [activeTab, setActiveTab] = useState<'dashboard' | 'hotmart'>('dashboard');
+	const [activeTab, setActiveTab] = useState<'dashboard' | 'hotmart' | 'users'>('dashboard');
 	const [hotmartFilters, setHotmartFilters] = useState({
 		page: 1,
 		limit: 10,
@@ -78,7 +80,34 @@ export default function AdminDashboard() {
 		paymentStatus: '',
 	});
 
-	const { toast } = useToast();
+	// Estados para Gerenciamento de Usuários
+	const [allUsers, setAllUsers] = useState<any[]>([]);
+	const [usersLoading, setUsersLoading] = useState(false);
+	const [editingUser, setEditingUser] = useState<any | null>(null);
+	const [usersFilters, setUsersFilters] = useState({
+		page: 1,
+		limit: 50,
+		search: '',
+		plan: '',
+		status: '',
+		trialOnly: false,
+		expiringSoon: false,
+	});
+	const [usersPagination, setUsersPagination] = useState({
+		page: 1,
+		limit: 50,
+		total: 0,
+		totalPages: 0,
+	});
+
+	// Estados para Modal de Criação de Pagamento
+	const [showCreatePaymentModal, setShowCreatePaymentModal] = useState(false);
+	const [selectedUserForPayment, setSelectedUserForPayment] = useState<any | null>(null);
+	const [paymentForm, setPaymentForm] = useState({
+		amount: '',
+		dueDate: '',
+		plan: 'basic'
+	});
 
 	// SWR para dados do dashboard
 	const { data, error: dashboardError, isLoading, mutate: mutateDashboard } = useSWR<DashboardData>(
@@ -186,7 +215,7 @@ export default function AdminDashboard() {
 			toast.info("Iniciando sincronização com Hotmart...");
 			const result = await hotmartService.syncWithHotmart();
 			const syncedCount = result?.syncedCount || 0;
-			
+
 			toast.success(`Sincronização concluída! ${syncedCount} registros sincronizados.`);
 			mutateHotmartStats(); // Revalida estatísticas
 			fetchHotmartCustomers(); // Recarrega clientes
@@ -219,6 +248,126 @@ export default function AdminDashboard() {
 		}
 	};
 
+	// Funções para Gerenciamento de Usuários
+	const fetchAllUsers = async () => {
+		setUsersLoading(true);
+		try {
+			const queryParams = new URLSearchParams({
+				page: usersFilters.page.toString(),
+				limit: usersFilters.limit.toString(),
+				...(usersFilters.search && { search: usersFilters.search }),
+				...(usersFilters.plan && { plan: usersFilters.plan }),
+				...(usersFilters.status && { status: usersFilters.status }),
+				trialOnly: usersFilters.trialOnly.toString(),
+				expiringSoon: usersFilters.expiringSoon.toString(),
+			});
+
+			const response = await api.get(`/api/subscription/admin/users?${queryParams}`);
+
+			if (response.data.success) {
+				setAllUsers(response.data.data.users);
+				setUsersPagination(response.data.data.pagination);
+			} else {
+				toast.error("Erro ao carregar usuários");
+			}
+		} catch (error) {
+			console.error("Erro ao buscar usuários:", error);
+			toast.error("Erro ao carregar usuários");
+		} finally {
+			setUsersLoading(false);
+		}
+	};
+
+	const handleUpdateUser = async (userId: string, data: any) => {
+		try {
+			const response = await api.put(`/api/subscription/admin/users/${userId}`, data);
+
+			if (response.data.success) {
+				toast.success("Usuário atualizado com sucesso!");
+				fetchAllUsers(); // Recarregar lista
+				setEditingUser(null);
+			} else {
+				toast.error(response.data.error || "Erro ao atualizar usuário");
+			}
+		} catch (error) {
+			console.error("Erro ao atualizar usuário:", error);
+			toast.error("Erro ao atualizar usuário");
+		}
+	};
+
+	// Funções para gerenciamento de pagamentos
+	const handleConfirmPayment = async (userId: string, paymentId: string) => {
+		try {
+			const response = await api.post(`/api/subscription/admin/users/${userId}/payments/${paymentId}/confirm`);
+
+			if (response.data.success) {
+				toast.success("Pagamento confirmado! Assinatura ativada.");
+				fetchAllUsers(); // Recarregar lista de usuários
+				mutateDashboard(); // Recarregar dados do dashboard
+			} else {
+				toast.error(response.data.error || "Erro ao confirmar pagamento");
+			}
+		} catch (error) {
+			console.error("Erro ao confirmar pagamento:", error);
+			toast.error("Erro ao confirmar pagamento");
+		}
+	};
+
+	const handleCancelPayment = async (userId: string, paymentId: string) => {
+		try {
+			const response = await api.post(`/api/subscription/admin/users/${userId}/payments/${paymentId}/cancel`);
+
+			if (response.data.success) {
+				toast.success("Pagamento cancelado com sucesso!");
+				fetchAllUsers(); // Recarregar lista de usuários
+				mutateDashboard(); // Recarregar dados do dashboard
+			} else {
+				toast.error(response.data.error || "Erro ao cancelar pagamento");
+			}
+		} catch (error) {
+			console.error("Erro ao cancelar pagamento:", error);
+			toast.error("Erro ao cancelar pagamento");
+		}
+	};
+
+	const handleCreatePayment = (user: any) => {
+		setSelectedUserForPayment(user);
+		setPaymentForm({
+			amount: user.plan === 'premium' ? '99' : '49', // valor padrão baseado no plano
+			dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 30 dias
+			plan: user.plan || 'basic'
+		});
+		setShowCreatePaymentModal(true);
+	};
+
+	const handleSubmitCreatePayment = async () => {
+		if (!selectedUserForPayment) return;
+
+		try {
+			const amountInCents = Math.round(parseFloat(paymentForm.amount) * 100); // converter para centavos
+			const dueDate = new Date(paymentForm.dueDate);
+
+			const response = await api.post(`/api/subscription/admin/users/${selectedUserForPayment.id}/payments`, {
+				amount: amountInCents,
+				dueDate: dueDate.toISOString(),
+				plan: paymentForm.plan
+			});
+
+			if (response.data.success) {
+				toast.success("Novo pagamento criado com sucesso!");
+				fetchAllUsers(); // Recarregar lista de usuários
+				mutateDashboard(); // Recarregar dados do dashboard
+				setShowCreatePaymentModal(false);
+				setSelectedUserForPayment(null);
+			} else {
+				toast.error(response.data.error || "Erro ao criar pagamento");
+			}
+		} catch (error) {
+			console.error("Erro ao criar pagamento:", error);
+			toast.error("Erro ao criar pagamento");
+		}
+	};
+
 	// Processamento dos dados para o gráfico
 	const processedRevenueByDay = revenueByDay.map((item) => ({
 		date: item.date,
@@ -241,14 +390,11 @@ export default function AdminDashboard() {
 		updatedData: Partial<Payment>,
 	) => {
 		try {
-			const token = authService.getTokenInterno();
-			await axios.put(`${API_URL}/api/payments/${paymentId}`, updatedData, {
-				headers: { Authorization: `Bearer ${token}` },
-			});
+			await api.put(`/api/payments/${paymentId}`, updatedData);
 
 			toast.success("Pagamento atualizado com sucesso");
 
-			fetchAdminData(); // Recarregar os dados
+			mutateDashboard(); // Recarregar os dados
 		} catch (error: unknown) {
 			const errorMessage = error instanceof Error ? error.message : "Erro desconhecido";
 			toast.error(`Erro ao atualizar pagamento: ${errorMessage}`);
@@ -257,21 +403,17 @@ export default function AdminDashboard() {
 
 	const handleAddUser = async (formData: FormData) => {
 		try {
-			const token = authService.getTokenInterno();
-
 			// Solução para conversão de FormData
 			const userData: Record<string, string> = {};
 			formData.forEach((value, key) => {
 				userData[key] = value.toString();
 			});
 
-			await axios.post(`${API_URL}/api/admin/users`, userData, {
-				headers: { Authorization: `Bearer ${token}` },
-			});
+			await api.post(`/api/admin/users`, userData);
 
 			toast.success("Usuário cadastrado com sucesso");
 			setShowAddUserModal(false);
-			fetchAdminData();
+			mutateDashboard();
 		} catch (error: unknown) {
 			const errorMessage = error instanceof Error ? error.message : "Erro desconhecido";
 			toast.error(`Erro ao cadastrar usuário: ${errorMessage}`);
@@ -309,6 +451,18 @@ export default function AdminDashboard() {
 						}`}
 				>
 					Dashboard Geral
+				</button>
+				<button
+					onClick={() => {
+						setActiveTab('users');
+						fetchAllUsers();
+					}}
+					className={`px-4 py-2 rounded-lg font-medium transition-colors ${activeTab === 'users'
+						? 'bg-electric text-white'
+						: 'bg-deep/60 text-gray-300 hover:bg-deep/80'
+						}`}
+				>
+					📋 Gerenciar Usuários
 				</button>
 				<button
 					onClick={() => setActiveTab('hotmart')}
@@ -674,12 +828,353 @@ export default function AdminDashboard() {
 				</>
 			)}
 
+			{/* Aba de Gerenciamento de Usuários */}
+			{activeTab === 'users' && (
+				<>
+					{/* Estatísticas de Usuários */}
+					<div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+						<StatCard
+							icon={Users}
+							title="Total de Usuários"
+							value={usersPagination.total}
+						/>
+						<StatCard
+							icon={TrendingUp}
+							title="Usuários Ativos"
+							value={allUsers.filter(u => u.isActive).length}
+						/>
+						<StatCard
+							icon={Calendar}
+							title="Em Trial"
+							value={allUsers.filter(u => u.isInTrial).length}
+						/>
+						<StatCard
+							icon={DollarSign}
+							title="Expirando em breve"
+							value={allUsers.filter(u => u.isExpiringSoon).length}
+						/>
+					</div>
+
+					{/* Filtros Avançados */}
+					<div className="bg-deep/60 p-6 rounded-lg mb-6 border border-electric/30">
+						<h3 className="text-lg font-bold text-white mb-4">Filtros Avançados</h3>
+						<div className="grid grid-cols-1 md:grid-cols-6 gap-4">
+							<input
+								type="text"
+								placeholder="🔍 Buscar por nome ou email..."
+								value={usersFilters.search}
+								onChange={(e) => setUsersFilters({ ...usersFilters, search: e.target.value })}
+								className="px-4 py-3 bg-deep/80 border border-electric/30 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-electric"
+							/>
+							<select
+								value={usersFilters.plan}
+								onChange={(e) => setUsersFilters({ ...usersFilters, plan: e.target.value })}
+								className="px-4 py-3 bg-deep/80 border border-electric/30 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-electric"
+							>
+								<option value="">Todos os planos</option>
+								<option value="free">Free</option>
+								<option value="basic">Basic</option>
+								<option value="premium">Premium</option>
+								<option value="enterprise">Enterprise</option>
+							</select>
+							<select
+								value={usersFilters.status}
+								onChange={(e) => setUsersFilters({ ...usersFilters, status: e.target.value })}
+								className="px-4 py-3 bg-deep/80 border border-electric/30 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-electric"
+							>
+								<option value="">Todos os status</option>
+								<option value="ACTIVE">✅ Ativo</option>
+								<option value="PENDING">⏳ Pendente</option>
+								<option value="SUSPENDED">🚫 Suspenso</option>
+								<option value="TRIAL">🎁 Trial</option>
+								<option value="EXPIRED">⏰ Expirado</option>
+								<option value="CANCELLED">❌ Cancelado</option>
+							</select>
+							<Button
+								onClick={() => setUsersFilters({ ...usersFilters, trialOnly: !usersFilters.trialOnly })}
+								variant={usersFilters.trialOnly ? 'default' : 'outline'}
+								className={usersFilters.trialOnly ? 'bg-blue-600' : 'border-blue-600 text-blue-400'}
+							>
+								🎁 Apenas Trials
+							</Button>
+							<Button
+								onClick={() => setUsersFilters({ ...usersFilters, expiringSoon: !usersFilters.expiringSoon })}
+								variant={usersFilters.expiringSoon ? 'default' : 'outline'}
+								className={usersFilters.expiringSoon ? 'bg-orange-600' : 'border-orange-600 text-orange-400'}
+							>
+								⏰ Expirando
+							</Button>
+							<Button
+								onClick={fetchAllUsers}
+								className="bg-electric hover:bg-electric/80 text-white"
+							>
+								<RefreshCw className="w-4 h-4 mr-2" />
+								Aplicar
+							</Button>
+						</div>
+					</div>
+
+					{/* Tabela de Usuários */}
+					<motion.div
+						className="bg-deep/90 backdrop-blur-2xl rounded-2xl border border-electric/40 overflow-hidden shadow-2xl"
+						variants={animations.item}
+					>
+						{usersLoading ? (
+							<div className="text-white text-center py-12">
+								<div className="w-16 h-16 border-4 border-electric border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+								<p>Carregando usuários...</p>
+							</div>
+						) : allUsers.length > 0 ? (
+							<>
+								<div className="overflow-x-auto">
+									<Table className="[&_tr:hover]:!bg-transparent">
+										<Thead>
+											<Tr className="bg-electric/20">
+												<Th className="text-electric font-bold">Usuário</Th>
+												<Th className="text-electric font-bold">Plano</Th>
+												<Th className="text-electric font-bold">Status</Th>
+												<Th className="text-electric font-bold">Vencimento</Th>
+												<Th className="text-electric font-bold">Trial</Th>
+												<Th className="text-electric font-bold">Pagamentos</Th>
+												<Th className="text-electric font-bold">Instâncias</Th>
+												<Th className="text-electric font-bold">Msgs/Dia</Th>
+												<Th className="text-electric font-bold">Ações</Th>
+											</Tr>
+										</Thead>
+										<Tbody className="[&_tr:hover]:bg-transparent">
+											{allUsers.map((user) => (
+												<Tr key={user.id} className="hover:bg-electric/10">
+													<Td>
+														<div>
+															<div className="font-medium text-white flex items-center gap-2">
+																{user.name}
+																{user.isInTrial && <span className="text-xs bg-blue-500/20 text-blue-400 px-2 py-0.5 rounded-full">🎁 Trial</span>}
+																{user.hasOverduePayment && <span className="text-xs bg-red-500/20 text-red-400 px-2 py-0.5 rounded-full">⚠️  Vencido</span>}
+																{user.isExpiringSoon && <span className="text-xs bg-orange-500/20 text-orange-400 px-2 py-0.5 rounded-full">⏰ Expira em breve</span>}
+															</div>
+															<div className="text-sm text-gray-400">{user.email}</div>
+														</div>
+													</Td>
+													<Td>
+														<span className={`font-bold ${user.plan === 'enterprise' ? 'text-gold' :
+															user.plan === 'premium' ? 'text-purple-400' :
+																user.plan === 'basic' ? 'text-blue-400' :
+																	'text-gray-400'
+															}`}>
+															{user.plan.toUpperCase()}
+														</span>
+													</Td>
+													<Td>
+														<span className={`px-2 py-1 rounded-full text-xs font-bold ${user.subscriptionStatus === 'ACTIVE' ? 'bg-green-500/20 text-green-400' :
+															user.subscriptionStatus === 'TRIAL' ? 'bg-blue-500/20 text-blue-400' :
+																user.subscriptionStatus === 'PENDING' ? 'bg-yellow-500/20 text-yellow-400' :
+																	user.subscriptionStatus === 'SUSPENDED' ? 'bg-red-500/20 text-red-400' :
+																		user.subscriptionStatus === 'EXPIRED' ? 'bg-orange-500/20 text-orange-400' :
+																			'bg-gray-500/20 text-gray-400'
+															}`}>
+															{user.subscriptionStatus || 'N/A'}
+														</span>
+													</Td>
+													<Td>
+														{user.subscriptionEndDate ? (
+															<div>
+																<div className="text-white">{formatDate(user.subscriptionEndDate)}</div>
+																{user.daysUntilExpiration !== null && (
+																	<div className={`text-xs ${user.daysUntilExpiration < 0 ? 'text-red-400' :
+																		user.daysUntilExpiration <= 7 ? 'text-orange-400' :
+																			'text-green-400'
+																		}`}>
+																		{user.daysUntilExpiration < 0
+																			? `Vencido há ${Math.abs(user.daysUntilExpiration)} dias`
+																			: `${user.daysUntilExpiration} dias restantes`
+																		}
+																	</div>
+																)}
+															</div>
+														) : (
+															<span className="text-gray-500">N/A</span>
+														)}
+													</Td>
+													<Td>
+														{user.isInTrial ? (
+															<div className="text-blue-400">
+																<div>🎁 Ativo</div>
+																<div className="text-xs">{user.daysUntilTrialEnd} dias</div>
+															</div>
+														) : (
+															<span className="text-gray-500">-</span>
+														)}
+													</Td>
+													<Td>
+														{user.Payment && user.Payment.length > 0 ? (
+															<div className="space-y-1">
+																{user.Payment.slice(0, 2).map((payment: any, index: number) => (
+																	<div key={payment.id || index} className="text-xs">
+																		<div className={`flex items-center gap-1 ${payment.status === 'completed' ? 'text-green-400' :
+																			payment.status === 'pending' ? 'text-yellow-400' :
+																				payment.status === 'overdue' ? 'text-red-400' :
+																					'text-gray-400'
+																			}`}>
+																			<span className={`w-2 h-2 rounded-full ${payment.status === 'completed' ? 'bg-green-400' :
+																				payment.status === 'pending' ? 'bg-yellow-400' :
+																					payment.status === 'overdue' ? 'bg-red-400' :
+																						'bg-gray-400'
+																				}`}></span>
+																			<span>R$ {(payment.amount / 100).toFixed(2)}</span>
+																			<span className="text-gray-400">-</span>
+																			<span className="capitalize">{payment.status}</span>
+																		</div>
+																	</div>
+																))}
+																{user.Payment.length > 2 && (
+																	<div className="text-xs text-gray-400">
+																		+{user.Payment.length - 2} mais
+																	</div>
+																)}
+															</div>
+														) : (
+															<span className="text-gray-500 text-xs">Nenhum pagamento</span>
+														)}
+													</Td>
+													<Td className="text-white">{user.maxInstances}</Td>
+													<Td className="text-white">{user.messagesPerDay}</Td>
+													<Td>
+														<div className="flex flex-col gap-2">
+															{/* Botão Editar */}
+															<Button
+																size="sm"
+																variant="ghost"
+																className="hover:bg-electric/30 hover:text-electric transition-all duration-200"
+																onClick={() => setEditingUser(user)}
+															>
+																<Edit2 className="w-4 h-4 mr-1" />
+																Editar
+															</Button>
+
+															{/* Ações de Pagamento */}
+															<div className="flex gap-1">
+																{/* Botão Confirmar Pagamento - só aparece se tem pagamento pendente */}
+																{user.Payment && user.Payment.length > 0 &&
+																	user.Payment.some((p: any) => p.status === 'pending' || p.status === 'overdue') && (
+																		<Button
+																			size="sm"
+																			variant="ghost"
+																			className="hover:bg-green-500/30 hover:text-green-400 transition-all duration-200"
+																			onClick={() => {
+																				const pendingPayment = user.Payment.find((p: any) => p.status === 'pending' || p.status === 'overdue');
+																				if (pendingPayment) {
+																					handleConfirmPayment(user.id, pendingPayment.id);
+																				}
+																			}}
+																			title="Confirmar Pagamento"
+																		>
+																			<CheckCircle className="w-4 h-4" />
+																		</Button>
+																	)}
+
+																{/* Botão Cancelar Pagamento - só aparece se tem pagamento pendente */}
+																{user.Payment && user.Payment.length > 0 &&
+																	user.Payment.some((p: any) => p.status === 'pending' || p.status === 'overdue') && (
+																		<Button
+																			size="sm"
+																			variant="ghost"
+																			className="hover:bg-red-500/30 hover:text-red-400 transition-all duration-200"
+																			onClick={() => {
+																				const pendingPayment = user.Payment.find((p: any) => p.status === 'pending' || p.status === 'overdue');
+																				if (pendingPayment) {
+																					handleCancelPayment(user.id, pendingPayment.id);
+																				}
+																			}}
+																			title="Cancelar Pagamento"
+																		>
+																			<XCircle className="w-4 h-4" />
+																		</Button>
+																	)}
+
+																{/* Botão Criar Pagamento - só aparece se não tem pagamento pendente */}
+																{(!user.Payment || user.Payment.length === 0 ||
+																	!user.Payment.some((p: any) => p.status === 'pending' || p.status === 'overdue')) && (
+																		<Button
+																			size="sm"
+																			variant="ghost"
+																			className="hover:bg-blue-500/30 hover:text-blue-400 transition-all duration-200"
+																			onClick={() => handleCreatePayment(user)}
+																			title="Criar Novo Pagamento"
+																		>
+																			<DollarSign className="w-4 h-4" />
+																		</Button>
+																	)}
+															</div>
+														</div>
+													</Td>
+												</Tr>
+											))}
+										</Tbody>
+									</Table>
+								</div>
+
+								{/* Paginação */}
+								<div className="p-4 border-t border-electric/30 flex items-center justify-between">
+									<div className="text-white/60 text-sm">
+										Mostrando {((usersPagination.page - 1) * usersPagination.limit) + 1} a {Math.min(usersPagination.page * usersPagination.limit, usersPagination.total)} de {usersPagination.total} usuários
+									</div>
+									<div className="flex gap-2">
+										<Button
+											onClick={() => {
+												setUsersFilters({ ...usersFilters, page: usersFilters.page - 1 });
+												fetchAllUsers();
+											}}
+											disabled={usersFilters.page === 1}
+											variant="outline"
+											size="sm"
+											className="border-electric/30 text-white"
+										>
+											Anterior
+										</Button>
+										<div className="px-4 py-2 bg-electric/20 rounded-lg text-white text-sm">
+											Página {usersPagination.page} de {usersPagination.totalPages}
+										</div>
+										<Button
+											onClick={() => {
+												setUsersFilters({ ...usersFilters, page: usersFilters.page + 1 });
+												fetchAllUsers();
+											}}
+											disabled={usersFilters.page >= usersPagination.totalPages}
+											variant="outline"
+											size="sm"
+											className="border-electric/30 text-white"
+										>
+											Próxima
+										</Button>
+									</div>
+								</div>
+							</>
+						) : (
+							<div className="text-white text-center py-12">
+								<Users className="w-16 h-16 mx-auto mb-4 text-white/30" />
+								<p className="text-xl font-bold mb-2">Nenhum usuário encontrado</p>
+								<p className="text-white/60">Ajuste os filtros ou carregue os usuários</p>
+							</div>
+						)}
+					</motion.div>
+				</>
+			)}
+
 			{/* Modal para editar pagamento */}
 			{editingPayment && (
 				<EditPaymentModal
 					payment={editingPayment}
 					onClose={() => setEditingPayment(null)}
 					onSave={handleUpdatePayment}
+				/>
+			)}
+
+			{/* Modal para editar usuário */}
+			{editingUser && (
+				<UserManagementModal
+					user={editingUser}
+					onClose={() => setEditingUser(null)}
+					onSave={handleUpdateUser}
 				/>
 			)}
 
@@ -844,6 +1339,112 @@ export default function AdminDashboard() {
 						</motion.div>
 					</motion.div>
 				)}
+
+				{/* Modal para Criar Pagamento */}
+				<AnimatePresence>
+					{showCreatePaymentModal && selectedUserForPayment && (
+						<motion.div
+							className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50"
+							initial={{ opacity: 0 }}
+							animate={{ opacity: 1 }}
+							exit={{ opacity: 0 }}
+						>
+							<motion.div
+								className="bg-deep/95 backdrop-blur-xl p-6 rounded-2xl shadow-2xl border border-electric/30 w-96"
+								initial={{ scale: 0.8, opacity: 0 }}
+								animate={{ scale: 1, opacity: 1 }}
+								exit={{ scale: 0.8, opacity: 0 }}
+								transition={{ duration: 0.2 }}
+							>
+								<div className="flex justify-between items-center mb-6">
+									<h2 className="text-2xl font-bold text-white">
+										Criar Novo Pagamento
+									</h2>
+									<X
+										className="text-white cursor-pointer hover:text-red-400 transition-colors"
+										onClick={() => {
+											setShowCreatePaymentModal(false);
+											setSelectedUserForPayment(null);
+										}}
+									/>
+								</div>
+
+								<div className="mb-4">
+									<label className="block text-sm font-medium text-white mb-2">
+										Usuário
+									</label>
+									<div className="bg-deep/60 p-3 rounded-lg border border-electric/30">
+										<div className="text-white font-medium">{selectedUserForPayment.name}</div>
+										<div className="text-gray-400 text-sm">{selectedUserForPayment.email}</div>
+									</div>
+								</div>
+
+								<div className="mb-4">
+									<label className="block text-sm font-medium text-white mb-2">
+										Valor (R$)
+									</label>
+									<input
+										type="number"
+										step="0.01"
+										min="0"
+										value={paymentForm.amount}
+										onChange={(e) => setPaymentForm({ ...paymentForm, amount: e.target.value })}
+										className="w-full px-4 py-3 bg-deep/60 border border-electric/30 rounded-lg text-white placeholder-gray-400 focus:outline-none focus:ring-2 focus:ring-electric"
+										placeholder="Ex: 49.00"
+									/>
+								</div>
+
+								<div className="mb-4">
+									<label className="block text-sm font-medium text-white mb-2">
+										Data de Vencimento
+									</label>
+									<input
+										type="date"
+										value={paymentForm.dueDate}
+										onChange={(e) => setPaymentForm({ ...paymentForm, dueDate: e.target.value })}
+										className="w-full px-4 py-3 bg-deep/60 border border-electric/30 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-electric"
+									/>
+								</div>
+
+								<div className="mb-6">
+									<label className="block text-sm font-medium text-white mb-2">
+										Plano
+									</label>
+									<select
+										value={paymentForm.plan}
+										onChange={(e) => setPaymentForm({ ...paymentForm, plan: e.target.value })}
+										className="w-full px-4 py-3 bg-deep/60 border border-electric/30 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-electric"
+									>
+										<option value="free">Free</option>
+										<option value="basic">Basic</option>
+										<option value="premium">Premium</option>
+										<option value="enterprise">Enterprise</option>
+									</select>
+								</div>
+
+								<div className="flex justify-end gap-3">
+									<Button
+										variant="outline"
+										onClick={() => {
+											setShowCreatePaymentModal(false);
+											setSelectedUserForPayment(null);
+										}}
+										className="bg-deep/50 border-electric text-white hover:bg-electric/20"
+									>
+										Cancelar
+									</Button>
+									<Button
+										onClick={handleSubmitCreatePayment}
+										disabled={!paymentForm.amount || !paymentForm.dueDate}
+										className="bg-electric text-deep hover:bg-electric/80 disabled:opacity-50 disabled:cursor-not-allowed"
+									>
+										Criar Pagamento
+									</Button>
+								</div>
+							</motion.div>
+						</motion.div>
+					)}
+				</AnimatePresence>
 			</AnimatePresence>
 		</motion.div>
 	);

@@ -29,6 +29,7 @@ import Historico from '../pages/Historico';
 import HotmartSales from '../pages/HotmartSales';
 import PasswordRecovery from '../pages/PasswordRecovery';
 import WhatsappPage from '../pages/Whatsapp';
+import Billing from '@/pages/Billing';
 
 const router = createBrowserRouter([
   {
@@ -115,12 +116,16 @@ const router = createBrowserRouter([
             element: <Documentation />,
           },
           {
-            path: '/hotmart/vendas',
-            element: <HotmartSales />,
-          },
-          {
             path: '/aquecimento',
             element: <Aquecimento />,
+          },
+          {
+            path: '/billing',
+            element: <Billing />,
+          },
+          {
+            path: '/hotmart/vendas',
+            element: <HotmartSales />,
           },
         ],
       },

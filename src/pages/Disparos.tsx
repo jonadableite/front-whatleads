@@ -458,6 +458,14 @@ export default function Disparos() {
     const file = event.target.files?.[0];
     if (!file) return;
 
+    // Validação de tamanho do arquivo
+    const maxSize = mediaType === 'video' ? 16 * 1024 * 1024 : 10 * 1024 * 1024; // 16MB para vídeo, 10MB para outros
+    if (file.size > maxSize) {
+      toast.error(`Arquivo muito grande. Tamanho máximo: ${mediaType === 'video' ? '16MB' : '10MB'}`);
+      event.target.value = '';
+      return;
+    }
+
     // Limpar estados anteriores
     setBase64Image('');
     setBase64Video('');
@@ -467,7 +475,27 @@ export default function Disparos() {
       const reader = new FileReader();
       reader.onloadend = () => {
         const base64String = reader.result as string;
+
+        // Validar se o resultado é válido
+        if (!base64String || !base64String.includes(',')) {
+          toast.error('Erro ao processar arquivo. Tente novamente.');
+          return;
+        }
+
         const base64Content = base64String.split(',')[1];
+
+        // Validar se o base64 é válido
+        if (!base64Content || base64Content.trim().length === 0) {
+          toast.error('Erro ao converter arquivo para base64. Tente novamente.');
+          return;
+        }
+
+        // Validar formato base64
+        const base64Regex = /^[A-Za-z0-9+/]*={0,2}$/;
+        if (!base64Regex.test(base64Content)) {
+          toast.error('Arquivo corrompido. Tente novamente.');
+          return;
+        }
 
         // Criar preview URL para visualização
         const previewUrl = URL.createObjectURL(file);
@@ -477,14 +505,30 @@ export default function Disparos() {
         switch (mediaType) {
           case 'image':
             setBase64Image(base64Content);
+            toast.success('Imagem carregada com sucesso!');
             break;
           case 'video':
             setBase64Video(base64Content);
+            toast.success('Vídeo carregado com sucesso!');
             break;
           case 'audio':
             setBase64Audio(base64Content);
+            toast.success('Áudio carregado com sucesso!');
             break;
         }
+
+        console.log('Mídia processada:', {
+          type: mediaType,
+          fileName: file.name,
+          fileSize: file.size,
+          base64Length: base64Content.length,
+          base64Preview: base64Content.substring(0, 50) + "..."
+        });
+      };
+
+      reader.onerror = () => {
+        toast.error('Erro ao ler arquivo. Tente novamente.');
+        console.error('FileReader error');
       };
 
       // Se for imagem, comprimir antes
@@ -528,25 +572,50 @@ export default function Disparos() {
     maxSizeMB = 2,
   ): Promise<Blob> => {
     return new Promise((resolve, reject) => {
-      new Compressor(file, {
-        quality: 0.8,
-        maxWidth: 1920,
-        maxHeight: 1080,
-        success(result) {
-          if (result.size > maxSizeMB * 1024 * 1024) {
-            new Compressor(file, {
-              quality: 0.6,
-              maxWidth: 1280,
-              maxHeight: 720,
-              success: resolve,
-              error: reject,
+      try {
+        new Compressor(file, {
+          quality: 0.8,
+          maxWidth: 1920,
+          maxHeight: 1080,
+          success(result) {
+            console.log('Compressão inicial:', {
+              originalSize: file.size,
+              compressedSize: result.size,
+              reduction: ((file.size - result.size) / file.size * 100).toFixed(2) + '%'
             });
-          } else {
-            resolve(result);
-          }
-        },
-        error: reject,
-      });
+
+            if (result.size > maxSizeMB * 1024 * 1024) {
+              console.log('Primeira compressão não foi suficiente, comprimindo novamente...');
+              new Compressor(file, {
+                quality: 0.6,
+                maxWidth: 1280,
+                maxHeight: 720,
+                success: (finalResult) => {
+                  console.log('Compressão final:', {
+                    originalSize: file.size,
+                    finalSize: finalResult.size,
+                    totalReduction: ((file.size - finalResult.size) / file.size * 100).toFixed(2) + '%'
+                  });
+                  resolve(finalResult);
+                },
+                error: (err) => {
+                  console.error('Erro na segunda compressão:', err);
+                  reject(err);
+                },
+              });
+            } else {
+              resolve(result);
+            }
+          },
+          error: (err) => {
+            console.error('Erro na primeira compressão:', err);
+            reject(err);
+          },
+        });
+      } catch (error) {
+        console.error('Erro ao inicializar compressão:', error);
+        reject(error);
+      }
     });
   };
 

@@ -9,6 +9,7 @@ import { AnimatePresence, motion } from 'framer-motion';
 import {
   Bot,
   ChevronRight,
+  CreditCard,
   Crown,
   FileText,
   Flame,
@@ -17,13 +18,16 @@ import {
   Menu,
   MessageCircle,
   MessageSquareText,
+  Settings,
   ShoppingCart,
+  User as UserIcon,
   Users,
+  Wallet,
   X,
 } from 'lucide-react';
 import { useState } from 'react';
 import { FaWhatsapp } from 'react-icons/fa';
-import { Link, useLocation } from 'react-router-dom';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
 
 interface SidebarItem {
   title: string;
@@ -85,21 +89,27 @@ const sidebarItems: SidebarItem[] = [
     icon: <FileText className="w-5 h-5" />,
     path: '/documentacao',
   },
-  {
-    title: 'Vendas Hotmart',
-    icon: <ShoppingCart className="w-5 h-5" />,
-    path: '/hotmart/vendas',
-    adminOnly: true,
-  },
+
   {
     title: 'Aquecimento',
     icon: <Flame className="w-5 h-5" />,
     path: '/aquecimento',
   },
+  // {
+  //   title: 'Assinaturas',
+  //   icon: <CreditCard className="w-5 h-5" />,
+  //   path: '/billing',
+  // },
   {
     title: 'Painel de Admin',
     icon: <Crown className="w-5 h-5" />,
     path: '/admin',
+    adminOnly: true,
+  },
+  {
+    title: 'Vendas Hotmart',
+    icon: <ShoppingCart className="w-5 h-5" />,
+    path: '/hotmart/vendas',
     adminOnly: true,
   },
 ];
@@ -108,7 +118,9 @@ export function Sidebar() {
   const { isCollapsed, toggleSidebar } = useSidebar();
   const { user } = useUser();
   const [openSubmenu, setOpenSubmenu] = useState<string | null>(null);
+  const [userMenuOpen, setUserMenuOpen] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
   const isAdmin = user?.role === 'admin' || false;
 
   const handleLogout = () => {
@@ -117,6 +129,20 @@ export function Sidebar() {
 
   const toggleSubmenu = (path: string) => {
     setOpenSubmenu(openSubmenu === path ? null : path);
+  };
+
+  const toggleUserMenu = () => {
+    setUserMenuOpen(!userMenuOpen);
+  };
+
+  const navigateToProfile = () => {
+    navigate('/perfil');
+    setUserMenuOpen(false);
+  };
+
+  const navigateToBilling = () => {
+    navigate('/billing');
+    setUserMenuOpen(false);
   };
 
   return (
@@ -421,38 +447,130 @@ export function Sidebar() {
             <TourButton variant="minimal" className="w-full justify-start" />
           )}
 
-          {/* User Info */}
-          <div className="flex items-center gap-3">
+          {/* User Menu com Dropdown */}
+          <div className="relative">
+            {/* User Info - Clickable */}
             <motion.div
-              whileHover={{ scale: 1.1 }}
-              className="w-8 h-8 rounded-full bg-gradient-to-br from-electric to-neon-green flex items-center justify-center text-deep font-bold"
+              onClick={toggleUserMenu}
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              className={cn(
+                "flex items-center gap-3 p-2 rounded-lg cursor-pointer transition-all duration-200",
+                "hover:bg-electric/10 border border-transparent hover:border-electric/30",
+                userMenuOpen && "bg-electric/10 border-electric/30"
+              )}
             >
-              {user?.name?.charAt(0)?.toUpperCase() || 'U'}
+              <motion.div
+                whileHover={{ scale: 1.1, rotate: 360 }}
+                transition={{ duration: 0.3 }}
+                className="w-10 h-10 rounded-full bg-gradient-to-br from-electric to-neon-green flex items-center justify-center text-deep font-bold text-lg shadow-lg"
+              >
+                {user?.name?.charAt(0)?.toUpperCase() || 'U'}
+              </motion.div>
+              {!isCollapsed && (
+                <div className="flex-1 min-w-0">
+                  <p className="text-sm font-medium text-white truncate">
+                    {user?.name || 'Usuário'}
+                  </p>
+                  <p className="text-xs text-white/60 truncate">
+                    {user?.email || 'email@exemplo.com'}
+                  </p>
+                </div>
+              )}
+              {!isCollapsed && (
+                <motion.div
+                  animate={{ rotate: userMenuOpen ? 180 : 0 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <ChevronRight className="w-4 h-4 text-white/60 rotate-90" />
+                </motion.div>
+              )}
             </motion.div>
-            {!isCollapsed && (
-              <div className="flex-1 min-w-0">
-                <p className="text-sm font-medium text-white truncate">
-                  {user?.name || 'Usuário'}
-                </p>
-                <p className="text-xs text-white/60 truncate">
-                  {user?.email || 'email@exemplo.com'}
-                </p>
-              </div>
+
+            {/* Dropdown Menu */}
+            <AnimatePresence>
+              {userMenuOpen && !isCollapsed && (
+                <motion.div
+                  initial={{ opacity: 0, y: -10, scale: 0.95 }}
+                  animate={{ opacity: 1, y: 0, scale: 1 }}
+                  exit={{ opacity: 0, y: -10, scale: 0.95 }}
+                  transition={{ duration: 0.2 }}
+                  className="absolute bottom-full left-0 right-0 mb-2 bg-deep/95 backdrop-blur-xl border border-electric/30 rounded-lg shadow-2xl overflow-hidden"
+                >
+                  {/* Menu Items */}
+                  <div className="p-2 space-y-1">
+                    {/* Perfil */}
+                    <motion.button
+                      onClick={navigateToProfile}
+                      whileHover={{ x: 5 }}
+                      className="w-full flex items-center gap-3 px-3 py-2 text-white/80 hover:text-white hover:bg-electric/10 rounded-lg transition-all duration-200 group"
+                    >
+                      <div className="p-1.5 bg-electric/10 rounded-lg group-hover:bg-electric/20 transition-colors">
+                        <UserIcon className="w-4 h-4 text-electric" />
+                      </div>
+                      <span className="text-sm font-medium">Meu Perfil</span>
+                    </motion.button>
+
+                    {/* Assinaturas */}
+                    <motion.button
+                      onClick={navigateToBilling}
+                      whileHover={{ x: 5 }}
+                      className="w-full flex items-center gap-3 px-3 py-2 text-white/80 hover:text-white hover:bg-neon-green/10 rounded-lg transition-all duration-200 group"
+                    >
+                      <div className="p-1.5 bg-neon-green/10 rounded-lg group-hover:bg-neon-green/20 transition-colors">
+                        <Wallet className="w-4 h-4 text-neon-green" />
+                      </div>
+                      <div className="flex-1 text-left">
+                        <span className="text-sm font-medium block">Assinaturas</span>
+                        <span className="text-xs text-white/50">Pagamentos & Planos</span>
+                      </div>
+                    </motion.button>
+
+                    {/* Configurações */}
+                    <motion.button
+                      onClick={() => {
+                        navigate('/configuracoes');
+                        setUserMenuOpen(false);
+                      }}
+                      whileHover={{ x: 5 }}
+                      className="w-full flex items-center gap-3 px-3 py-2 text-white/80 hover:text-white hover:bg-electric/10 rounded-lg transition-all duration-200 group"
+                    >
+                      <div className="p-1.5 bg-electric/10 rounded-lg group-hover:bg-electric/20 transition-colors">
+                        <Settings className="w-4 h-4 text-electric" />
+                      </div>
+                      <span className="text-sm font-medium">Configurações</span>
+                    </motion.button>
+
+                    <div className="h-px bg-electric/20 my-2" />
+
+                    {/* Sair */}
+                    <motion.button
+                      onClick={handleLogout}
+                      whileHover={{ x: 5 }}
+                      className="w-full flex items-center gap-3 px-3 py-2 text-red-400 hover:text-red-300 hover:bg-red-500/10 rounded-lg transition-all duration-200 group"
+                    >
+                      <div className="p-1.5 bg-red-500/10 rounded-lg group-hover:bg-red-500/20 transition-colors">
+                        <LogOut className="w-4 h-4" />
+                      </div>
+                      <span className="text-sm font-medium">Sair da Conta</span>
+                    </motion.button>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
+
+            {/* Tooltip para sidebar collapsed */}
+            {isCollapsed && (
+              <motion.div
+                initial={{ opacity: 0, x: 20 }}
+                whileHover={{ opacity: 1, x: 0 }}
+                className="absolute left-full ml-2 px-3 py-2 bg-deep/90 rounded-md text-sm whitespace-nowrap z-50 hidden group-hover:block"
+              >
+                <p className="font-medium text-white">{user?.name || 'Usuário'}</p>
+                <p className="text-xs text-white/60">{user?.email}</p>
+              </motion.div>
             )}
           </div>
-
-          {/* Logout Button */}
-          <Button
-            variant="ghost"
-            onClick={handleLogout}
-            className={cn(
-              'w-full justify-start text-white/80 text-white bg-red-500/20 hover:text-white hover:bg-red-500/50 transition-all duration-200',
-              isCollapsed && 'justify-center px-2',
-            )}
-          >
-            <LogOut className="w-4 h-4 text-white" />
-            {!isCollapsed && <span className="ml-2 text-white">Sair</span>}
-          </Button>
         </div>
       </div>
     </motion.div>
