@@ -504,7 +504,9 @@ export default function Disparos() {
           fileName: file.name,
           fileSize: file.size,
           base64Length: base64Content.length,
-          base64Preview: base64Content.substring(0, 50) + "..."
+          base64Preview: base64Content.substring(0, 50) + "...",
+          hasBase64Content: !!base64Content,
+          base64Valid: base64Content && base64Content.trim().length > 0
         });
       };
 
@@ -764,6 +766,11 @@ export default function Disparos() {
           caption: '', // Opcional
         };
       } else if (mediaType === 'video' && base64Video) {
+        console.log('Criando payload de vídeo:', {
+          hasBase64Video: !!base64Video,
+          base64VideoLength: base64Video.length,
+          base64VideoPreview: base64Video.substring(0, 50) + '...'
+        });
         mediaPayload = {
           mediatype: 'video',
           media: base64Video, // Base64 puro sem prefixo
@@ -794,7 +801,9 @@ export default function Disparos() {
             mimetype: mediaPayload.mimetype,
             caption: mediaPayload.caption,
             mediaLength: mediaPayload.media?.length || 0,
-            mediaPreview: mediaPayload.media?.substring(0, 50) + '...'
+            mediaPreview: mediaPayload.media?.substring(0, 50) + '...',
+            hasMedia: !!mediaPayload.media,
+            mediaValid: mediaPayload.media && mediaPayload.media.trim().length > 0
           }
           : null,
       });
