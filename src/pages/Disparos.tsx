@@ -142,7 +142,7 @@ export default function Disparos() {
   const handleSegmentChange = async (
     e: React.ChangeEvent<HTMLSelectElement>,
   ) => {
-    const segment = e.target.value;
+    const segment = e.target.value as SegmentType | '';
     setSelectedSegment(segment);
 
     console.log('Selected Campaign:', selectedCampaign);
@@ -169,7 +169,7 @@ export default function Disparos() {
   // Função para buscar contagem de leads com tipagem melhorada
   const fetchLeadCount = async (
     campaignId: string,
-    segment: SegmentType,
+    segment: SegmentType | '',
   ): Promise<{ count: number }> => {
     try {
       const response = await api.get<{ count: number }>(
@@ -382,11 +382,12 @@ export default function Disparos() {
 
       return newInstances.some((newInstance, index) => {
         const prevInstance = prevInstances[index];
+        const prevProgress = calculateWarmupProgress(prevInstance);
+        const newProgress = calculateWarmupProgress(newInstance);
+
         return (
-          prevInstance.warmupStatus?.progress !==
-          newInstance.warmupStatus?.progress ||
-          prevInstance.connectionStatus !==
-          newInstance.connectionStatus
+          Math.abs(prevProgress - newProgress) > 0.1 ||
+          prevInstance.connectionStatus !== newInstance.connectionStatus
         );
       });
     };
@@ -404,8 +405,11 @@ export default function Disparos() {
         return {
           ...instanceItem,
           warmupStatus: {
-            ...instanceItem.warmupStatus,
             progress: warmupProgress,
+            isRecommended: warmupProgress >= 75,
+            warmupHours: warmupProgress * 4, // Aproximação baseada no progresso
+            status: 'active',
+            lastUpdate: new Date().toISOString(),
           },
         };
       }
@@ -1127,13 +1131,11 @@ export default function Disparos() {
                               'Instância selecionada:',
                               selectedInstanceData,
                             );
-                            if (selectedInstanceData.warmupStatus) {
-                              console.log(
-                                'Progresso de Warmup:',
-                                selectedInstanceData.warmupStatus
-                                  .progress,
-                              );
-                            }
+                            const warmupProgress = calculateWarmupProgress(selectedInstanceData);
+                            console.log(
+                              'Progresso de Warmup:',
+                              warmupProgress,
+                            );
                           }
                         }}
                         className={cn(
@@ -1166,6 +1168,7 @@ export default function Disparos() {
                         </option>
                         {instances.map((instance) => {
                           const warmupProgress = calculateWarmupProgress(instance);
+                          const isRecommended = warmupProgress >= 75; // 75% ou mais é recomendado
 
                           return (
                             <option
@@ -1173,16 +1176,13 @@ export default function Disparos() {
                               value={instance.id}
                               className={cn(
                                 'bg-gray-800 text-gray-300',
-                                instance.warmupStatus
-                                  ?.isRecommended &&
-                                'text-neon-green',
+                                isRecommended && 'text-neon-green',
                                 instance.connectionStatus ===
                                 'OPEN' && 'font-medium',
                               )}
                             >
                               {instance.instanceName}
-                              {instance.warmupStatus?.isRecommended &&
-                                ' ⭐'}
+                              {isRecommended && ' ⭐'}
                               {warmupProgress >= 0 && (
                                 <span
                                   className={cn(
@@ -1245,16 +1245,20 @@ export default function Disparos() {
                                   </div>
                                 )}
 
-                                {selectedInstanceData?.warmupStatus
-                                  ?.isRecommended && (
+                                {(() => {
+                                  const warmupProgress = calculateWarmupProgress(selectedInstanceData);
+                                  const isRecommended = warmupProgress >= 75;
+
+                                  return isRecommended && (
                                     <div className="text-sm text-green-400 flex items-center gap-2">
                                       <div className="w-2 h-2 bg-green-400 rounded-full animate-pulse" />
                                       <span>
                                         Esta instância já possui mais de
-                                        300 horas de aquecimento
+                                        75% de aquecimento
                                       </span>
                                     </div>
-                                  )}
+                                  );
+                                })()}
 
                                 <div
                                   className={cn(
@@ -1408,7 +1412,7 @@ export default function Disparos() {
                     </label>
                     <select
                       value={mediaType}
-                      onChange={(e) => setMediaType(e.target.value)}
+                      onChange={(e) => setMediaType(e.target.value as MediaType)}
                       className="w-full p-4 bg-electric/10 border border-electric rounded-xl text-white focus:ring-2 focus:ring-neon-green transition-all appearance-none"
                       style={{
                         WebkitAppearance: 'none',
@@ -1843,7 +1847,16 @@ export default function Disparos() {
             isOpen={isImportModalOpen}
             onClose={() => setIsImportModalOpen(false)}
             onImport={handleImportLeads}
-            campaigns={campaigns}
+            campaigns={campaigns.map(campaign => ({
+              ...campaign,
+              minDelay: 5,
+              maxDelay: 30,
+              userId: '',
+              instanceName: campaign.instance || '',
+              createdAt: new Date(),
+              updatedAt: new Date(),
+              status: campaign.status === 'cancelled' ? 'failed' : campaign.status as any,
+            }))}
             disableImport={false}
             totalLeads={0}
             maxLeads={10000}

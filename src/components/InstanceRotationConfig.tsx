@@ -96,34 +96,37 @@ export const InstanceRotationConfig: React.FC<
               createdAt: string;
             };
           }) => {
-            const warmupStats = instance.warmupStats;
-            
-            // Se não tiver warmupStats, retorna progresso 0
-            if (!warmupStats || !warmupStats.warmupTime) {
+            // Verificar se a instância tem warmupStats válidos
+            const hasWarmupStats = instance.warmupStats &&
+              typeof instance.warmupStats === 'object' &&
+              typeof instance.warmupStats.warmupTime === 'number';
+
+            if (hasWarmupStats) {
+              const warmupTime = instance.warmupStats.warmupTime;
+              const warmupHours = warmupTime / 3600;
+              const progress = Math.min((warmupHours / 400) * 100, 100);
+
               return {
                 ...instance,
                 warmupStatus: {
-                  progress: 0,
-                  isRecommended: false,
-                  warmupHours: 0,
-                  status: 'inactive',
-                  lastUpdate: warmupStats?.createdAt || null,
+                  progress: Math.round(progress * 100) / 100,
+                  isRecommended: warmupHours >= 300,
+                  warmupHours: Math.round(warmupHours * 100) / 100,
+                  status: instance.warmupStats.status || 'inactive',
+                  lastUpdate: instance.warmupStats.createdAt || null,
                 },
               };
             }
 
-            const warmupTime = warmupStats.warmupTime;
-            const warmupHours = warmupTime / 3600;
-            const progress = Math.min((warmupHours / 400) * 100, 100);
-
+            // Se não tiver warmupStats válidos, retorna progresso 0
             return {
               ...instance,
               warmupStatus: {
-                progress: Math.round(progress * 100) / 100,
-                isRecommended: warmupHours >= 300,
-                warmupHours: Math.round(warmupHours * 100) / 100,
-                status: warmupStats?.status || 'inactive',
-                lastUpdate: warmupStats?.createdAt || null,
+                progress: 0,
+                isRecommended: false,
+                warmupHours: 0,
+                status: 'inactive',
+                lastUpdate: null,
               },
             };
           },
