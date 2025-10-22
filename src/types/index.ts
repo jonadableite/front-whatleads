@@ -79,36 +79,36 @@ export interface StartCampaignPayload {
   };
 }
 
-// ✅ Interface de mídia mais específica e tipada
+// ✅ Interface de mídia no formato Evolution API
 export interface MediaPayload {
-  type: 'image' | 'video' | 'audio';
-  base64: string;
-  fileName?: string;
-  mimetype?: string;
+  mediatype: "image" | "video" | "audio";
+  media: string; // Base64 puro sem prefixo
+  fileName: string;
+  mimetype: string;
   caption?: string;
 }
 
 // ✅ Interface para diferentes tipos de mídia (opcional, para uso específico)
 export type SpecificMediaPayload =
   | {
-      type: 'image';
-      base64: string;
-      fileName?: string;
-      mimetype?: string;
+      mediatype: "image";
+      media: string;
+      fileName: string;
+      mimetype: string;
       caption?: string;
     }
   | {
-      type: 'audio';
-      base64: string;
-      fileName?: string;
-      mimetype?: string;
+      mediatype: "audio";
+      media: string;
+      fileName: string;
+      mimetype: string;
       caption?: string;
     }
   | {
-      type: 'video';
-      base64: string;
-      fileName?: string;
-      mimetype?: string;
+      mediatype: "video";
+      media: string;
+      fileName: string;
+      mimetype: string;
       caption?: string;
     };
 
@@ -146,7 +146,7 @@ export interface CampaignStatistics {
 
 // ✅ Interface para progresso de campanha
 export interface CampaignProgress {
-  status: 'preparing' | 'running' | 'paused' | 'completed' | 'failed';
+  status: "preparing" | "running" | "paused" | "completed" | "failed";
   progress: number;
   statistics: CampaignStatistics;
 }
@@ -159,20 +159,20 @@ export interface WarmerApiResponse<T> {
 
 // ✅ Tipos para status de campanha
 export type CampaignStatus =
-  | 'draft'
-  | 'preparing'
-  | 'running'
-  | 'paused'
-  | 'completed'
-  | 'failed'
-  | 'scheduled';
+  | "draft"
+  | "preparing"
+  | "running"
+  | "paused"
+  | "completed"
+  | "failed"
+  | "scheduled";
 
 // ✅ Tipos para segmentação
 export type SegmentationType =
-  | 'ALTAMENTE_ENGAJADO'
-  | 'MODERADAMENTE_ENGAJADO'
-  | 'LEVEMENTE_ENGAJADO'
-  | 'BAIXO_ENGAJAMENTO';
+  | "ALTAMENTE_ENGAJADO"
+  | "MODERADAMENTE_ENGAJADO"
+  | "LEVEMENTE_ENGAJADO"
+  | "BAIXO_ENGAJAMENTO";
 
 // ✅ Interface para leads
 export interface Lead {

@@ -753,39 +753,49 @@ export default function Disparos() {
         throw new Error('Instância não encontrada');
       }
 
-      // Preparar payload da mídia
+      // Preparar payload da mídia no formato correto para Evolution API
       let mediaPayload = null;
       if (mediaType === 'image' && base64Image) {
         mediaPayload = {
-          type: 'image',
-          base64: base64Image,
+          mediatype: 'image',
+          media: base64Image, // Base64 puro sem prefixo
           fileName: 'image.jpg',
           mimetype: 'image/jpeg',
+          caption: '', // Opcional
         };
       } else if (mediaType === 'video' && base64Video) {
         mediaPayload = {
-          type: 'video',
-          base64: base64Video,
+          mediatype: 'video',
+          media: base64Video, // Base64 puro sem prefixo
           fileName: 'video.mp4',
           mimetype: 'video/mp4',
+          caption: '', // Opcional
         };
       } else if (mediaType === 'audio' && base64Audio) {
         mediaPayload = {
-          type: 'audio',
-          base64: base64Audio,
+          mediatype: 'audio',
+          media: base64Audio, // Base64 puro sem prefixo
           fileName: 'audio.mp3',
           mimetype: 'audio/mpeg',
+          caption: '', // Opcional
         };
       }
       // Se mediaType for 'none', mediaPayload permanece null
 
-      console.log('Media Payload preparado:', {
+      console.log('Media Payload preparado (formato Evolution API):', {
         mediaType,
         hasBase64Image: !!base64Image,
         hasBase64Video: !!base64Video,
         hasBase64Audio: !!base64Audio,
         mediaPayload: mediaPayload
-          ? { ...mediaPayload, media: '[BASE64_DATA]' }
+          ? {
+            mediatype: mediaPayload.mediatype,
+            fileName: mediaPayload.fileName,
+            mimetype: mediaPayload.mimetype,
+            caption: mediaPayload.caption,
+            mediaLength: mediaPayload.media?.length || 0,
+            mediaPreview: mediaPayload.media?.substring(0, 50) + '...'
+          }
           : null,
       });
 
