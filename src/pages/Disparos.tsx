@@ -3,7 +3,7 @@ import { ApiError } from '@/types/error';
 import Compressor from 'compressorjs';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useCallback, useEffect, useState } from 'react';
-import { FaClock, FaRocket, FaWhatsapp } from 'react-icons/fa';
+import { FaClock, FaRocket } from 'react-icons/fa';
 import { FiDatabase, FiUpload } from 'react-icons/fi';
 import {
   IoMdImage,
@@ -20,49 +20,9 @@ import { SpinTaxEditor } from '../components/SpinTaxEditor';
 import api from '../lib/api';
 import { cn, getWarmupProgressColor } from '../lib/utils';
 import { authService } from '../services/auth.service';
-import { calculateWarmupProgress } from '../services/instance.service';
 import type { Instancia, StartCampaignPayload } from '../types';
 import { SpinTaxValidationResult } from '../types/spintax.types';
 
-// Funções utilitárias para formatação de data brasileira
-const formatDateToBrazilian = (date: Date): string => {
-  return date.toLocaleDateString('pt-BR', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric'
-  });
-};
-
-const formatTimeToBrazilian = (date: Date): string => {
-  return date.toLocaleTimeString('pt-BR', {
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false
-  });
-};
-
-const formatDateTimeToBrazilian = (date: Date): string => {
-  return date.toLocaleString('pt-BR', {
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-    hour12: false
-  });
-};
-
-// Converte data do formato brasileiro DD/MM/AAAA para formato ISO AAAA-MM-DD
-const convertBrazilianDateToISO = (brazilianDate: string): string => {
-  const [day, month, year] = brazilianDate.split('/');
-  return `${year}-${month.padStart(2, '0')}-${day.padStart(2, '0')}`;
-};
-
-// Converte data do formato ISO AAAA-MM-DD para formato brasileiro DD/MM/AAAA
-const convertISODateToBrazilian = (isoDate: string): string => {
-  const [year, month, day] = isoDate.split('-');
-  return `${day}/${month}/${year}`;
-};
 
 // Tipos específicos para melhor type safety
 type MediaType = 'none' | 'image' | 'audio' | 'video';
@@ -91,17 +51,6 @@ interface Campaign {
   statistics: CampaignStatistics | null;
 }
 
-interface MediaPayload {
-  type: MediaType;
-  base64: string;
-  fileName: string;
-  mimetype: string;
-}
-
-interface FormValidationResult {
-  isValid: boolean;
-  errorMessage?: string;
-}
 
 export default function Disparos() {
   const navigate = useNavigate();
@@ -110,9 +59,7 @@ export default function Disparos() {
   const [instances, setInstances] = useState<Instancia[]>([]);
   const [selectedInstance, setSelectedInstance] = useState<string>('');
   const [message, setMessage] = useState<string>('');
-  const [file, setFile] = useState<File | null>(null);
   const [mediaType, setMediaType] = useState<MediaType>('none');
-  const [totalNumbers, setTotalNumbers] = useState<number>(0);
   const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
   const [base64Image, setBase64Image] = useState<string>('');
   const [base64Video, setBase64Video] = useState<string>('');
@@ -197,54 +144,6 @@ export default function Disparos() {
     }
   };
 
-  // Função para lidar com mudança de arquivo com tipagem melhorada
-  const handleFileChange = (event: React.ChangeEvent<HTMLInputElement>): void => {
-    const selectedFile = event.target.files?.[0];
-    if (!selectedFile) {
-      setFile(null);
-      setTotalNumbers(0);
-      return;
-    }
-
-    // Validação de tipo de arquivo
-    const allowedTypes = ['.txt', '.csv'];
-    const fileExtension = selectedFile.name.toLowerCase().substring(selectedFile.name.lastIndexOf('.'));
-
-    if (!allowedTypes.includes(fileExtension)) {
-      toast.error('Formato de arquivo não suportado. Use apenas arquivos .txt ou .csv');
-      event.target.value = '';
-      return;
-    }
-
-    // Validação de tamanho (máximo 10MB)
-    const maxSize = 10 * 1024 * 1024; // 10MB
-    if (selectedFile.size > maxSize) {
-      toast.error('Arquivo muito grande. O tamanho máximo é 10MB');
-      event.target.value = '';
-      return;
-    }
-
-    setFile(selectedFile);
-
-    // Ler arquivo para contar números
-    const reader = new FileReader();
-    reader.onload = (e: ProgressEvent<FileReader>) => {
-      const content = e.target?.result as string;
-      if (content) {
-        const lines = content.split('\n').filter(line => line.trim().length > 0);
-        setTotalNumbers(lines.length);
-        toast.success(`${lines.length} contatos carregados com sucesso`);
-      }
-    };
-
-    reader.onerror = () => {
-      toast.error('Erro ao ler o arquivo');
-      setFile(null);
-      setTotalNumbers(0);
-    };
-
-    reader.readAsText(selectedFile);
-  };
 
   // Função para retomar a campanha
   const handleResumeCampaign = async (): Promise<void> => {
@@ -497,10 +396,13 @@ export default function Disparos() {
     const file = event.target.files?.[0];
     if (!file) return;
 
-    // Validação de tamanho do arquivo
-    const maxSize = mediaType === 'video' ? 16 * 1024 * 1024 : 10 * 1024 * 1024; // 16MB para vídeo, 10MB para outros
+    // NOVO: Limite mais restritivo para vídeos
+    const maxSize = mediaType === 'video'
+      ? 3 * 1024 * 1024  // MUDADO: 3MB para vídeo
+      : 10 * 1024 * 1024; // 10MB para outros
+
     if (file.size > maxSize) {
-      toast.error(`Arquivo muito grande. Tamanho máximo: ${mediaType === 'video' ? '16MB' : '10MB'}`);
+      toast.error(`Arquivo muito grande. Tamanho máximo: ${mediaType === 'video' ? '3MB' : '10MB'}`);
       event.target.value = '';
       return;
     }
@@ -570,9 +472,12 @@ export default function Disparos() {
         console.error('FileReader error');
       };
 
-      // Se for imagem, comprimir antes
+      // Se for imagem ou vídeo, comprimir antes
       if (mediaType === 'image') {
         const compressedFile = await compressImage(file);
+        reader.readAsDataURL(compressedFile);
+      } else if (mediaType === 'video') {
+        const compressedFile = await compressVideo(file);
         reader.readAsDataURL(compressedFile);
       } else {
         reader.readAsDataURL(file);
@@ -653,6 +558,59 @@ export default function Disparos() {
         });
       } catch (error) {
         console.error('Erro ao inicializar compressão:', error);
+        reject(error);
+      }
+    });
+  };
+
+  // Função para comprimir vídeos
+  const compressVideo = (
+    file: File,
+    maxSizeMB = 3,
+  ): Promise<Blob> => {
+    return new Promise((resolve, reject) => {
+      try {
+        new Compressor(file, {
+          quality: 0.7,
+          maxWidth: 1280,
+          maxHeight: 720,
+          success(result) {
+            console.log('Compressão de vídeo inicial:', {
+              originalSize: file.size,
+              compressedSize: result.size,
+              reduction: ((file.size - result.size) / file.size * 100).toFixed(2) + '%'
+            });
+
+            if (result.size > maxSizeMB * 1024 * 1024) {
+              console.log('Primeira compressão de vídeo não foi suficiente, comprimindo novamente...');
+              new Compressor(file, {
+                quality: 0.5,
+                maxWidth: 854,
+                maxHeight: 480,
+                success: (finalResult) => {
+                  console.log('Compressão de vídeo final:', {
+                    originalSize: file.size,
+                    finalSize: finalResult.size,
+                    totalReduction: ((file.size - finalResult.size) / file.size * 100).toFixed(2) + '%'
+                  });
+                  resolve(finalResult);
+                },
+                error: (err) => {
+                  console.error('Erro na segunda compressão de vídeo:', err);
+                  reject(err);
+                },
+              });
+            } else {
+              resolve(result);
+            }
+          },
+          error: (err) => {
+            console.error('Erro na primeira compressão de vídeo:', err);
+            reject(err);
+          },
+        });
+      } catch (error) {
+        console.error('Erro ao inicializar compressão de vídeo:', error);
         reject(error);
       }
     });
@@ -958,7 +916,7 @@ export default function Disparos() {
           const response = await api.get(
             `/api/campaigns/${campaignId}/progress`,
           );
-          const { status, statistics } = response.data.data;
+          const { status } = response.data.data;
 
           if (status === 'preparing') {
             // Progress handled by ProgressModal component
@@ -967,7 +925,6 @@ export default function Disparos() {
           }
 
           setCampaignStatus(status);
-          setTotalNumbers(statistics.totalLeads);
 
           if (status !== 'preparing' && status !== 'running') {
             clearInterval(interval);
