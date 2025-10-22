@@ -382,8 +382,8 @@ export default function Disparos() {
 
       return newInstances.some((newInstance, index) => {
         const prevInstance = prevInstances[index];
-        const prevProgress = calculateWarmupProgress(prevInstance);
-        const newProgress = calculateWarmupProgress(newInstance);
+        const prevProgress = prevInstance.warmupStatus?.progress || 0;
+        const newProgress = newInstance.warmupStatus?.progress || 0;
 
         return (
           Math.abs(prevProgress - newProgress) > 0.1 ||
@@ -393,28 +393,22 @@ export default function Disparos() {
     };
 
     const updatedInstances = instances.map((instanceItem) => {
-      const warmupProgress = calculateWarmupProgress(instanceItem);
-
-      // Verifica se o progresso mudou significativamente (margem de 0.1%)
-      const progressChanged =
-        Math.abs(
-          (instanceItem.warmupStatus?.progress || 0) - warmupProgress,
-        ) > 0.1;
-
-      if (progressChanged) {
-        return {
-          ...instanceItem,
-          warmupStatus: {
-            progress: warmupProgress,
-            isRecommended: warmupProgress >= 75,
-            warmupHours: warmupProgress * 4, // Aproximação baseada no progresso
-            status: 'active',
-            lastUpdate: new Date().toISOString(),
-          },
-        };
+      // Se já tem warmupStatus, manter os dados existentes
+      if (instanceItem.warmupStatus) {
+        return instanceItem;
       }
 
-      return instanceItem;
+      // Se não tem warmupStatus, criar um padrão
+      return {
+        ...instanceItem,
+        warmupStatus: {
+          progress: 0,
+          isRecommended: false,
+          warmupHours: 0,
+          status: 'inactive',
+          lastUpdate: null,
+        },
+      };
     });
 
     // Só atualiza se realmente houver mudança significativa
@@ -428,10 +422,11 @@ export default function Disparos() {
     try {
       setIsLoadingInstances(true);
       setIsLoadingCampaigns(true);
-      const [instancesResponse, campaignsResponse] =
+      const [instancesResponse, campaignsResponse, warmupData] =
         await Promise.all([
           GetInstancesAction(),
           api.get<Campaign[]>('/api/campaigns'),
+          api.get('/api/dashboard').catch(() => null), // Buscar dados de aquecimento
         ]);
 
       if (
@@ -439,7 +434,47 @@ export default function Disparos() {
         JSON.stringify(instancesResponse.instances) !==
         JSON.stringify(instances)
       ) {
-        setInstances(instancesResponse.instances);
+        // Processar instâncias com dados de aquecimento se disponíveis
+        const processedInstances = instancesResponse.instances.map((instance) => {
+          // Se há dados de aquecimento, usar os dados reais
+          if (warmupData?.data?.instances) {
+            const warmupInstance = warmupData.data.instances.find(
+              (w: any) => w.instanceName === instance.instanceName
+            );
+
+            if (warmupInstance) {
+              // Calcular progresso baseado no warmupTime (400 horas = 100%)
+              const warmupProgress = warmupInstance.warmupTime > 0
+                ? Math.min((warmupInstance.warmupTime / (400 * 3600)) * 100, 100)
+                : 0;
+
+              return {
+                ...instance,
+                warmupStatus: {
+                  progress: warmupProgress,
+                  isRecommended: warmupProgress >= 75,
+                  warmupHours: warmupInstance.warmupTime || 0,
+                  status: warmupInstance.status || 'inactive',
+                  lastUpdate: warmupInstance.lastActive || new Date().toISOString(),
+                },
+              };
+            }
+          }
+
+          // Se não há dados de aquecimento, usar progresso 0
+          return {
+            ...instance,
+            warmupStatus: {
+              progress: 0,
+              isRecommended: false,
+              warmupHours: 0,
+              status: 'inactive',
+              lastUpdate: null,
+            },
+          };
+        });
+
+        setInstances(processedInstances);
       }
 
       if (campaignsResponse.data) {
@@ -1131,7 +1166,7 @@ export default function Disparos() {
                               'Instância selecionada:',
                               selectedInstanceData,
                             );
-                            const warmupProgress = calculateWarmupProgress(selectedInstanceData);
+                            const warmupProgress = selectedInstanceData.warmupStatus?.progress || 0;
                             console.log(
                               'Progresso de Warmup:',
                               warmupProgress,
@@ -1167,8 +1202,8 @@ export default function Disparos() {
                               : 'Selecione a Instância'}
                         </option>
                         {instances.map((instance) => {
-                          const warmupProgress = calculateWarmupProgress(instance);
-                          const isRecommended = warmupProgress >= 75; // 75% ou mais é recomendado
+                          const warmupProgress = instance.warmupStatus?.progress || 0;
+                          const isRecommended = instance.warmupStatus?.isRecommended || false;
 
                           return (
                             <option
@@ -1233,10 +1268,10 @@ export default function Disparos() {
                                       Aquecimento:{' '}
                                       <span
                                         className={`${getWarmupProgressColor(
-                                          calculateWarmupProgress(selectedInstanceData) || 0,
+                                          selectedInstanceData.warmupStatus?.progress || 0,
                                         )}`}
                                       >
-                                        {calculateWarmupProgress(selectedInstanceData).toFixed(
+                                        {(selectedInstanceData.warmupStatus?.progress || 0).toFixed(
                                           2,
                                         )}
                                         %
@@ -1246,8 +1281,8 @@ export default function Disparos() {
                                 )}
 
                                 {(() => {
-                                  const warmupProgress = calculateWarmupProgress(selectedInstanceData);
-                                  const isRecommended = warmupProgress >= 75;
+                                  const warmupProgress = selectedInstanceData.warmupStatus?.progress || 0;
+                                  const isRecommended = selectedInstanceData.warmupStatus?.isRecommended || false;
 
                                   return isRecommended && (
                                     <div className="text-sm text-green-400 flex items-center gap-2">
