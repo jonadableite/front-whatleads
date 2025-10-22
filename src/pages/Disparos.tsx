@@ -819,7 +819,7 @@ export default function Disparos() {
       const payload: StartCampaignPayload = {
         instanceName: selectedInstanceData.instanceName,
         message: message.trim(),
-        media: mediaPayload,
+        media: mediaPayload || undefined, // ⭐ Garantir que null vira undefined
         minDelay,
         maxDelay,
       };
@@ -828,9 +828,20 @@ export default function Disparos() {
         payload.segmentation = { segment: selectedSegment }; // Correcting the segmentation assignment
       }
 
+      // ⭐ Log antes de enviar para debug
+      console.log('🚀 Enviando payload para backend:', {
+        instanceName: payload.instanceName,
+        hasMedia: !!payload.media,
+        mediaType: payload.media?.mediatype,
+        mediaLength: payload.media?.media?.length || 0,
+        mediaPreview: payload.media?.media?.substring(0, 50) + '...',
+        fileName: payload.media?.fileName,
+        mimetype: payload.media?.mimetype
+      });
+
       const startResponse = await api.post(
         `/api/campaigns/${campaignId}/start`,
-        payload,
+        payload, // ⭐ Enviar o payload completo
       );
 
       if (dispatchMode === 'new') {
