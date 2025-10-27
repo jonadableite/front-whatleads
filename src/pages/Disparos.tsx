@@ -3,7 +3,7 @@ import { ApiError } from '@/types/error';
 import Compressor from 'compressorjs';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useCallback, useEffect, useState } from 'react';
-import { FaClock, FaRocket, FaWhatsapp } from 'react-icons/fa';
+import { FaClock, FaRocket } from 'react-icons/fa';
 import { FiDatabase, FiUpload } from 'react-icons/fi';
 import {
   IoMdImage,
@@ -68,7 +68,7 @@ const convertISODateToBrazilian = (isoDate: string): string => {
 type MediaType = 'none' | 'image' | 'audio' | 'video';
 type SendType = 'now' | 'scheduled';
 type DispatchMode = 'new' | 'existing';
-type CampaignStatus = 'draft' | 'running' | 'paused' | 'completed' | 'cancelled';
+type CampaignStatus = 'draft' | 'running' | 'paused' | 'completed';
 type SegmentType = 'ALTAMENTE_ENGAJADO' | 'MODERADAMENTE_ENGAJADO' | 'LEVEMENTE_ENGAJADO' | 'BAIXO_ENGAJAMENTO';
 
 interface CampaignStatistics {
@@ -82,13 +82,25 @@ interface CampaignStatistics {
 interface Campaign {
   id: string;
   name: string;
+  isAiResponder?: boolean;
   description?: string;
-  status: CampaignStatus;
+  status: CampaignStatus | "draft" | "scheduled" | "running" | "paused" | "completed" | "failed" | "pending";
   type: string;
   instance: string;
   connectionStatus: string;
   progress: number;
   statistics: CampaignStatistics | null;
+  scheduledDate?: string;
+  scheduledStatus?: string;
+  startedAt?: Date;
+  completedAt?: Date;
+  pausedAt?: Date;
+  minDelay: number;
+  maxDelay: number;
+  userId: string;
+  instanceName: string;
+  createdAt: Date;
+  updatedAt: Date;
 }
 
 interface MediaPayload {
@@ -142,7 +154,7 @@ export default function Disparos() {
   const handleSegmentChange = async (
     e: React.ChangeEvent<HTMLSelectElement>,
   ) => {
-    const segment = e.target.value;
+    const segment = e.target.value as SegmentType | '';
     setSelectedSegment(segment);
 
     console.log('Selected Campaign:', selectedCampaign);
@@ -152,7 +164,7 @@ export default function Disparos() {
       try {
         const response = await fetchLeadCount(
           selectedCampaign,
-          segment,
+          segment as SegmentType,
         );
         console.log('Lead Count Response:', response); // Adicione este log
       } catch (error) {
@@ -277,11 +289,14 @@ export default function Disparos() {
       console.error('Erro ao retomar campanha:', error);
 
       // Log mais detalhado do erro
-      if ((error as any).response) {
-        console.error(
-          'Detalhes da resposta de erro:',
-          (error as any).response.data,
-        );
+      if (error && typeof error === 'object' && 'response' in error) {
+        const errorResponse = error as { response?: { data?: unknown } };
+        if (errorResponse.response?.data) {
+          console.error(
+            'Detalhes da resposta de erro:',
+            errorResponse.response.data,
+          );
+        }
       }
 
       toast.error(`Erro ao retomar campanha: ${(error as Error).message}`);
@@ -704,6 +719,17 @@ export default function Disparos() {
 
       if (!selectedInstanceData) {
         throw new Error('Instância não encontrada');
+      }
+
+      // Notificação de limpeza de metadados
+      if (mediaType !== 'none' && (base64Image || base64Video || base64Audio)) {
+        toast.info('🧹 Limpando metadados da mídia antes do envio...', {
+          position: 'top-right',
+          autoClose: 3000,
+        });
+
+        // Pequeno delay para dar feedback visual
+        await new Promise((resolve) => setTimeout(resolve, 500));
       }
 
       // Preparar payload da mídia
@@ -1339,7 +1365,7 @@ export default function Disparos() {
                     </label>
                     <select
                       value={mediaType}
-                      onChange={(e) => setMediaType(e.target.value)}
+                      onChange={(e) => setMediaType(e.target.value as MediaType)}
                       className="w-full p-4 bg-electric/10 border border-electric rounded-xl text-white focus:ring-2 focus:ring-neon-green transition-all appearance-none"
                       style={{
                         WebkitAppearance: 'none',
