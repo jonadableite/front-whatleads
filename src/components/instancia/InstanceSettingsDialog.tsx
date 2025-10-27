@@ -53,8 +53,21 @@ export function InstanceSettingsDialog({
 	const [loading, setLoading] = useState(false); // Estado de loading para salvar
 	const [loadingGet, setLoadingGet] = useState(false);
 
-	const apiKey = import.meta.env.VITE_PUBLIC_API_KEY || "429683C4C977415CAAFCCE10F7D57E11";
-	const apiUrl = import.meta.env.VITE_EVOLUTION_API_URL || "http://localhost:8080";
+	const apiKey = import.meta.env.VITE_PUBLIC_API_KEY || "";
+	const apiUrl = import.meta.env.VITE_EVOLUTION_API_URL || "";
+
+	// Mostrar aviso se variáveis não estão configuradas
+	useEffect(() => {
+		if (!apiKey || !apiUrl) {
+			console.warn(
+				"⚠️ Variáveis de ambiente não configuradas:",
+				{
+					apiKey: !!apiKey,
+					apiUrl: !!apiUrl,
+				}
+			);
+		}
+	}, [apiKey, apiUrl]);
 
 	// Função para buscar configurações atuais da instância
 	const fetchCurrentSettings = useCallback(async () => {

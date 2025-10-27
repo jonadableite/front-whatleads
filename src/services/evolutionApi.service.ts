@@ -26,7 +26,13 @@ const VITE_API_URL =
 const API_KEY =
   import.meta.env.VITE_EVOLUTION_API_KEY ||
   import.meta.env.VITE_PUBLIC_API_KEY ||
-  "6A4F8E34A2F41D2B9E8B52F63E3C8A1";
+  "";
+
+if (!API_KEY) {
+  console.warn(
+    "⚠️ VITE_EVOLUTION_API_KEY ou VITE_PUBLIC_API_KEY não configurada!"
+  );
+}
 
 // Axios instance configurada para a Evolution API
 export const evolutionApi = axios.create({
