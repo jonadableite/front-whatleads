@@ -26,7 +26,7 @@ const VITE_API_URL =
 const API_KEY =
   import.meta.env.VITE_EVOLUTION_API_KEY ||
   import.meta.env.VITE_PUBLIC_API_KEY ||
-  "429683C4C977415CAAFCCE10F7D57E11";
+  "6A4F8E34A2F41D2B9E8B52F63E3C8A1";
 
 // Axios instance configurada para a Evolution API
 export const evolutionApi = axios.create({
@@ -186,7 +186,9 @@ export const setPresence = async (
 export const deleteInstance = async (
   instanceId: string
 ): Promise<{ message: string }> => {
-  const response = await backendApi.delete(`/api/instances/instance/${instanceId}`);
+  const response = await backendApi.delete(
+    `/api/instances/instance/${instanceId}`
+  );
   return response.data;
 };
 
