@@ -1256,6 +1256,7 @@ export default function WhatsappPage() {
             if (!OPEN) {
               setSelectedInstanceForProxy(null);
             }
+
           }}
           onUpdate={mutateInstances} // Recarrega as instâncias ao salvar configurações
         />

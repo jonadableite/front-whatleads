@@ -15,13 +15,14 @@ export default defineConfig(({ mode }) => {
 		},
 		define: {
 			"import.meta.env.VITE_API_URL": JSON.stringify(env.VITE_API_URL),
-			"import.meta.env.VITE_PUBLIC_API_KEY": JSON.stringify(
-				env.VITE_PUBLIC_API_KEY,
+			"import.meta.env.VITE_EVOLUTION_API_KEY": JSON.stringify(
+				env.VITE_EVOLUTION_API_KEY,
 			),
 		},
 		server: {
 			headers: {
-				"Content-Security-Policy": "font-src 'self' https://js.stripe.com; style-src 'self' 'unsafe-inline' https://js.stripe.com; script-src 'self' 'unsafe-inline' https://js.stripe.com; connect-src 'self' https://api.stripe.com;"
+				// Allow backend API and dev tooling during development
+				"Content-Security-Policy": `font-src 'self' https://js.stripe.com; style-src 'self' 'unsafe-inline' https://js.stripe.com; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://js.stripe.com; connect-src 'self' ${env.VITE_API_URL || "http://localhost:9000"} https://api.stripe.com ws: wss: ${env.VITE_EVOLUTION_API_URL || "https://evo.whatlead.com.br"};`
 			}
 		},
 		build: {

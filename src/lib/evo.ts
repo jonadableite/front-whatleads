@@ -2,9 +2,9 @@
 import axios from 'axios';
 
 // Acessa as variáveis de ambiente definidas no seu arquivo .env
-// Certifique-se de que VITE_EVOLUTION_API_URL e VITE_PUBLIC_API_KEY estão no seu .env
+// Certifique-se de que VITE_EVOLUTION_API_URL e VITE_EVOLUTION_API_KEY estão no seu .env
 const API_URL = import.meta.env.VITE_EVOLUTION_API_URL;
-const API_KEY = import.meta.env.VITE_PUBLIC_API_KEY;
+const API_KEY = import.meta.env.VITE_EVOLUTION_API_KEY;
 
 // Opcional: Adicionar uma verificação para alertar se as variáveis não estiverem definidas
 if (!API_URL) {
@@ -14,7 +14,7 @@ if (!API_URL) {
 }
 if (!API_KEY) {
   console.warn(
-    'VITE_PUBLIC_API_KEY não está definida. As requisições à API podem falhar.',
+    'VITE_EVOLUTION_API_KEY não está definida. As requisições à API podem falhar.',
   );
 }
 

@@ -53,7 +53,7 @@ export function InstanceSettingsDialog({
 	const [loading, setLoading] = useState(false); // Estado de loading para salvar
 	const [loadingGet, setLoadingGet] = useState(false);
 
-	const apiKey = import.meta.env.VITE_PUBLIC_API_KEY || "";
+	const apiKey = import.meta.env.VITE_EVOLUTION_API_KEY || "";
 	const apiUrl = import.meta.env.VITE_EVOLUTION_API_URL || "";
 
 	// Mostrar aviso se variáveis não estão configuradas
@@ -158,7 +158,7 @@ export function InstanceSettingsDialog({
 			toast({
 				title: "Erro",
 				description:
-					"Nome da instância, chave API ou URL da API não encontrados. Verifique as variáveis de ambiente VITE_PUBLIC_API_KEY e VITE_EVOLUTION_API_URL.",
+					"Nome da instância, chave API ou URL da API não encontrados. Verifique as variáveis de ambiente VITE_EVOLUTION_API_KEY e VITE_EVOLUTION_API_URL.",
 				variant: "destructive",
 			});
 			return;
